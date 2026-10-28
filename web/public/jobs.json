@@ -1,13 +1,13 @@
 {
- "generatedAt": "2026-10-28T10:30:27+00:00",
+ "generatedAt": "2026-10-28T13:26:41+00:00",
  "sources": {
   "Arbeitsagentur": {
    "ok": true,
-   "count": 66
+   "count": 67
   },
   "Arbeitnow": {
    "ok": true,
-   "count": 191
+   "count": 183
   },
   "Adzuna": {
    "ok": false,
@@ -28,8 +28,35 @@
    "count": 10
   }
  },
- "count": 27,
+ "count": 28,
  "jobs": [
+  {
+   "id": "b0cb55082b29",
+   "title": "Praktikant*in Anwendungsmanagement & IT-Dokumentation",
+   "company": "SachsenEnergie AG",
+   "location": "Dresden",
+   "remote": false,
+   "type": "internship",
+   "types": [
+    "internship"
+   ],
+   "fields": [
+    "software",
+    "other"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-28",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/17811-00071304b5b002-S"
+    }
+   ],
+   "snippet": "Wirtschaftsinformatiker/in (Hochschule)",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
   {
    "id": "77fe1bbc9343",
    "title": "Unsolicited application Mandatory Internship",
@@ -177,7 +204,7 @@
    "fields": [
     "software"
    ],
-   "englishFriendly": false,
+   "englishFriendly": true,
    "postedAt": "2026-10-27",
    "deadline": null,
    "links": [
