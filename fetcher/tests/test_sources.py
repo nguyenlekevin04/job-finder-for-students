@@ -1,7 +1,10 @@
 """Parser tests against saved real responses (fixtures/)."""
 import json
 
-from fetcher.sources import arbeitnow, arbeitsagentur, fraunhofer, hzdr, tu_dresden
+import requests
+
+from fetcher import net
+from fetcher.sources import adzuna, arbeitnow, arbeitsagentur, fraunhofer, hzdr, tu_dresden
 
 
 def test_arbeitsagentur(fixture_text):
@@ -61,3 +64,60 @@ def test_tu_dresden(fixture_text):
     assert j.company == "TU Dresden – Professur für Algebraische und logische Grundlagen der Informatik"
     assert j.deadline == "2026-10-30"
     assert "Informatik" in j.tags
+
+
+def test_arbeitnow_skips_malformed_records():
+    data = {"data": [
+        {"title": "No slug", "url": "https://x", "remote": True},
+        {"slug": "ok", "title": "Werkstudent", "url": "https://www.arbeitnow.com/ok", "remote": True},
+    ]}
+    assert [j.source_id for j in arbeitnow.parse(data)] == ["ok"]
+
+
+def _adzuna(id_, title, desc="", city="Berlin"):
+    return {"id": id_, "title": title, "description": desc, "redirect_url": f"https://adzuna/{id_}",
+            "location": {"display_name": city}, "company": {"display_name": "ACME"}}
+
+
+def test_adzuna_local_results_are_not_remote():
+    data = {"results": [_adzuna("1", "Werkstudent", "Homeoffice möglich", city="Radebeul")]}
+    [job] = adzuna.parse(data, local=True)
+    assert job.remote is False
+
+
+def test_adzuna_nationwide_needs_clear_remote():
+    data = {"results": [
+        _adzuna("hybrid", "Werkstudent Software", "2 Tage Home-Office pro Woche"),
+        _adzuna("full", "Werkstudent Software", "Die Stelle ist 100% remote."),
+        _adzuna("title", "Working Student Data (Remote)", "Great team"),
+    ]}
+    jobs = adzuna.parse(data, local=False)
+    assert [j.source_id for j in jobs] == ["full", "title"]
+    assert all(j.remote for j in jobs)
+
+
+def test_adzuna_skips_malformed_records():
+    bad = _adzuna("x", "Werkstudent")
+    del bad["redirect_url"]
+    data = {"results": [bad, _adzuna("ok", "Werkstudent", city="Dresden")]}
+    assert [j.source_id for j in adzuna.parse(data, local=True)] == ["ok"]
+
+
+def _response(body: bytes, content_type: str) -> requests.Response:
+    res = requests.Response()
+    res._content = body
+    res.headers["Content-Type"] = content_type
+    res.encoding = requests.utils.get_encoding_from_headers(res.headers)
+    return res
+
+
+def test_get_text_detects_utf8_without_charset(monkeypatch):
+    body = "Werkstudent für Prüfstände und Messtechnik in Dresden".encode()
+    monkeypatch.setattr(net, "_get", lambda url, **kw: _response(body, "text/html"))
+    assert "für Prüfstände" in net.get_text("https://x")
+
+
+def test_get_text_respects_declared_charset(monkeypatch):
+    body = "Prüfung".encode("latin-1")
+    monkeypatch.setattr(net, "_get", lambda url, **kw: _response(body, "text/html; charset=ISO-8859-1"))
+    assert net.get_text("https://x") == "Prüfung"

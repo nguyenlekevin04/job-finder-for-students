@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from fetcher.classify import classify  # noqa: E402
+from fetcher.classify import FIELD_LABELS, classify  # noqa: E402
 from fetcher.sources import adzuna, arbeitnow, arbeitsagentur, fraunhofer, hzdr, tu_dresden  # noqa: E402
 
 OUTPUT = ROOT / "web" / "public" / "jobs.json"
@@ -112,7 +112,7 @@ def build_jobs(raw: list) -> dict[str, dict]:
             if len(tags["snippet"]) > len(j["snippet"]):
                 j["snippet"] = tags["snippet"]
             j["englishFriendly"] = j["englishFriendly"] or tags["englishFriendly"]
-            j["fields"] = sorted(set(j["fields"]) | set(tags["fields"]), key=["ai", "data", "software", "hardware", "other"].index)
+            j["fields"] = sorted(set(j["fields"]) | set(tags["fields"]), key=list(FIELD_LABELS).index)
             continue
         jobs[jid] = {
             "id": jid,

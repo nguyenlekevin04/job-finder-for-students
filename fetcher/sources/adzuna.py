@@ -29,6 +29,11 @@ QUERIES = [
 ]
 
 REMOTE = re.compile(r"remote|home.?office|mobiles arbeiten|100 ?% mobil", re.I)
+# For descriptions only clear "fully remote" wording counts; plain "remote" or
+# "Home-Office" there is usually a hybrid perk.
+FULLY_REMOTE = re.compile(
+    r"100 ?% (remote|home.?office|mobil)|(fully|full|komplett|vollständig|vollstaendig|ausschließlich|rein)"
+    r"[- ](remote|im home.?office|mobil)|remote[- ]only|nur remote", re.I)
 
 
 def is_enabled() -> bool:
@@ -39,9 +44,12 @@ def parse(data: dict, *, local: bool) -> list[Job]:
     jobs = []
     for j in data.get("results") or []:
         title = clean_text(j.get("title"))
+        if not (j.get("id") and j.get("redirect_url") and title):
+            continue
         desc = clean_text(j.get("description"))
         location = (j.get("location") or {}).get("display_name") or ""
-        remote = bool(REMOTE.search(f"{title} {desc}"))
+        # Local (Dresden-area) results are on-site; nationwide ones need clear remote wording.
+        remote = not local and bool(REMOTE.search(title) or FULLY_REMOTE.search(desc))
         if not local and not remote:
             continue
         jobs.append(Job(

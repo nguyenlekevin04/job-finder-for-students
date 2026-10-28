@@ -35,7 +35,9 @@ def get_json(url: str, **kw):
 
 def get_text(url: str, **kw) -> str:
     res = _get(url, **kw)
-    res.encoding = res.encoding or "utf-8"
+    # requests assumes ISO-8859-1 for text/* without a charset; guess instead.
+    if "charset" not in res.headers.get("content-type", "").lower():
+        res.encoding = res.apparent_encoding or "utf-8"
     return res.text
 
 

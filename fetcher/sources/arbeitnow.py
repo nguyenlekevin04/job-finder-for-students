@@ -20,6 +20,8 @@ def parse(data: dict) -> list[Job]:
     """Keep only Dresden or fully remote postings."""
     jobs = []
     for j in data.get("data") or []:
+        if not (j.get("slug") and j.get("title") and j.get("url")):
+            continue
         location = j.get("location") or ""
         in_dresden = bool(re.search(r"dresden", location, re.I))
         if not in_dresden and not j.get("remote"):

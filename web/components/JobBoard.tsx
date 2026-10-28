@@ -33,10 +33,13 @@ export function JobBoard() {
   const paramStr = params.toString();
   const [filters, setFilters] = useState<Filters>(() => filtersFromParams(new URLSearchParams(paramStr)));
   const [seenParams, setSeenParams] = useState(paramStr);
-  const [pushed, setPushed] = useState(paramStr);
+  // The query string we last pushed, until its URL arrives. Cleared then, so a
+  // later back/forward to the same URL still restores filters.
+  const [pushed, setPushed] = useState<string | null>(null);
   if (paramStr !== seenParams) {
     setSeenParams(paramStr);
-    if (paramStr !== pushed) setFilters(filtersFromParams(new URLSearchParams(paramStr)));
+    if (paramStr === pushed) setPushed(null);
+    else setFilters(filtersFromParams(new URLSearchParams(paramStr)));
   }
 
   useEffect(() => {

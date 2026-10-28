@@ -1,5 +1,5 @@
 const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
 function daysBetween(isoDay: string, now = new Date()): number {
   const [y, m, d] = isoDay.slice(0, 10).split("-").map(Number);
