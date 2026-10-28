@@ -1,17 +1,19 @@
-"""Fetch every source, keep student tech jobs, merge with history, write jobs.json.
+"""Fetch every source, keep student tech jobs, merge with history, save them.
 
-Run from the repo root:  python fetcher/main.py
+Saves to Supabase when SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set,
+otherwise to web/public/jobs.json (see fetcher/store.py).
+
+Run from the repo root:  python fetcher/main.py [--require-db]
 """
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 import sys
 import time
 import traceback
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -19,9 +21,9 @@ sys.path.insert(0, str(ROOT))
 
 from fetcher.classify import FIELD_LABELS, classify  # noqa: E402
 from fetcher.sources import adzuna, arbeitnow, arbeitsagentur, fraunhofer, hzdr, tu_dresden  # noqa: E402
+from fetcher.store import JsonFileStore, get_store  # noqa: E402
 
-OUTPUT = ROOT / "web" / "public" / "jobs.json"
-KEEP_MISSING_DAYS = 7  # keep a job this long after it stops appearing
+OUTPUT = ROOT / "web" / "public" / "jobs.json"  # local fallback when Supabase isn't configured
 
 SOURCES = [arbeitsagentur, arbeitnow, adzuna, tu_dresden, fraunhofer, hzdr]
 
@@ -129,49 +131,25 @@ def build_jobs(raw: list) -> dict[str, dict]:
     return jobs
 
 
-def merge_history(current: dict[str, dict], today: str) -> list[dict]:
-    previous = {}
-    if OUTPUT.exists():
-        try:
-            previous = {j["id"]: j for j in json.loads(OUTPUT.read_text()).get("jobs", [])}
-        except (json.JSONDecodeError, KeyError):
-            print("! previous jobs.json unreadable, starting fresh")
-
-    cutoff = (date.fromisoformat(today) - timedelta(days=KEEP_MISSING_DAYS)).isoformat()
-    merged = []
-    for jid, job in current.items():
-        prev = previous.get(jid)
-        job["firstSeen"] = prev["firstSeen"] if prev else today
-        job["lastSeen"] = today
-        merged.append(job)
-    for jid, prev in previous.items():
-        if jid not in current and prev.get("lastSeen", today) >= cutoff:
-            merged.append(prev)  # temporarily missing; keep for a while
-    merged.sort(key=lambda j: (j.get("postedAt") or j["firstSeen"], j["firstSeen"]), reverse=True)
-    return merged
-
-
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
     load_env()
+    store = get_store(OUTPUT)
+    if "--require-db" in argv and isinstance(store, JsonFileStore):
+        print("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set – refusing to fall back to jobs.json.")
+        return 2
+
     today = date.today().isoformat()
     raw, status = run_sources()
     current = build_jobs(raw)
-    jobs = merge_history(current, today)
 
-    ok_sources = [s for s in status.values() if s["ok"]]
-    if not ok_sources:
-        print("All sources failed – keeping the old jobs.json untouched.")
+    if not any(s["ok"] for s in status.values()):
+        print(f"All sources failed – leaving {store.name} untouched.")
         return 1
 
-    payload = {
-        "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "sources": status,
-        "count": len(jobs),
-        "jobs": jobs,
-    }
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=1))
-    print(f"\nKept {len(current)} of {len(raw)} postings today; {len(jobs)} jobs written to {OUTPUT.relative_to(ROOT)}")
+    generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    total = store.save(current, status, generated_at, today)
+    print(f"\nKept {len(current)} of {len(raw)} postings today; {total} jobs now in {store.name}")
     return 0
 
 

@@ -1,4 +1,4 @@
-name: Update jobs & deploy
+name: Update jobs
 
 on:
   schedule:
@@ -6,20 +6,18 @@ on:
   workflow_dispatch: # "Run workflow" button in the Actions tab
   push:
     branches: [main]
-    paths: ["web/**", "fetcher/**", ".github/workflows/**"]
+    paths: ["fetcher/**", ".github/workflows/**"]
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
-  group: pages
+  group: update-jobs
   cancel-in-progress: false
 
 jobs:
-  build:
+  fetch:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # commit the refreshed jobs.json
-      pages: read # configure-pages reads the Pages site for base_path
     steps:
       - uses: actions/checkout@v4
 
@@ -35,59 +33,13 @@ jobs:
       - name: Test fetcher
         run: python -m pytest fetcher/tests -q
 
-      - name: Fetch jobs
-        # If every source fails, keep yesterday's data and still deploy.
-        continue-on-error: true
+      # Pushes only run the tests; the daily schedule and the manual button
+      # fetch jobs and write them to Supabase.
+      - name: Fetch jobs into Supabase
+        if: github.event_name != 'push'
         env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
           ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
-        run: python fetcher/main.py
-
-      - name: Commit updated jobs.json
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web/public/jobs.json
-          if git diff --cached --quiet; then
-            echo "No changes to jobs.json"
-          else
-            git commit -m "Update jobs ($(date -u +%Y-%m-%d))"
-            git push
-          fi
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      - name: Install web dependencies
-        working-directory: web
-        run: npm ci
-
-      - id: pages
-        uses: actions/configure-pages@v5
-
-      - name: Build static site
-        working-directory: web
-        env:
-          NEXT_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-          NEXT_TELEMETRY_DISABLED: "1"
-        run: npm run build
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: web/out
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+        run: python fetcher/main.py --require-db

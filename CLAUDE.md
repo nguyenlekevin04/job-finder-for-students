@@ -4,13 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A job board for student roles (Werkstudent, internship, thesis) in AI/ML/CS around Dresden plus remote-in-Germany. Two halves joined by one JSON file:
+A job board for student roles (Werkstudent, internship, thesis) in AI/ML/CS around Dresden plus remote-in-Germany:
 
 ```
-fetcher/ (Python)  ──writes──▶  web/public/jobs.json  ◀──fetch()──  web/ (Next.js static site)
+GitHub Action (daily) ─▶ fetcher/ (Python) ─writes─▶ Supabase Postgres (jobs, fetch_runs)
+                                                            ▲ read-only REST (anon key)
+                              Render Static Site: web/ (Next.js export) ─fetch() in browser
 ```
 
-A GitHub Action (`.github/workflows/update-jobs.yml`) runs daily: pytest → `python fetcher/main.py` → commits `jobs.json` as `github-actions[bot]` → `next build` with `NEXT_BASE_PATH` from `configure-pages` → deploys `web/out` to GitHub Pages (https://nguyenlekevin04.github.io/job-finder-for-students/). Because the bot commits data to `main` daily, **pull before pushing**.
+- `.github/workflows/update-jobs.yml`: on push to `fetcher/**` it only runs pytest; on the daily schedule / manual dispatch it runs `python fetcher/main.py --require-db` with Supabase secrets. It no longer commits data or deploys.
+- `render.yaml` (Blueprint) builds `web/` into `web/out` as a Render Static Site. `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are inlined at **build time**, so changing them needs a Render redeploy.
+- `supabase/schema.sql` is the source of truth for tables and RLS (anon = select only; the fetcher uses the service_role / secret key, which bypasses RLS). Re-runnable.
+- **Local fallback:** with no Supabase env vars, the fetcher writes `web/public/jobs.json` (git-ignored) and the site reads it. Both paths must keep working.
 
 ## Commands
 
@@ -18,7 +23,8 @@ All Python commands run from the repo root (the fetcher imports itself as the `f
 
 ```bash
 pip install -r fetcher/requirements.txt
-python fetcher/main.py                       # fetch all sources, rewrite web/public/jobs.json (~2 min, live network)
+python fetcher/main.py                       # fetch all sources (~2 min, live network) → Supabase if SUPABASE_* set, else web/public/jobs.json
+python fetcher/main.py --require-db          # fail instead of falling back to jobs.json (used in CI)
 python -m pytest fetcher/tests -q            # all tests (offline, use saved fixtures)
 python -m pytest fetcher/tests/test_classify.py::test_drops_other_jobs -q   # single test
 ```
@@ -29,12 +35,13 @@ npm run dev        # dev server on :3000
 npm run build      # static export to web/out/
 npm run lint       # eslint
 npx tsc --noEmit   # type-check
-NEXT_BASE_PATH=/job-finder-for-students npm run build   # reproduce the GitHub Pages sub-path build
 ```
+
+`web/.env.local` (from `web/.env.example`) makes `dev`/`build` read from Supabase; without it the site reads `web/public/jobs.json`.
 
 `.claude/launch.json` has a `static-site` config that serves `web/out` on :4173 for browser checks of the real build.
 
-Adzuna is optional: keys come from `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` in `.env` (read by a minimal loader in `main.py`) or GitHub secrets; without them the source is reported as skipped.
+Root `.env` (read by a minimal loader in `main.py`; real env vars win) holds `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and optional `ADZUNA_APP_ID` / `ADZUNA_APP_KEY`; the same names are GitHub secrets. Without Adzuna keys that source is reported as skipped.
 
 ## Fetcher architecture
 
@@ -44,7 +51,8 @@ Adzuna is optional: keys come from `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` in `.env` 
   - Type comes from title+tags; description is only a fallback for werkstudent/internship (never thesis). HiWi / "Studentische Hilfskraft", Ausbildung, PhD, senior, school-pupil posts are excluded **on purpose** (user requirement) — this is why TU Dresden yields ~0 jobs and many Fraunhofer posts drop.
   - Field from title+tags; description-only evidence needs `MIN_DESC_HITS` distinct terms and is blocked by `NON_TECH_TITLE`. `IT` and `BI` are matched case-sensitively (`IT_WORD`, `BI_WORD`) to avoid false hits like "Co-Bi".
   - When tuning keywords, re-check with the parametrized cases in `test_classify.py`.
-- **`main.py`** pipeline: run sources (one failing source never stops the others; status per source goes into the JSON) → strip "Company: " title prefixes → classify → dedupe by `job_id()` = sha1 of normalized title|company → merge with the previous `jobs.json` to keep `firstSeen`; jobs missing from today's run are kept up to `KEEP_MISSING_DAYS`. If every source fails, the old file is left untouched.
+- **`main.py`** pipeline: run sources (one failing source never stops the others; per-source status is saved) → strip "Company: " title prefixes → classify → dedupe by `job_id()` = sha1 of normalized title|company → `store.save()`. If every source fails, nothing is written.
+- **`store.py`** has two backends behind `get_store()`: `SupabaseStore` (plain `requests` against PostgREST: page through `id,first_seen`, upsert with `on_conflict=id` + `resolution=merge-duplicates`, delete rows with `last_seen` older than `KEEP_MISSING_DAYS`, insert a `fetch_runs` row) and `JsonFileStore` (same history rules on the file). `COLUMNS` maps the camelCase job dict to snake_case columns — keep it, `schema.sql`, `web/lib/types.ts` and `JOB_SELECT` in `web/lib/useJobs.ts` in sync. Legacy JWT keys (`eyJ…`) also go in `Authorization`; new `sb_secret_`/`sb_publishable_` keys only in `apikey`.
 - **Changing `norm_title` / `norm_company` changes job IDs**, which resets `firstSeen` ("New" badges) and orphans users' browser bookmarks.
 - The HTTP helper module is `fetcher/net.py`, deliberately not `http.py`: running `python fetcher/main.py` puts `fetcher/` on `sys.path`, and a local `http.py` shadows the stdlib and breaks `requests`.
 
@@ -52,9 +60,8 @@ Adzuna is optional: keys come from `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` in `.env` 
 
 - **Next.js 16** — read `web/AGENTS.md`: APIs differ from older versions; check `web/node_modules/next/dist/docs/` before using framework features.
 - `output: "export"` (static only). `cacheComponents` / `partialPrefetching` (PPR) **cannot** be enabled with export — the build fails. No server features (route handlers, server actions, rewrites, image optimization).
-- `basePath` comes from `NEXT_BASE_PATH` at build time and is re-exposed as `NEXT_PUBLIC_BASE_PATH`; anything fetched by raw URL (e.g. `jobs.json` in `lib/useJobs.ts`) must prefix it manually. `next/link` handles it automatically. `trailingSlash: true` so `/saved/` exports as `saved/index.html`.
-- `jobs.json` is loaded client-side once and cached module-wide (`lib/useJobs.ts`); all job rendering is client-only, so there are no SSR date/locale mismatches.
-- The JSON schema is defined twice: the dict built in `fetcher/main.py` (`build_jobs` / `main`) and `web/lib/types.ts`. Keep them in sync.
+- Optional `basePath` from `NEXT_BASE_PATH` (unused on Render) is re-exposed as `NEXT_PUBLIC_BASE_PATH` for the `jobs.json` fallback URL. `trailingSlash: true` so `/saved/` exports as `saved/index.html`.
+- `lib/useJobs.ts` loads data client-side once and caches it module-wide: from Supabase REST (jobs + latest `fetch_runs` row, aliased to camelCase in `JOB_SELECT`) when the `NEXT_PUBLIC_SUPABASE_*` vars are set, else `jobs.json`. All job rendering is client-only, so there are no SSR date/locale mismatches.
 - **Filters** (`lib/filters.ts` + `components/JobBoard.tsx`): component state is the source of truth and is mirrored to the URL after 250 ms via `router.replace`; external URL changes (back/forward) flow back through the `seenParams`/`pushed` render-time check. Don't derive filters directly from `useSearchParams` on each click — fast consecutive clicks lose updates. `JobBoard` uses `useSearchParams`, so it must stay inside the `<Suspense>` in `app/page.tsx` or the export build fails.
 - **Bookmarks** (`lib/useBookmarks.ts`): `useSyncExternalStore` over localStorage (all access in try/catch), storing whole `Job` objects so the Saved page can show jobs that vanished from the data ("No longer listed").
 - **Dark mode**: Tailwind v4 `@custom-variant dark` on the `.dark` class; an inline script in `app/layout.tsx` sets it before paint (`suppressHydrationWarning` on `<html>`), and `ThemeToggle` stores the choice under `dsj:theme`.

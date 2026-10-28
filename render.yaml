@@ -1,0 +1,38 @@
+# Render Blueprint: Render → New → Blueprint → pick this repo.
+# The site is a static export of web/ (free Static Site, never sleeps).
+# Jobs come from Supabase at runtime; the daily fetch runs in GitHub Actions.
+services:
+  - type: web
+    runtime: static
+    name: dresden-student-jobs
+    branch: main
+    buildCommand: cd web && npm ci && npm run build
+    staticPublishPath: ./web/out
+    # Only rebuild when the website itself changes.
+    buildFilter:
+      paths:
+        - web/**
+        - render.yaml
+      ignoredPaths:
+        - web/**/*.md
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      # Asked for when you create the Blueprint. Both are safe to expose:
+      # the anon/publishable key can only read (see supabase/schema.sql).
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+    headers:
+      - path: /_next/static/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

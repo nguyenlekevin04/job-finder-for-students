@@ -2,9 +2,10 @@
 
 Werkstudent, internship and thesis positions in **AI, ML, Computer Science and related fields** around Dresden (plus remote roles in Germany), collected every morning from several sources and shown on one searchable page.
 
-- **Fetcher** (`fetcher/`, Python): pulls postings, keeps only student tech jobs, removes duplicates, writes `web/public/jobs.json`.
-- **Website** (`web/`, Next.js + Tailwind + Fuse.js): a static site that loads `jobs.json` and does search, filters and bookmarks in the browser.
-- **GitHub Action** (`.github/workflows/update-jobs.yml`): runs the fetcher daily, commits the new data, builds the site and publishes it to GitHub Pages. No server, no database, no cost.
+- **Fetcher** (`fetcher/`, Python): pulls postings, keeps only student tech jobs, removes duplicates, and saves them to **Supabase** (or to `web/public/jobs.json` when no Supabase keys are set).
+- **Database** (Supabase Postgres, `supabase/schema.sql`): `jobs` and `fetch_runs` tables. Visitors can only read.
+- **Website** (`web/`, Next.js + Tailwind + Fuse.js): a static site hosted on **Render** that loads jobs from Supabase and does search, filters and bookmarks in the browser.
+- **GitHub Action** (`.github/workflows/update-jobs.yml`): runs the fetcher every morning and writes to Supabase. The site picks up new jobs without a rebuild.
 
 ## Sources
 
@@ -29,11 +30,13 @@ pip install -r fetcher/requirements.txt
 python fetcher/main.py
 ```
 
+Without Supabase keys this writes `web/public/jobs.json`. With `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env` (see `.env.example`) it writes to Supabase instead.
+
 ```bash
 cd web && npm install && npm run dev
 ```
 
-Then open http://localhost:3000. `npm run build` creates the static site in `web/out/`.
+Then open http://localhost:3000. To read from Supabase instead of `jobs.json`, copy `web/.env.example` to `web/.env.local` and fill in the URL and anon key. `npm run build` creates the static site in `web/out/`.
 
 Run the tests:
 
@@ -41,18 +44,29 @@ Run the tests:
 python -m pytest fetcher/tests -q
 ```
 
-## Adzuna key (optional)
+## Deploy
 
-1. Get a free key at https://developer.adzuna.com.
-2. Locally: put `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` in `.env` (see `.env.example`; `.env` is git-ignored).
-3. On GitHub: **Settings → Secrets and variables → Actions → New repository secret**, same two names.
+### 1. Supabase
 
-## Deploy to GitHub Pages
+1. Create a project at https://supabase.com (region: Central EU / Frankfurt).
+2. **SQL Editor** → paste `supabase/schema.sql` → **Run**.
+3. **Project Settings → API Keys**: note the Project URL, the anon/publishable key (public, read-only) and the service_role/secret key (private, can write).
 
-1. Push this folder to a GitHub repository (public, for free Pages).
-2. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. **Actions → Update jobs & deploy → Run workflow** (or wait for the daily run).
-4. The site appears at `https://<your-username>.github.io/<repo-name>/`.
+### 2. GitHub Actions (daily fetch)
+
+**Settings → Secrets and variables → Actions → New repository secret**:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- optional: `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` (free key from https://developer.adzuna.com)
+
+Then **Actions → Update jobs → Run workflow** to fill the database. Pushes to `fetcher/` only run the tests; the schedule and the manual button fetch jobs.
+
+### 3. Render (website)
+
+**New → Blueprint** → pick this repo. Render reads `render.yaml` and asks for `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. It rebuilds automatically when `web/` changes on `main`. These values are baked in at build time, so after changing them use **Manual Deploy** on Render.
+
+Free Supabase projects pause after a week without activity; the daily fetch keeps the project active.
 
 ## How filtering works
 
