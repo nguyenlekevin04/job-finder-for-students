@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-28T10:17:28+00:00",
+ "generatedAt": "2026-10-28T10:30:27+00:00",
  "sources": {
   "Arbeitsagentur": {
    "ok": true,
@@ -7,7 +7,7 @@
   },
   "Arbeitnow": {
    "ok": true,
-   "count": 186
+   "count": 191
   },
   "Adzuna": {
    "ok": false,
