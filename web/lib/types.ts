@@ -32,7 +32,7 @@ export interface SourceStatus {
 }
 
 export interface JobsFile {
-  generatedAt: string;
+  generatedAt: string | null; // null until the first fetch has run
   count: number;
   sources: Record<string, SourceStatus>;
   jobs: Job[];

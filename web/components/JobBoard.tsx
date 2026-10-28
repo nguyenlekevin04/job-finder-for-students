@@ -86,9 +86,13 @@ export function JobBoard() {
             <>
               <Stat value={data.count} label="open positions" />
               <Stat value={newCount} label="new this week" accent />
-              <span className="text-zinc-500 dark:text-zinc-400" title={new Date(data.generatedAt).toLocaleString("en-GB")}>
-                Updated {relativeTime(data.generatedAt)}
-              </span>
+              {data.generatedAt ? (
+                <span className="text-zinc-500 dark:text-zinc-400" title={new Date(data.generatedAt).toLocaleString("en-GB")}>
+                  Updated {relativeTime(data.generatedAt)}
+                </span>
+              ) : (
+                <span className="text-zinc-500 dark:text-zinc-400">Waiting for the first update</span>
+              )}
             </>
           ) : (
             <span className="h-7 w-72 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-800" />
@@ -185,7 +189,11 @@ export function JobBoard() {
                   </button>
                 )}
               </div>
-              {results.length === 0 ? (
+              {jobs.length === 0 ? (
+                <EmptyState title="No jobs yet" icon={<SearchIcon width={20} height={20} />}>
+                  The job list is filled every morning. Check back soon.
+                </EmptyState>
+              ) : results.length === 0 ? (
                 <EmptyState title="No jobs match these filters" icon={<SearchIcon width={20} height={20} />}>
                   Try a broader search, fewer filters, or turn on remote jobs.
                 </EmptyState>

@@ -40,7 +40,7 @@ async function loadFromSupabase(url: string, key: string): Promise<JobsFile> {
   ]);
   const run = runs[0];
   return {
-    generatedAt: run?.generatedAt ?? new Date().toISOString(),
+    generatedAt: run?.generatedAt ?? null,
     sources: run?.sources ?? {},
     count: jobs.length,
     jobs,
