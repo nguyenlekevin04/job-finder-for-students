@@ -1,0 +1,753 @@
+{
+ "generatedAt": "2026-10-28T10:17:28+00:00",
+ "sources": {
+  "Arbeitsagentur": {
+   "ok": true,
+   "count": 66
+  },
+  "Arbeitnow": {
+   "ok": true,
+   "count": 186
+  },
+  "Adzuna": {
+   "ok": false,
+   "count": 0,
+   "skipped": true,
+   "error": "No API key set"
+  },
+  "TU Dresden": {
+   "ok": true,
+   "count": 16
+  },
+  "Fraunhofer": {
+   "ok": true,
+   "count": 62
+  },
+  "HZDR": {
+   "ok": true,
+   "count": 10
+  }
+ },
+ "count": 27,
+ "jobs": [
+  {
+   "id": "77fe1bbc9343",
+   "title": "Unsolicited application Mandatory Internship",
+   "company": "Fraunhofer FEP - Electron Beam and Plasma Technology",
+   "location": "Dresden",
+   "remote": false,
+   "type": "internship",
+   "types": [
+    "internship"
+   ],
+   "fields": [
+    "hardware"
+   ],
+   "englishFriendly": true,
+   "postedAt": null,
+   "deadline": null,
+   "links": [
+    {
+     "source": "Fraunhofer",
+     "url": "https://jobs.fraunhofer.de/job/Dresden-Unsolicited-application-Mandatory-Internship-01277/1408242533/"
+    }
+   ],
+   "snippet": "The Fraunhofer Institute for Electron Beam and Plasma Technology FEP is located in Dresden and focuses on developing innovative solutions, technologies and processes for surface modification. For the development of solutions for various industrial tasks in surface treatment…",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "7bf9302b61be",
+   "title": "Unsolicited application final thesis",
+   "company": "Fraunhofer FEP - Electron Beam and Plasma Technology",
+   "location": "Dresden",
+   "remote": false,
+   "type": "thesis",
+   "types": [
+    "thesis"
+   ],
+   "fields": [
+    "hardware"
+   ],
+   "englishFriendly": true,
+   "postedAt": null,
+   "deadline": null,
+   "links": [
+    {
+     "source": "Fraunhofer",
+     "url": "https://jobs.fraunhofer.de/job/Dresden-Unsolicited-application-final-thesis-01277/1408238633/"
+    }
+   ],
+   "snippet": "The Fraunhofer Institute for Electron Beam and Plasma Technology FEP is located in Dresden and focuses on developing innovative solutions, technologies and processes for surface modification. For the development of solutions for various industrial tasks in surface treatment…",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "7de524439354",
+   "title": "Abschlussarbeit: Regelkonzept für driftstabile Geo-Objektvisualisierung in Mixed Reality",
+   "company": "Fraunhofer IVI - Verkehrs- und Infrastruktursysteme",
+   "location": "Dresden",
+   "remote": false,
+   "type": "thesis",
+   "types": [
+    "thesis"
+   ],
+   "fields": [
+    "software",
+    "hardware"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-28",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Fraunhofer",
+     "url": "https://jobs.fraunhofer.de/job/Dresden-Abschlussarbeit-Regelkonzept-f%C3%BCr-driftstabile-Geo-Objektvisualisierung-in-Mixed-Reality-01069/1431959833/"
+    }
+   ],
+   "snippet": "In der automatisierten Landwirtschaft setzen sich zunehmend vollautomatisierte, autonom fahrende Roboter als mobile Arbeitsmaschinen durch. Für deren Betrieb werden leistungsfähige Bedien- und Überwachungsschnittstellen benötigt, die interne Zustände sowie relevante…",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "c74fec0d35e5",
+   "title": "Development of novel numerical methods for strongly correlated quantum many-body systems",
+   "company": "HZDR – AI4Quantum – Machine Learning for Quantum Simulation and Computing",
+   "location": "Dresden",
+   "remote": false,
+   "type": "thesis",
+   "types": [
+    "thesis"
+   ],
+   "fields": [
+    "ai",
+    "software",
+    "other"
+   ],
+   "englishFriendly": true,
+   "postedAt": null,
+   "deadline": null,
+   "links": [
+    {
+     "source": "HZDR",
+     "url": "https://www.hzdr.de/db/!ContMan.Angebote.Liste?pSelAnzeige=1&pSelMenu=0&pNid=3234&pLang=en#BId494"
+    }
+   ],
+   "snippet": "Bachelor theses / Master theses / Student Assistant / Research Assistant Work inside an existing project for investigating and simulating strongly correlated quantum systems. Extend an already established method based on tensor networks to other fermonic and spin systems…",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "7d5df06e311e",
+   "title": "Automatisierte Auswertung von 1D- und 2D-Ramanspektroskopischen Meßreihen",
+   "company": "HZDR – Nanomaterials and Transport",
+   "location": "Dresden",
+   "remote": false,
+   "type": "thesis",
+   "types": [
+    "thesis"
+   ],
+   "fields": [
+    "software",
+    "hardware"
+   ],
+   "englishFriendly": false,
+   "postedAt": null,
+   "deadline": null,
+   "links": [
+    {
+     "source": "HZDR",
+     "url": "https://www.hzdr.de/db/!ContMan.Angebote.Liste?pSelAnzeige=1&pSelMenu=0&pNid=3234&pLang=en#BId393"
+    }
+   ],
+   "snippet": "Bachelor theses / Master theses / Diploma theses 1D- und 2D-Ramanspektroskopische Meßreihen oder auch Maps liefern detaillierte ortsaufgelöste chemische Informationen über die untersuchten Proben. Damit kann z. B. die Komponentenverteilung in Stoffgemischen quantitativ bestimmt…",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "dcc5a87852fa",
+   "title": "Pflichtpraktikum Informatik (Webprogrammierung + SEO)",
+   "company": "Landsiedel NLP Training",
+   "location": "Kitzingen",
+   "remote": true,
+   "type": "internship",
+   "types": [
+    "internship"
+   ],
+   "fields": [
+    "software"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-27",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitnow",
+     "url": "https://www.arbeitnow.com/jobs/companies/landsiedel-nlp-training/pflichtpraktikum-informatik-webprogrammierung-seo-kitzingen-206022"
+    }
+   ],
+   "snippet": "Du bist Informatikstudent und suchst ein Praktikum, das mehr bietet als nur Zahlen, Daten und Fakten? Du möchtest Dich nicht nur fachlich, sondern gerne auch persönlich weiterentwickeln – und Teil eines Teams werden, in dem Du nicht einfach nur eine Nummer bist? Dann bist Du bei…",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "7c504ce84736",
+   "title": "Working Student — AI Engineering & Document Intelligence",
+   "company": "Tracium GmbH",
+   "location": "Berlin",
+   "remote": true,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "ai",
+    "software"
+   ],
+   "englishFriendly": true,
+   "postedAt": "2026-10-24",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitnow",
+     "url": "https://www.arbeitnow.com/jobs/companies/tracium-gmbh/working-student-ai-engineering-document-intelligence-berlin-378393"
+    }
+   ],
+   "snippet": "Location: Hamburg, Germany · Part-time alongside your studies About Tracium https://www.linkedin.com/company/tracium/ Tracium builds AI-assisted software that helps technical teams turn complex manuals into structured, traceable information. We combine document intelligence with…",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "e50d17e21171",
+   "title": "Werkstudent*in IT & AI Solutions (m/w/d)",
+   "company": "Communardo GmbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "ai",
+    "other"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-22",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/11956-2917001792620001-S"
+    }
+   ],
+   "snippet": "KI-Engineer",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "79fdfc828bba",
+   "title": "Working Student for Back End of Line - Integratio",
+   "company": "GlobalFoundries Management Services GmbH & Co. KG",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "hardware"
+   ],
+   "englishFriendly": true,
+   "postedAt": "2026-10-22",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/11956-3082771792620000-S"
+    }
+   ],
+   "snippet": "Mikrotechnologe/-technologin - Halbleitertechnik",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "ccf4f7e471ad",
+   "title": "Praktikum: Plug-in-Entwicklung zur Energieverbrauchsberechnung in der VIBN",
+   "company": "Fraunhofer IWU - Werkzeugmaschinen und Umformtechnik",
+   "location": "Dresden",
+   "remote": false,
+   "type": "internship",
+   "types": [
+    "internship"
+   ],
+   "fields": [
+    "software"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-18",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Fraunhofer",
+     "url": "https://jobs.fraunhofer.de/job/Dresden-Praktikum-Plug-in-Entwicklung-zur-Energieverbrauchsberechnung-in-der-VIBN-01187/1271001201/"
+    }
+   ],
+   "snippet": "Die in Dresden ansässige Abteilung IIOT-Steuerungen und technische Kybernetik erarbeitet maschinennahe Methoden und Lösungen zur Umsetzung von Industrie 4.0 in engem Kontakt mit Industriepartnern. Ökologische Betrachtungen spielen durch politisch festgesetzte Klimaziele und…",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "434b344ac20f",
+   "title": "Abschlussarbeit: Plug-in-Entwicklung zur Energieverbrauchsberechnung in der VIBN",
+   "company": "Fraunhofer IWU - Werkzeugmaschinen und Umformtechnik",
+   "location": "Dresden",
+   "remote": false,
+   "type": "thesis",
+   "types": [
+    "thesis"
+   ],
+   "fields": [
+    "software"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-18",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Fraunhofer",
+     "url": "https://jobs.fraunhofer.de/job/Dresden-Abschlussarbeit-Plug-in-Entwicklung-zur-Energieverbrauchsberechnung-in-der-VIBN-01187/1271000301/"
+    }
+   ],
+   "snippet": "Die in Dresden ansässige Abteilung IIOT-Steuerungen und technische Kybernetik erarbeitet maschinennahe Methoden und Lösungen zur Umsetzung von Industrie 4.0 in engem Kontakt mit Industriepartnern. Ökologische Betrachtungen spielen durch politisch festgesetzte Klimaziele und…",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "5f099412d4fc",
+   "title": "Werkstudent (m/w/d) für Softwareentwicklung",
+   "company": "webit! Gesellschaft für neue Medien mbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "software"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-17",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/11956-1234981792188001-S"
+    }
+   ],
+   "snippet": "Softwareentwickler/in",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "20d33023ec4a",
+   "title": "Werkstudent*in im Bereich TCAD – Machine Learning",
+   "company": "GlobalFoundries Management Services GmbH & Co. KG",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "ai",
+    "hardware"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-14",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/11956-3078511791928800-S"
+    }
+   ],
+   "snippet": "Mikrotechnologe/-technologin - Halbleitertechnik",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "6458ad863da2",
+   "title": "Studentische Hilfskraft mit anschließender Abschlussarbeit - Infrastrukturgestützte Robotik",
+   "company": "Fraunhofer IVI - Verkehrs- und Infrastruktursysteme",
+   "location": "Dresden",
+   "remote": false,
+   "type": "thesis",
+   "types": [
+    "thesis"
+   ],
+   "fields": [
+    "hardware"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-14",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Fraunhofer",
+     "url": "https://jobs.fraunhofer.de/job/Dresden-Studentische-Hilfskraft-mit-anschlie%C3%9Fender-Abschlussarbeit-Infrastrukturgest%C3%BCtzte-Robotik-01069/1447597533/"
+    }
+   ],
+   "snippet": "Du befindest Dich in der Endphase Deines Studiums und möchtest Deine Abschlussarbeit an einem realen Robotiksystem entwickeln und erproben? Dann gestalte mit uns intelligente, vernetzte Systeme für die Mobilität der Zukunft. In der Forschungsgruppe »Kooperative Systeme« am…",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "2f3e953d7376",
+   "title": "Werkstudent Elektrotechnik (m/w/d)",
+   "company": "Ingenieurbüro Zammit GmbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "hardware"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-09",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10001-1003835713-S"
+    }
+   ],
+   "snippet": "Ingenieur/in - Elektrotechnik",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "05c93ccfe7c5",
+   "title": "Werkstudent Softwareentwicklung",
+   "company": "OneXip GmbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "software"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-08",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10001-1001916728-S"
+    }
+   ],
+   "snippet": "Informatiker/in",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "aa22daeb37d4",
+   "title": "Werkstudent (m/w/d) im Kalibrierlabor",
+   "company": "iocto GmbH",
+   "location": "Dippoldiswalde",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "hardware"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-10-06",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/13635-7933756f_JB5265108-S"
+    }
+   ],
+   "snippet": "Ingenieur/in - Elektrotechnik",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "599530e66b12",
+   "title": "Werkstudent Technische Ausrüstung - Elektro-/Energietechnik (m/w/d),Berlin,Dresden,Frankf...",
+   "company": "SOCOTEC Building Solutions GmbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "hardware"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-09-24",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/12811-2343210-S"
+    }
+   ],
+   "snippet": "Ingenieur/in - Elektrotechnik",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "9450fc697292",
+   "title": "Werkstudent IT Consulting & Cloud Integration - SAP CI Umfeld (Mensch*)",
+   "company": "ITARICON GmbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "software",
+    "other"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-09-18",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10000-1207954353-S"
+    },
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/11956-3022631792274401-S"
+    }
+   ],
+   "snippet": "Informatiker/in",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "a4807decd420",
+   "title": "Working Student – Data Scientist (m/f/d)",
+   "company": "quo data GmbH Qualitätsmanagement und Statistik",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "data"
+   ],
+   "englishFriendly": true,
+   "postedAt": "2026-08-27",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10000-1207679640-S"
+    }
+   ],
+   "snippet": "Data Scientist",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "9f5ebb48d7af",
+   "title": "Werkstudent Cyber Security (m/w/d)",
+   "company": "SmartTECS Cyber Security GmbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "other"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-08-06",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10001-1003091133-S"
+    }
+   ],
+   "snippet": "Cyber-Security-Consultant",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "87869a999243",
+   "title": "Praktikum & Diplomarbeit",
+   "company": "Weise Software GmbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "internship",
+   "types": [
+    "internship",
+    "thesis"
+   ],
+   "fields": [
+    "software"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-07-20",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10000-1206505226-S"
+    }
+   ],
+   "snippet": "Informatiker/in",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "a769118c9e13",
+   "title": "Werkstudent AI Engineer (m/w/d)",
+   "company": "SmartTECS Cyber Security GmbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "ai"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-05-19",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10001-1003090842-S"
+    }
+   ],
+   "snippet": "KI-Engineer",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "2b1b7af49c08",
+   "title": "Praktikant/Werkstudent Elektrotechnik",
+   "company": "SmartTECS Engineers GmbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "internship",
+   "types": [
+    "internship",
+    "werkstudent"
+   ],
+   "fields": [
+    "hardware"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-05-19",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10001-1003090990-S"
+    }
+   ],
+   "snippet": "Ingenieur/in - Elektrotechnik",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "fa91a9a94513",
+   "title": "Werkstudent Softwareentwicklung (m/w/d)",
+   "company": "DevBoost GmbH",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "software"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-05-13",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10000-1206511051-S"
+    }
+   ],
+   "snippet": "Softwareentwickler/in",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "01c8b4fa210b",
+   "title": "Werkstudent / Praktikum – Data Scientist (m/w/d)",
+   "company": "quo data GmbH Qualitätsmanagement und Statistik",
+   "location": "Dresden",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent",
+    "internship"
+   ],
+   "fields": [
+    "data"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2026-05-11",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10000-1206481696-S"
+    }
+   ],
+   "snippet": "Data Scientist",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  },
+  {
+   "id": "c4e414a7cc37",
+   "title": "Werkstudent B. Eng. Informationstechnik (m/w/d)",
+   "company": "Ambos Security GmbH",
+   "location": "Dohna, Sachsen",
+   "remote": false,
+   "type": "werkstudent",
+   "types": [
+    "werkstudent"
+   ],
+   "fields": [
+    "software",
+    "hardware",
+    "other"
+   ],
+   "englishFriendly": false,
+   "postedAt": "2025-11-27",
+   "deadline": null,
+   "links": [
+    {
+     "source": "Arbeitsagentur",
+     "url": "https://www.arbeitsagentur.de/jobsuche/jobdetail/10001-1002218520-S"
+    }
+   ],
+   "snippet": "Techniker/in - Informatik (Netzwerktechnologie)/Bachelor Professional in Technik",
+   "firstSeen": "2026-10-28",
+   "lastSeen": "2026-10-28"
+  }
+ ]
+}

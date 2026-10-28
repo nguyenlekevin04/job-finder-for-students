@@ -1,0 +1,234 @@
+{
+  "ergebnisliste" : [ {
+    "stellenangebotsart" : "PRAKTIKUM_TRAINEE",
+    "stellenangebotsTitel" : "Werkstudent Softwareentwicklung",
+    "arbeitszeitSchichtNachtWochenende" : false,
+    "arbeitszeitTeilzeitAbend" : true,
+    "arbeitszeitTeilzeitNachmittag" : true,
+    "arbeitszeitTeilzeitVormittag" : true,
+    "arbeitszeitTeilzeitFlexibel" : false,
+    "arbeitszeitVollzeit" : true,
+    "eintrittszeitraum" : {
+      "von" : "2026-10-08"
+    },
+    "verguetungsangabe" : "KEINE_ANGABEN",
+    "vertragsdauer" : "KEINE_ANGABE",
+    "stellenlokationen" : [ {
+      "adresse" : {
+        "strasse" : "Prießnitzstr.",
+        "hausnummer" : "39B",
+        "plz" : "01099",
+        "ort" : "Dresden",
+        "region" : "SACHSEN",
+        "land" : "DEUTSCHLAND"
+      },
+      "breite" : 51.0672898,
+      "laenge" : 13.7596661
+    } ],
+    "veroeffentlichungszeitraum" : {
+      "von" : "2026-10-08"
+    },
+    "datumErsteVeroeffentlichung" : "2025-09-29",
+    "aenderungsdatum" : "2026-10-08T10:59:44.107",
+    "hauptberuf" : "Informatiker/in",
+    "firma" : "OneXip GmbH",
+    "arbeitgeberKundennummerHash" : "vBUiePzhg2NHR2J4leKYTBWaAutQO-68I_Pv602J5ZI=",
+    "referenznummer" : "10001-1001916728-S",
+    "entfernung" : 1,
+    "alleBerufe" : [ "Informatiker/in" ]
+  }, {
+    "stellenangebotsart" : "PRAKTIKUM_TRAINEE",
+    "stellenangebotsTitel" : "Werkstudent AI Engineer (m/w/d)",
+    "arbeitszeitTeilzeitNachmittag" : true,
+    "arbeitszeitTeilzeitVormittag" : true,
+    "arbeitszeitVollzeit" : true,
+    "eintrittszeitraum" : {
+      "von" : "2026-05-19"
+    },
+    "verguetungsangabe" : "KEINE_ANGABEN",
+    "vertragsdauer" : "UNBEFRISTET",
+    "stellenlokationen" : [ {
+      "adresse" : {
+        "strasse" : "Krenkelstraße",
+        "hausnummer" : "3",
+        "plz" : "01309",
+        "ort" : "Dresden",
+        "region" : "SACHSEN",
+        "land" : "DEUTSCHLAND"
+      },
+      "breite" : 51.044157,
+      "laenge" : 13.774392
+    } ],
+    "homeofficemoeglich" : true,
+    "homeofficetyp" : "NACH_VEREINBARUNG",
+    "veroeffentlichungszeitraum" : {
+      "von" : "2026-05-19"
+    },
+    "datumErsteVeroeffentlichung" : "2026-05-19",
+    "aenderungsdatum" : "2026-08-06T11:04:18.852",
+    "hauptberuf" : "KI-Engineer",
+    "firma" : "SmartTECS Cyber Security GmbH",
+    "arbeitgeberKundennummerHash" : "iErCGtL5fVdGmRCeLnv9xj3WH2H3nuz0Onf3sag905s=",
+    "referenznummer" : "10001-1003090842-S",
+    "entfernung" : 3,
+    "alleBerufe" : [ "KI-Engineer" ]
+  } ],
+  "maxErgebnisse" : 6,
+  "page" : 1,
+  "size" : 2,
+  "woOutput" : {
+    "bereinigterOrt" : "Dresden",
+    "suchmodus" : "UMKREISSUCHE",
+    "koordinaten" : [ {
+      "lat" : 51.0736762,
+      "lon" : 13.76263025
+    } ]
+  },
+  "facetten" : {
+    "befristung" : {
+      "counts" : {
+        "2" : 2,
+        "3" : 4
+      },
+      "maxCount" : 6
+    },
+    "externestellenboersen" : {
+      "counts" : {
+        "false" : 6
+      },
+      "maxCount" : 6
+    },
+    "behinderung" : {
+      "counts" : {
+        "false" : 2
+      },
+      "maxCount" : 6
+    },
+    "berufsfeld" : {
+      "counts" : {
+        "IT-Netzwerktechnik, -Administration, -Organisation" : 2,
+        "Informatik" : 4
+      },
+      "maxCount" : 6
+    },
+    "pav" : {
+      "counts" : {
+        "false" : 6
+      },
+      "maxCount" : 6
+    },
+    "arbeitsort" : {
+      "counts" : {
+        "Dohna, Sachsen" : 1,
+        "Dresden" : 5
+      },
+      "maxCount" : 6
+    },
+    "veroeffentlichtseit" : {
+      "counts" : {
+        "alle" : 6
+      },
+      "maxCount" : 6
+    },
+    "schulbildung" : {
+      "counts" : {
+        "0" : 2,
+        "1" : 2,
+        "11" : 2,
+        "12" : 2,
+        "2" : 2,
+        "3" : 2,
+        "4" : 6,
+        "5" : 6,
+        "6" : 6
+      },
+      "maxCount" : 6
+    },
+    "arbeitsort_plz" : {
+      "counts" : {
+        "01069" : 1,
+        "01099" : 1,
+        "01309" : 3,
+        "01809" : 1,
+        "09126" : 2
+      },
+      "maxCount" : 6
+    },
+    "arbeitgeber" : {
+      "counts" : {
+        "Ambos Security GmbH" : 1,
+        "ITARICON GmbH" : 1,
+        "OneXip GmbH" : 1,
+        "SmartTECS Cyber Security GmbH" : 2,
+        "quo data GmbH Qualitätsmanagement und Statistik" : 1
+      },
+      "maxCount" : 6
+    },
+    "beruf" : {
+      "counts" : {
+        "Cyber-Security-Consultant" : 1,
+        "Data Scientist" : 1,
+        "Informatiker/in" : 2,
+        "KI-Engineer" : 1,
+        "Techniker/in - Informatik (Netzwerktechnologie)/Bachelor Professional in Technik" : 1
+      },
+      "maxCount" : 6
+    },
+    "homeoffice" : {
+      "counts" : {
+        "nv_true" : 2
+      },
+      "maxCount" : 6
+    },
+    "angebotsart" : {
+      "counts" : {
+        "34" : 6
+      },
+      "maxCount" : 6
+    },
+    "branche" : {
+      "counts" : {
+        "11" : 5,
+        "23" : 1
+      },
+      "maxCount" : 6
+    },
+    "quereinstieg" : {
+      "counts" : {
+        "false" : 6
+      },
+      "maxCount" : 6
+    },
+    "arbeitszeit" : {
+      "counts" : {
+        "tz" : 6,
+        "vz" : 3
+      },
+      "maxCount" : 6
+    },
+    "eintrittsdatum" : {
+      "counts" : {
+        "10_01_01-now" : 6,
+        "26_10_01-26_11_01" : 1
+      },
+      "maxCount" : 6
+    },
+    "zeitarbeit" : {
+      "counts" : {
+        "false" : 6
+      },
+      "maxCount" : 6
+    },
+    "topberufsfeld" : {
+      "counts" : {
+        "Informatik" : 4,
+        "IT-Netzwerktechnik, -Administration, -Organisation" : 2
+      },
+      "scores" : {
+        "Informatik" : 447488,
+        "IT-Netzwerktechnik, -Administration, -Organisation" : 139357
+      },
+      "maxCount" : 6
+    }
+  }
+}

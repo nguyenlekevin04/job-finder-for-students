@@ -1,0 +1,14 @@
+# Dependencies & build output
+node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
+
+# Local secrets – never commit
+.env
+.env.*
+!.env.example
