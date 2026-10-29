@@ -17,6 +17,12 @@ Werkstudent, internship and thesis positions in **AI, ML, Computer Science and r
 | TU Dresden | HTML job board | Mostly staff/HiWi jobs, so few results get through |
 | Fraunhofer | HTML job portal | All Dresden institutes |
 | HZDR | HTML list | Internships and theses |
+| Infineon | Careers search API (Eightfold) | Dresden site; details fetched only for student-looking titles |
+| GlobalFoundries | Careers search API (Workday) | Dresden fab; details fetched only for student-looking titles |
+| Bosch | SmartRecruiters public API | Dresden semiconductor fab |
+| Amazon | amazon.jobs search feed | Dresden office (AWS); may be empty some days |
+
+If a source fails or suddenly finds nothing, the daily run still saves the other sources' jobs, then fails so GitHub emails the repo owner.
 
 ## Run it locally
 
@@ -80,4 +86,4 @@ Free Supabase projects pause after a week without activity; the daily fetch keep
 
 ## Add a source
 
-Create `fetcher/sources/<name>.py` with `NAME = "..."` and a `fetch() -> list[Job]` function (see `hzdr.py` for a small example), then add it to `SOURCES` in `fetcher/main.py`. Save a sample response in `fetcher/tests/fixtures/` and add a parser test.
+Create `fetcher/sources/<name>.py` with `NAME = "..."` and a `fetch() -> list[Job]` function (see `hzdr.py` or `amazon.py` for small examples), then add it to `SOURCES` in `fetcher/main.py`. Set `MAY_BE_EMPTY = True` if zero postings on some days is normal. Save a sample response in `fetcher/tests/fixtures/` and add a parser test.

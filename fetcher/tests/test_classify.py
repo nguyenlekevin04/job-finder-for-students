@@ -1,6 +1,6 @@
 import pytest
 
-from fetcher.classify import SNIPPET_LEN, classify, is_english
+from fetcher.classify import SNIPPET_LEN, classify, is_english, is_student_title
 from fetcher.models import Job
 
 
@@ -18,6 +18,8 @@ def job(title, tags="", description=""):
     ("Masterarbeit: Embedded Linux auf FPGA", "thesis", "hardware"),
     ("Bachelorarbeit Cyber Security", "thesis", "other"),
     ("Werkstudent*in IT Support (m/w/d)", "werkstudent", "other"),
+    ("Working Student Frontend Developer (f/m/d)", "werkstudent", "software"),
+    ("Werkstudent Frontend-Entwicklung", "werkstudent", "software"),
 ])
 def test_keeps_student_tech_jobs(title, expected_type, expected_field):
     tags = classify(job(title))
@@ -27,6 +29,7 @@ def test_keeps_student_tech_jobs(title, expected_type, expected_field):
 
 
 @pytest.mark.parametrize("title", [
+    "Werkstudent - Frontend Academy (w/m/div)",        # chip-fab "frontend", not web UI
     "Werkstudent Marketing (m/w/d)",                   # not tech
     "Senior Software Engineer (m/w/d)",                # not a student job
     "Software Engineer (m/w/d)",                       # no student type
@@ -78,3 +81,17 @@ def test_snippet_is_trimmed():
     tags = classify(job("Werkstudent Software", description="word " * 200))
     assert len(tags["snippet"]) <= SNIPPET_LEN + 1
     assert tags["snippet"].endswith("…")
+
+
+def test_is_student_title():
+    assert is_student_title("Werkstudent*in im Bereich TCAD")
+    assert is_student_title("Internship - Data and Workflows for AI")
+    assert not is_student_title("Senior Staff Engineer Digital IP")
+    assert not is_student_title("Ausbildung Mechatroniker (w/m/d) 2027")
+
+
+def test_office_and_design_tools_are_not_tech_evidence():
+    desc = ("Du bearbeitest Foto- und Videomaterial mit Software-Tools wie PowerPoint, Adobe Creative Cloud "
+            "und Camtasia. Du studierst Mediendesign, Psychologie, (Wirtschafts-)Informatik oder Ähnliches.")
+    assert classify(job("Werkstudent - Frontend Academy (w/m/div)", description=desc)) is None
+

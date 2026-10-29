@@ -56,3 +56,42 @@ def test_require_db_refuses_json_fallback(monkeypatch):
     monkeypatch.setattr(main, "load_env", lambda: None)
     monkeypatch.setattr(main, "run_sources", lambda: (_ for _ in ()).throw(AssertionError("must not fetch")))
     assert main.main(["--require-db"]) == 2
+
+
+def test_redact_hides_query_strings():
+    msg = "404 for url: https://api.adzuna.com/v1/search/1?app_id=A&app_key=SECRET&what=x"
+    assert "SECRET" not in main.redact(msg)
+    assert "SECRET" not in main.redact("Max retries exceeded with url: /v1/search?app_key=SECRET (Caused by x)")
+    assert main.redact("did the site change?") == "did the site change?"
+
+
+class _Src:
+    def __init__(self, name, may_be_empty=False):
+        self.NAME = name
+        if may_be_empty:
+            self.MAY_BE_EMPTY = True
+
+
+def test_health_problems_flags_failed_and_empty_sources():
+    status = {
+        "Good": {"ok": True, "count": 12},
+        "Broken": {"ok": False, "count": 0, "error": "HTTP 500"},
+        "Empty": {"ok": True, "count": 0},
+        "Small": {"ok": True, "count": 0},
+        "NoKey": {"ok": False, "count": 0, "skipped": True},
+    }
+    problems = main.health_problems(status, [_Src("Good"), _Src("Broken"), _Src("Empty"), _Src("Small", True)])
+    assert problems == ["Broken failed: HTTP 500", "Empty returned no postings (did the site change?)"]
+
+
+def test_main_saves_then_fails_when_a_source_is_broken(monkeypatch, tmp_path):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    monkeypatch.setattr(main, "load_env", lambda: None)
+    monkeypatch.setattr(main, "OUTPUT", tmp_path / "jobs.json")
+    status = {"Good": {"ok": True, "count": 1}, "Broken": {"ok": False, "count": 0, "error": "boom"}}
+    monkeypatch.setattr(main, "run_sources", lambda: ([raw("Werkstudent Softwareentwicklung")], status))
+    assert main.main([]) == 3
+    saved = json.loads((tmp_path / "jobs.json").read_text())
+    assert saved["count"] == 1  # the healthy source's jobs were still saved
+

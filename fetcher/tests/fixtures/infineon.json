@@ -1,0 +1,237 @@
+{
+ "status": 200,
+ "error": {
+  "message": "",
+  "body": ""
+ },
+ "data": {
+  "positions": [
+   {
+    "id": 563808970723894,
+    "displayJobId": "HRC1629694",
+    "name": "Senior Staff Engineer Analog Verification Methodology (f/m/div)",
+    "locations": [
+     "Dresden (Germany)",
+     "Munich (Germany)"
+    ],
+    "standardizedLocations": [
+     "Dresden, SN, DE",
+     "Munich, BY, DE"
+    ],
+    "postedTs": 1780299918,
+    "solrScore": null,
+    "stars": 0,
+    "department": "DES",
+    "creationTs": 1778169634,
+    "isHot": 0,
+    "workLocationOption": "hybrid",
+    "locationFlexibility": null,
+    "atsJobId": "130450",
+    "positionUrl": "/careers/job/563808970723894",
+    "efcustomTextWorkplaceType": [
+     "Hybrid"
+    ]
+   },
+   {
+    "id": 563808971417772,
+    "displayJobId": "HRC1694080_1",
+    "name": "Ausbildung Mechatroniker (w/m/d) 2027",
+    "locations": [
+     "Dresden (Germany)"
+    ],
+    "standardizedLocations": [
+     "Dresden, SN, DE"
+    ],
+    "postedTs": 1782814736,
+    "solrScore": null,
+    "stars": 0,
+    "department": "HR",
+    "creationTs": 1782810227,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "132473",
+    "positionUrl": "/careers/job/563808971417772",
+    "efcustomTextWorkplaceType": []
+   },
+   {
+    "id": 563808971829594,
+    "displayJobId": "HRC1695196",
+    "name": "(Senior) Supervisor Maintenance Automation (f/m/div)",
+    "locations": [
+     "Dresden"
+    ],
+    "standardizedLocations": [
+     "Dresden, SN, DE"
+    ],
+    "postedTs": 1789457351,
+    "solrScore": null,
+    "stars": 0,
+    "department": "FE",
+    "creationTs": 1786345215,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "HRC1695196",
+    "positionUrl": "/careers/job/563808971829594",
+    "efcustomTextWorkplaceType": []
+   },
+   {
+    "id": 563808971706543,
+    "displayJobId": "HRC1718050",
+    "name": "Senior Staff Engineer Digital IP (f/m/div)",
+    "locations": [
+     "Dresden (Germany)"
+    ],
+    "standardizedLocations": [
+     "Dresden, SN, DE"
+    ],
+    "postedTs": 1784615623,
+    "solrScore": null,
+    "stars": 0,
+    "department": "DES",
+    "creationTs": 1784290505,
+    "isHot": 0,
+    "workLocationOption": "hybrid",
+    "locationFlexibility": null,
+    "atsJobId": "133447",
+    "positionUrl": "/careers/job/563808971706543",
+    "efcustomTextWorkplaceType": []
+   },
+   {
+    "id": 563808970387628,
+    "displayJobId": "HRC1606217",
+    "name": "Staff Engineer Component Verification (f/m/div)",
+    "locations": [
+     "Dresden (Germany)"
+    ],
+    "standardizedLocations": [
+     "Dresden, SN, DE"
+    ],
+    "postedTs": 1790322055,
+    "solrScore": null,
+    "stars": 0,
+    "department": "ATV",
+    "creationTs": 1776153653,
+    "isHot": 0,
+    "workLocationOption": "hybrid",
+    "locationFlexibility": null,
+    "atsJobId": "129485",
+    "positionUrl": "/careers/job/563808970387628",
+    "efcustomTextWorkplaceType": []
+   },
+   {
+    "id": 563808972129957,
+    "displayJobId": "HRC1827140",
+    "name": "Werkstudent - Productivity Improvement Frontend (w/m/div)",
+    "locations": [
+     "Dresden"
+    ],
+    "standardizedLocations": [
+     "Dresden, SN, DE"
+    ],
+    "postedTs": 1791462620,
+    "solrScore": null,
+    "stars": 0,
+    "department": "FE",
+    "creationTs": 1790937981,
+    "isHot": 0,
+    "workLocationOption": "hybrid",
+    "locationFlexibility": null,
+    "atsJobId": "HRC1827140",
+    "positionUrl": "/careers/job/563808972129957",
+    "efcustomTextWorkplaceType": []
+   },
+   {
+    "id": 563808972072473,
+    "displayJobId": "HRC1801354",
+    "name": "Senior Technician HVAC (m/w/d)",
+    "locations": [
+     "Dresden"
+    ],
+    "standardizedLocations": [
+     "Dresden, SN, DE"
+    ],
+    "postedTs": 1790340000,
+    "solrScore": null,
+    "stars": 0,
+    "department": "FE",
+    "creationTs": 1790250374,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "HRC1801354",
+    "positionUrl": "/careers/job/563808972072473",
+    "efcustomTextWorkplaceType": []
+   },
+   {
+    "id": 563808955939460,
+    "displayJobId": "84777",
+    "name": "Quereinsteiger als Instandhalter in der Halbleiterindustrie (w/m/div)",
+    "locations": [
+     "Dresden (Germany)"
+    ],
+    "standardizedLocations": [
+     "Dresden, SN, DE"
+    ],
+    "postedTs": 1791986385,
+    "solrScore": null,
+    "stars": 0,
+    "department": "FE",
+    "creationTs": 1672912557,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "84777",
+    "positionUrl": "/careers/job/563808955939460",
+    "efcustomTextWorkplaceType": []
+   },
+   {
+    "id": 563808972195430,
+    "displayJobId": "HRC1837913",
+    "name": "Engineer Defect Engineering (f/m/div)",
+    "locations": [
+     "Dresden"
+    ],
+    "standardizedLocations": [
+     "Dresden, SN, DE"
+    ],
+    "postedTs": 1792071706,
+    "solrScore": null,
+    "stars": 0,
+    "department": "FE",
+    "creationTs": 1791819973,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "HRC1837913",
+    "positionUrl": "/careers/job/563808972195430",
+    "efcustomTextWorkplaceType": []
+   },
+   {
+    "id": 563808972125333,
+    "displayJobId": "HRC1817793",
+    "name": "Assistant Project Hook Up (f/m/div)",
+    "locations": [
+     "Dresden"
+    ],
+    "standardizedLocations": [
+     "Dresden, SN, DE"
+    ],
+    "postedTs": 1791280857,
+    "solrScore": null,
+    "stars": 0,
+    "department": "FE",
+    "creationTs": 1790855182,
+    "isHot": 0,
+    "workLocationOption": "onsite",
+    "locationFlexibility": null,
+    "atsJobId": "HRC1817793",
+    "positionUrl": "/careers/job/563808972125333",
+    "efcustomTextWorkplaceType": []
+   }
+  ],
+  "count": 37
+ },
+ "metadata": null
+}

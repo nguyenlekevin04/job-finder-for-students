@@ -45,8 +45,9 @@ FIELD_PATTERNS: dict[str, re.Pattern] = {
         re.I),
     "software": re.compile(
         r"software|informatik|computer science|programmier|programming|\bcoding\b"
-        r"|(web|app|frontend|front-end|backend|back-end|full-?stack|spiele|game)[- ]?(entwickl|develop)"
-        r"|frontend|front-end|backend|back-end|full-?stack|devops|cloud|\bpython\b|\bjava\b|javascript"
+        r"|(web|app|frontend|front-end|backend|back-end|full-?stack|spiele|game)[- ]?(entwickl|develop|engineer)"
+        # Bare "frontend" is left out: at chip makers it means the wafer fab, not web UI.
+        r"|backend|back-end|full-?stack|devops|cloud|\bpython\b|\bjava\b|javascript"
         r"|typescript|c\+\+|\bc#|\.net\b|\breact\b|angular|\bgolang\b|\brust\b|kubernetes|\blinux\b"
         r"|testautomat|test automation|qa engineer|anwendungsentwickl|fachinformatik|it-?entwickl"
         r"|developer|softwareentwickl|webentwickl|app-entwickl|plug-?in-entwickl|\bapi\b|algorithm",
@@ -79,7 +80,10 @@ NON_TECH_TITLE = re.compile(
 MIN_DESC_HITS = 3
 
 # Phrases that look techy but aren't (removed before matching).
-NOISE = re.compile(r"business develop\w*|sales develop\w*|personalentwickl\w*|organisationsentwickl\w*", re.I)
+# Phrases that contain tech words but say nothing about the role ("Adobe Creative Cloud",
+# "Software-Tools wie PowerPoint").
+NOISE = re.compile(r"business develop\w*|sales develop\w*|personalentwickl\w*|organisationsentwickl\w*"
+                   r"|creative cloud|software[- ]?tools?\b", re.I)
 
 FIELD_LABELS = {
     "ai": "AI / ML",
@@ -147,6 +151,15 @@ def snippet(job: Job) -> str:
         return text
     cut = text[:SNIPPET_LEN].rsplit(" ", 1)[0]
     return cut.rstrip(" ,.;:-") + "…"
+
+
+def is_student_title(title: str) -> bool:
+    """Cheap pre-check: is this title worth fetching details for?
+
+    Company career feeds list every role; sources use this to request the
+    full posting only for likely student jobs. classify() still decides.
+    """
+    return bool(_types(title)) and not EXCLUDE.search(title)
 
 
 def classify(job: Job) -> dict | None:

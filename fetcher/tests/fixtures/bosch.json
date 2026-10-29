@@ -1,0 +1,487 @@
+{
+ "offset": 0,
+ "limit": 100,
+ "totalFound": 42,
+ "content": [
+  {
+   "id": "744000155231104",
+   "name": "Werkstudent Entwicklung, experimentelle Validierung, Charakterisierung eines Schnelltests zur Bestimmung der Korrosionsfestigkeit elektronischer Bauelemente (w/m/div.)  ",
+   "uuid": "1e7467fb-77da-4040-bcb4-db7c3f6d0286",
+   "jobAdId": "3a9338e3-8ba3-4f22-a291-6bbae6743cc1",
+   "defaultJobAd": true,
+   "refNumber": "REF298408L",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-13T11:23:26.681Z",
+   "location": {
+    "city": "Dresden",
+    "region": "SN",
+    "country": "de",
+    "address": "Robert-Bosch-Ring 1",
+    "postalCode": "01109",
+    "remote": false,
+    "hybrid": false,
+    "fullLocation": "Dresden, SN, Germany"
+   },
+   "industry": {
+    "id": "semiconductors",
+    "label": "Semiconductors"
+   },
+   "department": {},
+   "function": {
+    "id": "manufacturing",
+    "label": "Manufacturing"
+   },
+   "typeOfEmployment": {
+    "id": "part-time",
+    "label": "Part-time"
+   },
+   "experienceLevel": {
+    "id": "not_applicable",
+    "label": "Not Applicable"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000155231104",
+   "language": {
+    "code": "de",
+    "label": "German",
+    "labelNative": "Deutsch"
+   }
+  },
+  {
+   "id": "744000154376269",
+   "name": "Praktikum Change-Management im Facility Management",
+   "uuid": "79604fe2-fe68-48ab-9b3e-fbcdd95bded9",
+   "jobAdId": "dcf805da-5504-4e0e-902d-b127fb45e430",
+   "defaultJobAd": true,
+   "refNumber": "REF297954M",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-08T08:40:26.007Z",
+   "location": {
+    "city": "Dresden",
+    "country": "de",
+    "address": "Robert-Bosch-Ring 1",
+    "postalCode": "01109",
+    "remote": false,
+    "hybrid": false,
+    "fullLocation": "Dresden, , Germany"
+   },
+   "industry": {
+    "id": "semiconductors",
+    "label": "Semiconductors"
+   },
+   "department": {},
+   "function": {
+    "id": "production",
+    "label": "Production"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "internship",
+    "label": "Internship"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000154376269",
+   "language": {
+    "code": "de",
+    "label": "German",
+    "labelNative": "Deutsch"
+   }
+  },
+  {
+   "id": "744000153464685",
+   "name": "Praktikum Entwicklung eines TPM-Standards für die Instandhaltung im Halbleiterwerk ",
+   "uuid": "5807bd88-4704-4e08-b1f5-9f44ee37f2f7",
+   "jobAdId": "689163b0-bb0c-4693-854e-fa9ce45feaa2",
+   "defaultJobAd": true,
+   "refNumber": "REF297693A",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-05T10:56:06.445Z",
+   "location": {
+    "city": "Dresden",
+    "country": "de",
+    "address": "Robert-Bosch-Ring 1",
+    "postalCode": "01109",
+    "remote": false,
+    "hybrid": false,
+    "fullLocation": "Dresden, , Germany"
+   },
+   "industry": {
+    "id": "semiconductors",
+    "label": "Semiconductors"
+   },
+   "department": {},
+   "function": {
+    "id": "production",
+    "label": "Production"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "internship",
+    "label": "Internship"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000153464685",
+   "language": {
+    "code": "de",
+    "label": "German",
+    "labelNative": "Deutsch"
+   }
+  },
+  {
+   "id": "744000142127003",
+   "name": "Praktikum im Bereich Architektur und Design",
+   "uuid": "c383e372-e04e-4cdb-9d8b-0a734d0b1cba",
+   "jobAdId": "c44d5446-b909-4c25-9e73-81976dcf6831",
+   "defaultJobAd": true,
+   "refNumber": "REF293072R",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-08-07T12:54:29.928Z",
+   "location": {
+    "city": "Dresden",
+    "region": "SN",
+    "country": "de",
+    "address": "Robert-Bosch-Ring 1",
+    "postalCode": "01109",
+    "remote": false,
+    "hybrid": false,
+    "fullLocation": "Dresden, SN, Germany"
+   },
+   "industry": {
+    "id": "semiconductors",
+    "label": "Semiconductors"
+   },
+   "department": {},
+   "function": {
+    "id": "design",
+    "label": "Design"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "internship",
+    "label": "Internship"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000142127003",
+   "language": {
+    "code": "de",
+    "label": "German",
+    "labelNative": "Deutsch"
+   }
+  },
+  {
+   "id": "744000139608340",
+   "name": "PhD – Agentische KI zur Beschleunigung der ASIC-Entwicklung (w/m/div.)",
+   "uuid": "c790775c-75db-42b6-97a5-0f5ae8dfb6a7",
+   "jobAdId": "cbec6fa8-83c5-4a27-8d15-973ec2f4211b",
+   "defaultJobAd": false,
+   "refNumber": "REF292240Q",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-07-24T13:47:58.700Z",
+   "location": {
+    "city": "Dresden",
+    "region": "SN",
+    "country": "de",
+    "address": "Robert-Bosch-Ring 1",
+    "postalCode": "01109",
+    "remote": false,
+    "hybrid": true,
+    "latitude": "51.1283336",
+    "longitude": "13.7401152",
+    "fullLocation": "Dresden, SN, Germany"
+   },
+   "industry": {
+    "id": "semiconductors",
+    "label": "Semiconductors"
+   },
+   "department": {},
+   "function": {
+    "id": "information_technology",
+    "label": "Information Technology"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "entry_level",
+    "label": "Entry Level"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000139608340",
+   "language": {
+    "code": "de",
+    "label": "German",
+    "labelNative": "Deutsch"
+   }
+  },
+  {
+   "id": "744000158010330",
+   "name": "Senior Ingenieur Wafertest EWS Testchips (w/m/div)",
+   "uuid": "c6fd5070-8026-499e-8e78-c02af2cb753c",
+   "jobAdId": "2b5b323a-daf7-430f-844e-59fd6457b42f",
+   "defaultJobAd": false,
+   "refNumber": "REF294158A",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-27T10:33:59.251Z",
+   "location": {
+    "city": "Dresden",
+    "region": "SN",
+    "country": "de",
+    "address": "Robert-Bosch-Ring",
+    "postalCode": "01109",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "51.1292726",
+    "longitude": "13.739938",
+    "fullLocation": "Dresden, SN, Germany"
+   },
+   "industry": {
+    "id": "semiconductors",
+    "label": "Semiconductors"
+   },
+   "department": {},
+   "function": {
+    "id": "engineering",
+    "label": "Engineering"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000158010330",
+   "language": {
+    "code": "de",
+    "label": "German",
+    "labelNative": "Deutsch"
+   }
+  },
+  {
+   "id": "744000158010119",
+   "name": "Senior Prozessintegrator MEMS (w/m/div.)",
+   "uuid": "d12bc938-e09b-4996-ba61-cdfe511d6257",
+   "jobAdId": "f5634275-1883-4c6c-8e93-36f2e87dfb2d",
+   "defaultJobAd": false,
+   "refNumber": "REF298646B",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-27T10:31:54.512Z",
+   "location": {
+    "city": "Dresden",
+    "region": "SN",
+    "country": "de",
+    "address": "Robert-Bosch-Ring",
+    "postalCode": "01109",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "51.1292726",
+    "longitude": "13.739938",
+    "fullLocation": "Dresden, SN, Germany"
+   },
+   "industry": {
+    "id": "semiconductors",
+    "label": "Semiconductors"
+   },
+   "department": {},
+   "function": {
+    "id": "engineering",
+    "label": "Engineering"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000158010119",
+   "language": {
+    "code": "de",
+    "label": "German",
+    "labelNative": "Deutsch"
+   }
+  },
+  {
+   "id": "744000158008179",
+   "name": "Projektplaner (w/m/div.)",
+   "uuid": "62b33590-309a-406b-9428-15107e58cd35",
+   "jobAdId": "001a36d7-cf89-4f23-afe9-31ee067635c8",
+   "defaultJobAd": true,
+   "refNumber": "REF299510D",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-27T10:21:32.923Z",
+   "location": {
+    "city": "Dresden",
+    "region": "SN",
+    "country": "de",
+    "address": "Hugo-Junkers-Ring 1",
+    "postalCode": "01109",
+    "remote": false,
+    "hybrid": true,
+    "latitude": "51.1306878",
+    "longitude": "13.7900325",
+    "fullLocation": "Dresden, SN, Germany"
+   },
+   "industry": {
+    "id": "facilities_services",
+    "label": "Facilities Services"
+   },
+   "department": {},
+   "function": {
+    "id": "engineering",
+    "label": "Engineering"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000158008179",
+   "language": {
+    "code": "de",
+    "label": "German",
+    "labelNative": "Deutsch"
+   }
+  },
+  {
+   "id": "744000156774079",
+   "name": "Technische Assistenz Maintenance Service / Kit Support (w/m/div.)",
+   "uuid": "d7b9702e-68e7-41c2-9c39-b599d3361984",
+   "jobAdId": "c05d36bb-1624-4cbb-99d1-6aa504b81ed4",
+   "defaultJobAd": true,
+   "refNumber": "REF298762A",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-21T11:14:22.708Z",
+   "location": {
+    "city": "Dresden",
+    "region": "SN",
+    "country": "de",
+    "address": "Robert-Bosch-Ring",
+    "postalCode": "01109",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "51.1292726",
+    "longitude": "13.739938",
+    "fullLocation": "Dresden, SN, Germany"
+   },
+   "industry": {
+    "id": "semiconductors",
+    "label": "Semiconductors"
+   },
+   "department": {},
+   "function": {
+    "id": "engineering",
+    "label": "Engineering"
+   },
+   "typeOfEmployment": {
+    "id": "part-time",
+    "label": "Part-time"
+   },
+   "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000156774079",
+   "language": {
+    "code": "de",
+    "label": "German",
+    "labelNative": "Deutsch"
+   }
+  },
+  {
+   "id": "744000155985712",
+   "name": "MEMS Implementation Manager (w/m/div.)",
+   "uuid": "16dd1bc1-5923-4531-af58-b6f968466dd6",
+   "jobAdId": "d992d64b-dcb8-49c3-9308-8d07ec4b65e6",
+   "defaultJobAd": true,
+   "refNumber": "REF298798A",
+   "company": {
+    "identifier": "BoschGroup",
+    "name": "Bosch Group"
+   },
+   "releasedDate": "2026-10-16T12:29:58.233Z",
+   "location": {
+    "city": "Dresden",
+    "region": "SN",
+    "country": "de",
+    "address": "Robert-Bosch-Ring",
+    "postalCode": "01109",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "51.1292726",
+    "longitude": "13.739938",
+    "fullLocation": "Dresden, SN, Germany"
+   },
+   "industry": {
+    "id": "semiconductors",
+    "label": "Semiconductors"
+   },
+   "department": {},
+   "function": {
+    "id": "information_technology",
+    "label": "Information Technology"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000155985712",
+   "language": {
+    "code": "de",
+    "label": "German",
+    "labelNative": "Deutsch"
+   }
+  }
+ ]
+}

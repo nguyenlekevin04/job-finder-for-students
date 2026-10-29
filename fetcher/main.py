@@ -20,12 +20,19 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from fetcher.classify import FIELD_LABELS, classify  # noqa: E402
-from fetcher.sources import adzuna, arbeitnow, arbeitsagentur, fraunhofer, hzdr, tu_dresden  # noqa: E402
+from fetcher.sources import (  # noqa: E402
+    adzuna, amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, hzdr, infineon, tu_dresden,
+)
 from fetcher.store import JsonFileStore, get_store  # noqa: E402
 
 OUTPUT = ROOT / "web" / "public" / "jobs.json"  # local fallback when Supabase isn't configured
 
-SOURCES = [arbeitsagentur, arbeitnow, adzuna, tu_dresden, fraunhofer, hzdr]
+# Direct employer sources come first: the first link of a merged job is its "Apply now"
+# button, and the employer's own page beats a job-board copy.
+SOURCES = [
+    tu_dresden, fraunhofer, hzdr, infineon, globalfoundries, bosch, amazon,
+    arbeitsagentur, arbeitnow, adzuna,
+]
 
 
 def load_env(path: Path = ROOT / ".env") -> None:
@@ -74,6 +81,34 @@ def job_id(title: str, company: str) -> str:
     return hashlib.sha1(key.encode()).hexdigest()[:12]
 
 
+def redact(text: str) -> str:
+    """Drop URL query strings: they can hold API keys (Adzuna). Errors are saved to the
+    public fetch_runs table and printed in CI logs."""
+    return re.sub(r"\?[^\s'\"]*=[^\s'\"]*", "?…", text)
+
+
+def safe_error(err: Exception) -> str:
+    return redact(str(err))[:200]
+
+
+def health_problems(status: dict, sources: list = SOURCES) -> list[str]:
+    """Sources that look broken: they failed, or found nothing although they normally do.
+
+    A scraper whose site changed usually returns 0 postings instead of failing, so an
+    empty result counts too, unless the source sets MAY_BE_EMPTY.
+    """
+    may_be_empty = {s.NAME for s in sources if getattr(s, "MAY_BE_EMPTY", False)}
+    problems = []
+    for name, s in status.items():
+        if s.get("skipped"):
+            continue
+        if not s["ok"]:
+            problems.append(f"{name} failed: {s.get('error', '')}")
+        elif s["count"] == 0 and name not in may_be_empty:
+            problems.append(f"{name} returned no postings (did the site change?)")
+    return problems
+
+
 def run_sources() -> tuple[list, dict]:
     raw, status = [], {}
     for src in SOURCES:
@@ -89,9 +124,9 @@ def run_sources() -> tuple[list, dict]:
             status[name] = {"ok": True, "count": len(jobs)}
             print(f"✓ {name}: {len(jobs)} postings ({time.time() - started:.0f}s)")
         except Exception as err:  # one broken source must not stop the rest
-            status[name] = {"ok": False, "count": 0, "error": str(err)[:200]}
-            print(f"✗ {name}: FAILED – {err}")
-            traceback.print_exc()
+            status[name] = {"ok": False, "count": 0, "error": safe_error(err)}
+            print(f"✗ {name}: FAILED – {safe_error(err)}")
+            print(redact(traceback.format_exc()))
     return raw, status
 
 
@@ -150,6 +185,13 @@ def main(argv: list[str] | None = None) -> int:
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     total = store.save(current, status, generated_at, today)
     print(f"\nKept {len(current)} of {len(raw)} postings today; {total} jobs now in {store.name}")
+
+    problems = health_problems(status)
+    if problems:
+        for p in problems:
+            print(f"::error title=Job source problem::{p}")  # shows up as an annotation in GitHub Actions
+        print("The other sources were saved. Failing the run so GitHub sends an alert email.")
+        return 3
     return 0
 
 

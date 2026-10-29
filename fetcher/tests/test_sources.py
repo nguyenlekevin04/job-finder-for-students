@@ -4,7 +4,11 @@ import json
 import requests
 
 from fetcher import net
-from fetcher.sources import adzuna, arbeitnow, arbeitsagentur, fraunhofer, hzdr, tu_dresden
+from datetime import date
+
+from fetcher.sources import (
+    adzuna, amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, hzdr, infineon, tu_dresden,
+)
 
 
 def test_arbeitsagentur(fixture_text):
@@ -113,11 +117,78 @@ def _response(body: bytes, content_type: str) -> requests.Response:
 
 def test_get_text_detects_utf8_without_charset(monkeypatch):
     body = "Werkstudent für Prüfstände und Messtechnik in Dresden".encode()
-    monkeypatch.setattr(net, "_get", lambda url, **kw: _response(body, "text/html"))
+    monkeypatch.setattr(net, "_request", lambda url, **kw: _response(body, "text/html"))
     assert "für Prüfstände" in net.get_text("https://x")
 
 
 def test_get_text_respects_declared_charset(monkeypatch):
     body = "Prüfung".encode("latin-1")
-    monkeypatch.setattr(net, "_get", lambda url, **kw: _response(body, "text/html; charset=ISO-8859-1"))
+    monkeypatch.setattr(net, "_request", lambda url, **kw: _response(body, "text/html; charset=ISO-8859-1"))
     assert net.get_text("https://x") == "Prüfung"
+
+
+# ------------------------------------------------------- employer career sites --
+
+def test_infineon_search_keeps_dresden_jobs(fixture_text):
+    jobs = infineon.parse_search(json.loads(fixture_text("infineon.json")))
+    assert len(jobs) == 10
+    j = jobs[0]
+    assert j.company == "Infineon" and j.location == "Dresden"
+    assert j.url == "https://jobs.infineon.com/careers/job/563808970723894"
+    assert j.posted_at == "2026-06-01"
+
+
+def test_infineon_detail_drops_the_shared_intro(fixture_text):
+    text = infineon.parse_detail(json.loads(fixture_text("infineon_detail.json")))
+    assert text.startswith("Deine Rolle")
+    assert "#WeAreIn" not in text and "<" not in text
+
+
+def test_globalfoundries_list_and_relative_dates(fixture_text):
+    jobs = globalfoundries.parse_list(json.loads(fixture_text("globalfoundries.json")), date(2026, 10, 29))
+    assert len(jobs) == 20
+    assert all(j.url.startswith("https://globalfoundries.wd1.myworkdayjobs.com/External/job/") for j in jobs)
+    assert jobs[0].source_id == "JR-2404067"
+    assert globalfoundries.posted_on("Posted Today", date(2026, 10, 29)) == "2026-10-29"
+    assert globalfoundries.posted_on("Posted Yesterday", date(2026, 10, 29)) == "2026-10-28"
+    assert globalfoundries.posted_on("Posted 3 Days Ago", date(2026, 10, 29)) == "2026-10-26"
+    assert globalfoundries.posted_on("Posted 30+ Days Ago", date(2026, 10, 29)) is None
+
+
+def test_globalfoundries_detail(fixture_text):
+    text, posted = globalfoundries.parse_detail(json.loads(fixture_text("globalfoundries_detail.json")))
+    assert posted == "2026-10-13"
+    assert text.startswith("Über den Bereich")  # the "Über GF … www.gf.com" blurb is gone
+    assert "Bauelementsimulation" in text
+
+
+def test_bosch_list_and_detail(fixture_text):
+    jobs = bosch.parse_list(json.loads(fixture_text("bosch.json")))
+    assert len(jobs) == 10
+    j = jobs[0]
+    assert j.title.startswith("Werkstudent Entwicklung")
+    assert j.company == "Bosch" and not j.remote
+    assert j.url == "https://jobs.smartrecruiters.com/BoschGroup/744000155231104"
+    assert j.tags == "Manufacturing"  # "Not Applicable" placeholders are dropped
+    text = bosch.parse_detail(json.loads(fixture_text("bosch_detail.json")))
+    assert text.startswith("Während deiner Werkstudententätigkeit")
+
+
+def test_amazon_keeps_only_dresden(fixture_text):
+    jobs = amazon.parse(json.loads(fixture_text("amazon.json")))
+    assert len(jobs) == 7  # fixture also has Berlin and Gera
+    intern = next(j for j in jobs if "Internship" in j.title)
+    assert intern.url.startswith("https://www.amazon.jobs/en/jobs/")
+    assert intern.posted_at == "2025-11-21"
+    assert amazon.us_date("October  8, 2026") == "2026-10-08"
+    assert amazon.us_date("soon") is None
+
+
+def test_student_jobs_from_employers_get_classified(fixture_text):
+    from fetcher.classify import classify
+    ifx = infineon.parse_search(json.loads(fixture_text("infineon.json")))
+    assert not any(classify(j) for j in ifx if j.title.startswith(("Senior", "Ausbildung")))
+    amz = amazon.parse(json.loads(fixture_text("amazon.json")))
+    kept = [j.title for j in amz if classify(j)]
+    assert kept == ["Software Dev Engineer Internship - Embedded Development (Linux)"]
+
