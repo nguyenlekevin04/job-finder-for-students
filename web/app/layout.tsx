@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 const grotesk = Schibsted_Grotesk({ variable: "--font-grotesk", subsets: ["latin"] });
 const serif = Instrument_Serif({ variable: "--font-instrument-serif", subsets: ["latin"], weight: "400", style: "italic" });
 
-// "staging" on the staging site (set in render.yaml); unset in production and locally.
+// "staging" on Vercel preview deployments (staging branch and PRs); unset in production and locally.
 const isStaging = process.env.NEXT_PUBLIC_DEPLOY_ENV === "staging";
 
 export const metadata: Metadata = {
@@ -41,7 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="isolate flex min-h-full flex-col font-sans">
         {isStaging && (
           <div role="note" className="bg-orange px-4 py-1.5 text-center text-[13px] font-semibold text-[#1f1d1a]">
-            STAGING · test site with test data. The real site is dresden-student-jobs.onrender.com
+            STAGING · test site with test data. The real site is dresden-jobs.vercel.app
           </div>
         )}
         <SiteHeader />
