@@ -115,6 +115,14 @@ def test_consulting_title_cannot_be_rescued_by_description():
      "Du unterstützt beim Chip-Design und automatisierst Abläufe mit Python-Skripten und Datenbanken."),
     ("Working Student - Digital Functional Verification (f/m/div)",
      "Verification of semiconductor IP: write testbenches, automate regressions in Python on Linux, analyse coverage."),
+    ("Masterarbeit Predictive Maintenance",
+     "Du entwickelst Machine-Learning-Modelle in Python zur Datenanalyse von Sensordaten und baust Software-Pipelines."),
+    ("Werkstudent vorausschauende Wartung",
+     "Du entwickelst Machine-Learning-Modelle in Python zur Datenanalyse von Sensordaten und baust Software-Pipelines."),
+    ("Masterarbeit zur vorausschauenden Wartung",
+     "Du entwickelst Machine-Learning-Modelle in Python zur Datenanalyse von Sensordaten und baust Software-Pipelines."),
+    ("Masterarbeit Predictive-Maintenance",
+     "Du entwickelst Machine-Learning-Modelle in Python zur Datenanalyse von Sensordaten und baust Software-Pipelines."),
 ])
 def test_chip_fab_engineering_roles_stay(title, description):
     assert classify(job(title, description=description)) is not None

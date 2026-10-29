@@ -7,10 +7,12 @@ from __future__ import annotations
 import re
 import time
 
-from fetcher.net import clean_text, get_json, to_day
+from fetcher.net import clean_text, get_json, status_code, to_day
 from fetcher.models import Job
 
 NAME = "Arbeitnow"
+# Only the newest MAX_PAGES pages are read, so older postings drop out while still open.
+FEED = "partial"
 
 API = "https://www.arbeitnow.com/api/job-board-api"
 MAX_PAGES = 10
@@ -50,3 +52,12 @@ def fetch() -> list[Job]:
             break
         time.sleep(0.5)
     return jobs
+
+
+def state_from_status(code: int | None) -> str:
+    """A posting page answers 200 while live and 410 (or 404) once removed."""
+    return {200: "open", 404: "closed", 410: "closed"}.get(code, "unknown")
+
+
+def check(url: str) -> str:
+    return state_from_status(status_code(url))

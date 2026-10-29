@@ -29,6 +29,7 @@ export interface SourceStatus {
   count: number;
   skipped?: boolean;
   error?: string;
+  rejected?: number; // postings skipped for a link outside the source's allowed hosts
 }
 
 export interface JobsFile {

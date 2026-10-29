@@ -18,13 +18,14 @@ export function SavedJobs() {
     [state],
   );
 
-  // Prefer today's version of a job (fresh dates/links); fall back to the saved copy.
+  // Prefer today's version of a job (fresh dates/links). A saved job missing from today's
+  // data has closed (the daily fetch removes closed jobs), so it keeps the saved copy.
   const list = useMemo(() => {
-    const jobs: { job: Job; stale: boolean }[] = Object.values(saved).map((s) => {
+    const jobs: { job: Job; closed: boolean }[] = Object.values(saved).map((s) => {
       const live = current?.get(s.id);
-      return { job: live ?? s, stale: current ? !live : false };
+      return { job: live ?? s, closed: current ? !live : false };
     });
-    return jobs.sort((a, b) => Number(a.stale) - Number(b.stale) || jobDate(b.job).localeCompare(jobDate(a.job)));
+    return jobs.sort((a, b) => Number(a.closed) - Number(b.closed) || jobDate(b.job).localeCompare(jobDate(a.job)));
   }, [saved, current]);
 
   return (
@@ -53,7 +54,7 @@ export function SavedJobs() {
           </EmptyState>
         ) : (
           <ol className="border-b-[1.5px] border-rule">
-            {list.map(({ job, stale }) => (
+            {list.map(({ job, closed }) => (
               <JobRow
                 key={job.id}
                 job={job}
@@ -61,7 +62,7 @@ export function SavedJobs() {
                 onToggle={(id) => setOpen((o) => (o === id ? null : id))}
                 saved
                 onToggleSave={toggle}
-                stale={stale}
+                closed={closed}
               />
             ))}
           </ol>

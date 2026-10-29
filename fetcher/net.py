@@ -36,6 +36,17 @@ def _request(url: str, *, headers: dict | None = None, params: dict | None = Non
     raise last_err  # type: ignore[misc]
 
 
+def status_code(url: str, *, headers: dict | None = None, timeout: int = 15) -> int | None:
+    """HTTP status of a single GET without following redirects; None when unreachable.
+
+    Used to ask whether one posting still exists, so errors are not raised.
+    """
+    try:
+        return _session.get(url, headers=headers, timeout=timeout, allow_redirects=False).status_code
+    except requests.RequestException:
+        return None
+
+
 def get_json(url: str, **kw):
     return _request(url, **kw).json()
 

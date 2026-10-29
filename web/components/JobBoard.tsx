@@ -140,6 +140,15 @@ export function JobBoard() {
           <>
             {/* Highlighting "new" only means something when some jobs aren't. */}
             {newCount > 0 && newCount < jobs.length && <NewTicket count={newCount} active={filters.fresh} onToggle={() => update({ fresh: !filters.fresh })} />}
+            {/* A shared ?job= link to a job that closed since: say so instead of opening nothing. */}
+            {filters.job && !jobs.some((j) => j.id === filters.job) && (
+              <p role="status" className="mb-4 flex flex-wrap items-baseline gap-x-3 border-l-2 border-rule pl-3 text-sm text-muted">
+                This job is no longer available.
+                <button type="button" onClick={() => update({ job: null })} className="focus-ring link-u rounded text-ink">
+                  Dismiss
+                </button>
+              </p>
+            )}
             <div className="flex items-center justify-between gap-4 pb-2.5 text-[13px] text-muted">
               <span>
                 {results.length === jobs.length ? `${jobs.length} jobs` : `${results.length} of ${jobs.length} jobs`}

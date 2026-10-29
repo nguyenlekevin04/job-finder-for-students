@@ -17,7 +17,7 @@ How the team works:
 `dresden/jobs` helps students in AI, ML, computer science and related fields find student jobs around Dresden and fully remote in Germany. It covers Werkstudent jobs, internships and thesis topics. HiWi posts are excluded on purpose.
 
 The site is in English. Jobs are collected daily from:
-- the Arbeitsagentur, Arbeitnow and Adzuna job APIs
+- the Arbeitsagentur and Arbeitnow job APIs
 - TU Dresden, Fraunhofer and HZDR career pages
 
 Students can search, filter, open a job and save bookmarks in the browser. There are no accounts.

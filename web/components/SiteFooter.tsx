@@ -5,14 +5,13 @@ import { useJobsFile } from "@/lib/useJobs";
 const SOURCE_LINKS: Record<string, string> = {
   Arbeitsagentur: "https://www.arbeitsagentur.de/jobsuche/",
   Arbeitnow: "https://www.arbeitnow.com/",
-  Adzuna: "https://www.adzuna.de/",
   "TU Dresden": "https://tu-dresden.de/tu-dresden/arbeiten-an-der-tud/stellenangebote",
   Fraunhofer: "https://jobs.fraunhofer.de/",
   HZDR: "https://www.hzdr.de/db/Cms?pNid=490",
 };
 
 const STEPS = [
-  ["Collected every morning", "Job boards, Fraunhofer, HZDR and TU Dresden are checked once a day. A job disappears a week after its last listing."],
+  ["Collected every morning", "Job boards, employers, Fraunhofer, HZDR and TU Dresden are checked once a day. Jobs that have closed are removed the same morning."],
   ["Filtered for students", "Only Werkstudent roles, internships and thesis topics in AI, data, software and embedded systems make the cut."],
   ["Saved in your browser", "Bookmarks stay on this device. There's no account and nothing is tracked."],
 ];
@@ -57,8 +56,8 @@ export function SiteFooter() {
             Matched by keywords, so a few may be off. Check the original posting before applying. Remote jobs come from{" "}
             <a className="underline hover:text-ink" href="https://www.arbeitnow.com/" target="_blank" rel="noreferrer">
               Arbeitnow
-            </a>{" "}
-            and Adzuna.
+            </a>
+            .
           </p>
         </div>
       </div>

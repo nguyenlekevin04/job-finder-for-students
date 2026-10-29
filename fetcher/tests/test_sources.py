@@ -7,7 +7,7 @@ from fetcher import net
 from datetime import date
 
 from fetcher.sources import (
-    adzuna, amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, hzdr, infineon, tu_dresden,
+    amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, hzdr, infineon, tu_dresden,
 )
 
 
@@ -76,35 +76,6 @@ def test_arbeitnow_skips_malformed_records():
         {"slug": "ok", "title": "Werkstudent", "url": "https://www.arbeitnow.com/ok", "remote": True},
     ]}
     assert [j.source_id for j in arbeitnow.parse(data)] == ["ok"]
-
-
-def _adzuna(id_, title, desc="", city="Berlin"):
-    return {"id": id_, "title": title, "description": desc, "redirect_url": f"https://adzuna/{id_}",
-            "location": {"display_name": city}, "company": {"display_name": "ACME"}}
-
-
-def test_adzuna_local_results_are_not_remote():
-    data = {"results": [_adzuna("1", "Werkstudent", "Homeoffice möglich", city="Radebeul")]}
-    [job] = adzuna.parse(data, local=True)
-    assert job.remote is False
-
-
-def test_adzuna_nationwide_needs_clear_remote():
-    data = {"results": [
-        _adzuna("hybrid", "Werkstudent Software", "2 Tage Home-Office pro Woche"),
-        _adzuna("full", "Werkstudent Software", "Die Stelle ist 100% remote."),
-        _adzuna("title", "Working Student Data (Remote)", "Great team"),
-    ]}
-    jobs = adzuna.parse(data, local=False)
-    assert [j.source_id for j in jobs] == ["full", "title"]
-    assert all(j.remote for j in jobs)
-
-
-def test_adzuna_skips_malformed_records():
-    bad = _adzuna("x", "Werkstudent")
-    del bad["redirect_url"]
-    data = {"results": [bad, _adzuna("ok", "Werkstudent", city="Dresden")]}
-    assert [j.source_id for j in adzuna.parse(data, local=True)] == ["ok"]
 
 
 def _response(body: bytes, content_type: str) -> requests.Response:

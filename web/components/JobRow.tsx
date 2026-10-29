@@ -11,7 +11,7 @@ interface Props {
   onToggle: (id: string) => void;
   saved: boolean;
   onToggleSave: (job: Job) => void;
-  stale?: boolean; // on the Saved page: no longer in today's data
+  closed?: boolean; // on the Saved page: no longer on the board, so no longer open
   showNew?: boolean; // false when every job is new, so the label would mean nothing
 }
 
@@ -20,12 +20,12 @@ export function jobPlace(job: Job): string {
   return job.location && !/remote/i.test(job.location) ? `Remote · ${job.location}` : "Remote";
 }
 
-export function JobRow({ job, open, onToggle, saved, onToggleSave, stale, showNew = true }: Props) {
-  const fresh = showNew && !stale && isNew(job.firstSeen);
+export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showNew = true }: Props) {
+  const fresh = showNew && !closed && isNew(job.firstSeen);
   const primary = job.links[0];
   const deadlineDays = job.deadline ? daysUntil(job.deadline) : null;
   const panelId = `job-${job.id}`;
-  const typeLabel = job.types.map((t) => TYPE_LABELS[t]).join(" / ");
+  const typeLabel = closed ? "Closed" : job.types.map((t) => TYPE_LABELS[t]).join(" / ");
 
   return (
     <li id={`row-${job.id}`} className="scroll-mt-4 border-t-[1.5px] border-rule">
@@ -39,7 +39,7 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, stale, showNe
         <span className="min-w-0">
           <span
             className={`block text-lg leading-tight font-semibold tracking-[-0.035em] decoration-orange decoration-2 underline-offset-4 group-hover:underline sm:text-[22px] ${
-              stale ? "text-muted" : ""
+              closed ? "text-muted" : ""
             }`}
           >
             {job.title}
@@ -76,10 +76,8 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, stale, showNe
 
       {open && (
         <div id={panelId} className="pb-7">
-          {stale && (
-            <p className="mb-4 rounded-[10px] bg-sage px-3 py-2 text-sm text-sage-ink">
-              This job is no longer listed by its sources. It may be filled.
-            </p>
+          {closed && (
+            <p className="mb-4 border-l-2 border-rule pl-3 text-sm text-muted">This job is no longer available.</p>
           )}
           <dl className="grid grid-cols-2 gap-x-7 gap-y-3 text-sm sm:flex sm:flex-wrap">
             <Fact label="Field">{job.fields.map((f) => FIELD_LABELS[f]).join(", ")}</Fact>
@@ -103,17 +101,35 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, stale, showNe
           </dl>
           {job.snippet && <p className="mt-4 max-w-[62ch] text-[15px] leading-relaxed">{job.snippet}</p>}
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <a
-              href={primary.url}
-              target="_blank"
-              rel="noreferrer"
-              className="focus-ring inline-flex items-center gap-2 rounded-[10px] bg-btn px-4 py-2.5 text-[15px] font-semibold tracking-[-0.02em] text-btn-ink transition hover:opacity-90"
-            >
-              Apply now <ArrowUpRightIcon width={15} height={15} />
-            </a>
-            <button type="button" onClick={() => onToggleSave(job)} aria-pressed={saved} className="focus-ring link-u rounded">
-              {saved ? "Remove from saved" : "Save for later"}
-            </button>
+            {closed ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onToggleSave(job)}
+                  aria-pressed={saved}
+                  className="focus-ring rounded-[10px] bg-btn px-4 py-2.5 text-[15px] font-semibold tracking-[-0.02em] text-btn-ink transition hover:opacity-90"
+                >
+                  {saved ? "Remove from saved" : "Save for later"}
+                </button>
+                <a href={primary.url} target="_blank" rel="noreferrer" className="focus-ring link-u inline-flex items-center gap-1 rounded">
+                  View original posting <ArrowUpRightIcon width={14} height={14} />
+                </a>
+              </>
+            ) : (
+              <>
+                <a
+                  href={primary.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="focus-ring inline-flex items-center gap-2 rounded-[10px] bg-btn px-4 py-2.5 text-[15px] font-semibold tracking-[-0.02em] text-btn-ink transition hover:opacity-90"
+                >
+                  Apply now <ArrowUpRightIcon width={15} height={15} />
+                </a>
+                <button type="button" onClick={() => onToggleSave(job)} aria-pressed={saved} className="focus-ring link-u rounded">
+                  {saved ? "Remove from saved" : "Save for later"}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

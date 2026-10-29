@@ -15,7 +15,6 @@ Werkstudent, internship and thesis positions in **AI, ML, Computer Science and r
 |---|---|---|
 | Bundesagentur für Arbeit | Official Jobsuche API | Biggest source; ~18 searches within 30 km of Dresden |
 | Arbeitnow | Public JSON API | Dresden + fully remote postings |
-| Adzuna | API (free key) | Optional, skipped without a key |
 | TU Dresden | HTML job board | Mostly staff/HiWi jobs, so few results get through |
 | Fraunhofer | HTML job portal | All Dresden institutes |
 | HZDR | HTML list | Internships and theses |
@@ -89,7 +88,6 @@ See `docs/capacity.md` for what 5,000 users cost on the free tiers, and when the
 
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`: production
 - `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_SERVICE_ROLE_KEY`: staging
-- optional: `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` (free key from https://developer.adzuna.com)
 
 The schedule fills both databases every morning. **Actions → Update jobs → Run workflow** fills the one you pick. If the staging secrets are missing, the staging run fails instead of falling back to production.
 
@@ -115,7 +113,8 @@ Free Supabase projects pause after a week without activity; the daily fetch keep
 - **Field**: AI/ML, Data, Software, Embedded/Hardware, Other CS. A title match is enough; the description alone needs at least 3 different tech terms, and can't rescue a clearly non-tech title (marketing, design, sales…).
 - **English-friendly**: the text is mostly English, or it names English as the working language.
 - **Duplicates**: same title and company (ignoring "(m/w/d)", "GmbH" and so on) are merged into one job with several "via" links.
-- **History**: each job keeps the date it was first seen ("New" badge for 3 days). A job that disappears stays for up to 7 days.
+- **History**: each job keeps the date it was first seen ("New" badge for 7 days).
+- **Only open jobs** (`fetcher/availability.py`): employer and institute feeds list every open posting, so a posting they stop listing is removed that run. The aggregators (Arbeitsagentur, Arbeitnow) only return top results, so their postings are checked one by one (detail API / page status). A source that fails removes nothing; a job nobody can confirm stays at most 2 days; a run that would remove more than half of a source's jobs removes none of them and raises the alarm.
 
 ## Add a source
 
