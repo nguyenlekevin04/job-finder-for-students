@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT))
 
 from fetcher.classify import FIELD_LABELS, classify  # noqa: E402
 from fetcher.sources import (  # noqa: E402
-    adzuna, amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, hzdr, infineon, tu_dresden,
+    amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, hzdr, infineon, tu_dresden,
 )
 from fetcher.availability import UNKNOWN, decide  # noqa: E402
 from fetcher.store import JsonFileStore, get_store  # noqa: E402
@@ -37,7 +37,7 @@ PRODUCTION_PROJECT_REF = "ywurtulsjybbdfzqfowq"
 # button, and the employer's own page beats a job-board copy.
 SOURCES = [
     tu_dresden, fraunhofer, hzdr, infineon, globalfoundries, bosch, amazon,
-    arbeitsagentur, arbeitnow, adzuna,
+    arbeitsagentur, arbeitnow,
 ]
 
 
@@ -88,7 +88,7 @@ def job_id(title: str, company: str) -> str:
 
 
 def redact(text: str) -> str:
-    """Drop URL query strings: they can hold API keys (Adzuna). Errors are saved to the
+    """Drop URL query strings: they can hold API keys. Errors are saved to the
     public fetch_runs table and printed in CI logs."""
     return re.sub(r"\?[^\s'\"]*=[^\s'\"]*", "?…", text)
 

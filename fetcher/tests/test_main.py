@@ -64,7 +64,7 @@ def test_require_db_refuses_json_fallback(monkeypatch):
 
 
 def test_redact_hides_query_strings():
-    msg = "404 for url: https://api.adzuna.com/v1/search/1?app_id=A&app_key=SECRET&what=x"
+    msg = "404 for url: https://api.example.com/v1/search/1?app_id=A&app_key=SECRET&what=x"
     assert "SECRET" not in main.redact(msg)
     assert "SECRET" not in main.redact("Max retries exceeded with url: /v1/search?app_key=SECRET (Caused by x)")
     assert main.redact("did the site change?") == "did the site change?"

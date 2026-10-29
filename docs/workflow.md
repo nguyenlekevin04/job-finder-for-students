@@ -5,6 +5,7 @@ How a feature goes from idea to production. The user is the **shareholder**: the
 Run it with the skills in `.claude/skills/`:
 - `/feature <idea>`: phases 1–6, ending in a pull request into `staging`.
 - `/release`: phase 7, `staging` → `main`.
+- `/hackerattack [focus]`: a security attack by Kevin with triage and fixes. Run it after features that touch data, secrets or the workflows, and before anything with logins.
 
 ## Roles
 
@@ -14,6 +15,7 @@ Run it with the skills in `.claude/skills/`:
 | Tech lead | main session | technical design, building, decisions on findings, merging | approve production without the shareholder |
 | Product owner | `otto` | user stories, acceptance criteria, priority, acceptance at the end | write code |
 | UI/UX | `iris` | look, flow, copy and accessibility; keeps the site minimal, clean and intuitive | write code |
+| Ethical hacker | `kevin` | attacks our own system and proves holes (`/hackerattack`) | touch production data, attack third parties, use real secrets |
 | Review team | `code-reviewer` (read-only), `review-fixer` | bugs, security and quality; browser bug test on staging | review its own fixes, add features |
 
 **Separation of duties:** whoever writes a change doesn't approve it. The tech lead builds; the review team reviews. Fixes from `review-fixer` are checked again by `code-reviewer` before they count.

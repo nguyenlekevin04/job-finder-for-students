@@ -20,7 +20,7 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
      - A saved job that is no longer on the board shows **"No longer available"** on the Saved page. "Apply now" is replaced by a plain link labelled "View original posting". The job stays saved until the student removes it.
      - A shared link `?job=<id>` to a removed job shows "This job is no longer available" and the board below, not an empty panel.
    - Out of scope: deadlines (0 of 40 jobs have one), checks more than once a day or live in the browser, a "report closed job" button, changes to job IDs.
-   - Open question for the tech lead: per-source rules for "closed" pages (Arbeitsagentur, Arbeitnow, Adzuna redirects, Workday, Eightfold). Size may grow if a source needs special handling.
+   - Open question for the tech lead: per-source rules for "closed" pages (Arbeitsagentur, Arbeitnow, Workday, Eightfold). Size may grow if a source needs special handling.
 
 ## Next
 

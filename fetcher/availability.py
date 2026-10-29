@@ -5,7 +5,7 @@ Every link of a job gets a state, then the job gets a verdict:
 - A source with a complete feed (every employer and institute source) lists all its
   open postings, so listed = open and not listed = closed, as long as the source
   worked today.
-- A source with a partial feed (the aggregators: Arbeitsagentur, Arbeitnow, Adzuna)
+- A source with a partial feed (the aggregators: Arbeitsagentur, Arbeitnow)
   only returns its top results, so a missing posting may still be open. Those
   sources set ``FEED = "partial"`` and may define ``check(url) -> state``, which asks
   the posting itself. A listed posting is open unless its check says closed.
