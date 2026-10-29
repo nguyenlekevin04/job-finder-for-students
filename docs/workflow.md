@@ -55,7 +55,7 @@ Before every release, the review team removes dead code:
       - **Otto:** only when a user story ships. He checks every acceptance criterion.
    3. The tech lead weighs the findings and writes the **shareholder report**: what ships, what was found and fixed, open risks, and a recommendation.
    4. The **shareholder** gives the OK, or says no.
-   5. The tech lead merges, then checks production: the site loads, it reads the production database, and there's no banner. If anything is wrong, it's rolled back in Vercel (instant rollback to the previous deployment).
+   5. The tech lead applies production prerequisites first (schema changes from `supabase/schema.sql`, new Vercel production variables), then merges, then checks production: the site loads, it reads the production database, and there's no banner. If anything is wrong, it's rolled back in Vercel (instant rollback to the previous deployment).
 
 A finding that blocks the release sends the work back to phase 4 on a fix branch; that fix goes into `staging` through its own pull request.
 
