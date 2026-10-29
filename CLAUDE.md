@@ -105,6 +105,8 @@ The user calls these by name; start them only when asked or when `/feature` or `
   - `code-reviewer` is read-only and covers bugs, security and code quality in existing code, never missing features.
   - `review-fixer` applies confirmed findings.
 
+**End of every sprint:** the review team removes dead code before the release (`docs/workflow.md`).
+
 **Flow:** `docs/workflow.md` is the source of truth (run it with `/feature <idea>` and `/release`). In short: Otto states the want → the tech lead designs → Iris and the tech lead agree on UX → the tech lead builds → the review team reviews (the author never approves their own change) → PR into `staging` → Iris, the review team and Otto test staging → the shareholder (the user) gives the OK → release PR `staging` → `main` with a merge commit, never squash.
 
 New agent files only load as agent types after a session restart. Until then, run them as general-purpose agents told to follow their file.
