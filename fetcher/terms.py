@@ -51,9 +51,9 @@ BREAK = re.compile(r"semesterferien|vorlesungsfrei|semester\s*break|semesterbrea
 MAX_BEFORE = re.compile(r"\b(?:max\.?|maximal|maximum|höchstens|bis\s+zu|up\s+to|no\s+more\s+than|nicht\s+mehr\s+als|at\s+most)"
                         r"(?:\s+(?:mit|of|von))?\s*$", re.I)
 MIN_BEFORE = re.compile(r"\b(?:mind\.?|mindestens|min\.?|ab|at\s+least|minimum(?:\s+of)?|from)\s*$", re.I)
-FULL_TIME = re.compile(r"vollzeit|full[- ]time", re.I)  # "Arbeitszeit für Vollzeitbeschäftigte: 40 Stunden"
+FULL_TIME = re.compile(r"vollzeit(?!stud)|full[- ]time(?!\s+stud)", re.I)  # "Arbeitszeit für Vollzeitbeschäftigte: 40 Stunden"
 CLOCK_AFTER = re.compile(r"^\W{0,3}\s*(?:uhr|mittagspause|pause|break)", re.I)  # "9-17 Uhr", "2 h Mittagspause"
-CLOCK_BEFORE = re.compile(r"gleitzeit|mo\.?\s*-\s*fr|montag", re.I)  # "Gleitzeit 7-19 h", "Mo-Fr 9-17 h"
+CLOCK_BEFORE = re.compile(r"gleitzeit|mo\.?\s*-\s*fr|\bmontags?\b", re.I)  # "Gleitzeit 7-19 h", "Mo-Fr 9-17 h"
 TIER4_MIN = 5  # "Teilzeit, 2 h ..." is not a weekly figure
 
 
@@ -78,7 +78,8 @@ def _hour_candidate(text: str, m: re.Match, weekly: bool = True, min_hours: int 
     """weekly=False for patterns without a weekly unit (tier 4, title), where a range may be a time of day."""
     if NOT_WEEKLY.search(text[m.end():m.end() + 25]):
         return None
-    if FULL_TIME.search(text[max(0, m.start() - 60):m.end()]) or FULL_TIME.search(_clause_after(text, m.end())):
+    # Same clause only: "Vollzeitstudium" in an earlier sentence must not wipe out real hours.
+    if FULL_TIME.search(_clause_before(text, m.start("lo"))) or FULL_TIME.search(_clause_after(text, m.end())):
         return None  # full-time boilerplate, not the student's hours
     if CLOCK_AFTER.search(text[m.end():m.end() + 20]) or CLOCK_BEFORE.search(_clause_before(text, m.start("lo"))):
         return None  # a time of day or a break, not hours per week
@@ -89,7 +90,9 @@ def _hour_candidate(text: str, m: re.Match, weekly: bool = True, min_hours: int 
         hi = int(hi)
         if hi < lo:
             return None
-        if not weekly and 6 <= lo <= 9 and hi >= 17:
+        # The unit written after the range: "8-20 Stunden" is a weekly range, "9-17 h" may be office hours.
+        spelled_out = re.match(r"\s*(?:stunden|std|hours?\b)", text[m.end("hi"):], re.I)
+        if not weekly and not spelled_out and 6 <= lo <= 9 and hi >= 17:
             return None  # "9 to 17 h" is office hours; "15-20 h" and "10-20 h" stay
         lo_v, hi_v = lo, hi
     else:

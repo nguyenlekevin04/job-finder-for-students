@@ -107,3 +107,16 @@ def test_fixture_postings(fixture_text):
     assert extract_hours("", "", ifx) == (None, 20)
     fh, _ = fraunhofer.parse_detail(fixture_text("fraunhofer_detail.html"))
     assert extract_terms("", "", fh) == {"hoursMin": None, "hoursMax": None, "payAmount": None, "payUnit": None}
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("Neben deinem Vollzeitstudium arbeitest du 20 Stunden pro Woche.", (20, 20)),
+    ("You are a full-time student and work 20 hours per week.", (20, 20)),
+    ("Du bist immatrikuliert im Vollzeitstudium. Arbeitszeit: 20 Stunden", (20, 20)),
+    ("Montage-Arbeiten 15 h pro Woche", (15, 15)),
+    ("Arbeitszeit 8-20 Stunden", (8, 20)),
+    ("working hours: 9 to 17 h", (None, None)),
+])
+def test_full_time_study_and_spelled_out_ranges(text, expected):
+    from fetcher.terms import extract_hours
+    assert extract_hours("Werkstudent", "", text) == expected
