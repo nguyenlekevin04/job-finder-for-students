@@ -80,14 +80,17 @@ body::before {
   @apply outline-none focus-visible:ring-2 focus-visible:ring-orange focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
 }
 
-/* Bigger tap area (about 40px tall) for small text controls, without changing layout. */
+/* Bigger tap area (about 40px tall) for small text controls on touch-size screens,
+   without changing layout. Desktop rows sit closer, so overlapping areas would mis-click. */
 .hit {
   position: relative;
 }
-.hit::before {
-  content: "";
-  position: absolute;
-  inset: -10px -4px;
+@media (width < 64rem) {
+  .hit::before {
+    content: "";
+    position: absolute;
+    inset: -10px -4px;
+  }
 }
 
 /* Underlined text link with an orange line. */
