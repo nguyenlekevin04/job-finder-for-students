@@ -61,10 +61,6 @@ export function JobBoard() {
   const jobs = useMemo(() => data?.jobs ?? [], [data]);
   const index = useMemo(() => (jobs.length ? makeIndex(jobs) : null), [jobs]);
   const results = useMemo(() => applyFilters(jobs, filters, index), [jobs, filters, index]);
-  const sources = useMemo(
-    () => [...new Set(jobs.flatMap((j) => j.links.map((l) => l.source)))].sort(),
-    [jobs],
-  );
   const newCount = useMemo(() => jobs.filter((j) => isNew(j.firstSeen)).length, [jobs]);
   const active = activeFilterCount(filters);
 
@@ -94,27 +90,13 @@ export function JobBoard() {
       {/* Intro, search and filters */}
       {/* max-h + scroll so short screens can reach every filter; px/pb keep focus rings inside the scroll box */}
       <section className="lg:sticky lg:top-6 lg:-mx-1.5 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto lg:px-1.5 lg:pb-1.5 lg:[scrollbar-color:var(--c-line)_transparent] lg:[scrollbar-width:thin]">
-        <p className="flex items-center gap-2 text-[13px] font-medium text-muted">
-          {data ? (
-            <>
-              <span className="size-[7px] rounded-full bg-live shadow-[0_0_0_3px] shadow-live/25" />
-              {data.generatedAt ? `Updated ${relativeTime(data.generatedAt)}` : "Waiting for the first update"} ·{" "}
-              {data.count} open position{data.count === 1 ? "" : "s"}
-            </>
-          ) : (
-            <span className="h-4 w-56 animate-pulse rounded bg-line" />
-          )}
-        </p>
-        <h1 className="mt-3.5 text-[44px] leading-[0.96] font-semibold tracking-[-0.05em] text-balance sm:text-[56px] xl:text-[64px]">
+        <h1 className="text-[34px] leading-[0.98] font-semibold tracking-[-0.05em] text-balance sm:text-[42px] xl:text-[48px]">
           Student tech jobs, made in{" "}
           <span className="font-serif text-[1.12em] font-normal tracking-[-0.02em] text-orange-text">Dresden.</span>
         </h1>
-        <p className="mt-4 max-w-[24rem] text-[17px] leading-snug text-muted">
-          Werkstudent roles, internships and thesis topics in AI, data and software. Collected from six sources, every
-          day.
-        </p>
+        <p className="mt-3 text-[17px] leading-snug text-muted">Student jobs in AI, data and software. Updated daily.</p>
 
-        <div className="mt-7 flex items-center gap-3 border-b-2 border-rule py-1 text-lg">
+        <div className="mt-6 flex items-center gap-3 border-b-2 border-rule py-1 text-lg">
           <SearchIcon width={19} height={19} className="shrink-0 text-muted" />
           <input
             ref={searchRef}
@@ -140,7 +122,7 @@ export function JobBoard() {
         </div>
 
         {data ? (
-          <FilterGroups filters={filters} jobs={jobs} sources={sources} onChange={update} onReset={reset} activeCount={active} />
+          <FilterGroups filters={filters} jobs={jobs} onChange={update} onReset={reset} activeCount={active} />
         ) : (
           <div className="mt-6 space-y-3">
             {Array.from({ length: 3 }, (_, i) => (
@@ -160,7 +142,8 @@ export function JobBoard() {
             {newCount > 0 && newCount < jobs.length && <NewTicket count={newCount} active={filters.fresh} onToggle={() => update({ fresh: !filters.fresh })} />}
             <div className="flex items-center justify-between gap-4 pb-2.5 text-[13px] text-muted">
               <span>
-                {results.length === jobs.length ? `Showing all ${jobs.length} jobs` : `${results.length} of ${jobs.length} jobs match`}
+                {results.length === jobs.length ? `${jobs.length} jobs` : `${results.length} of ${jobs.length} jobs`}
+                {data.generatedAt ? ` · updated ${relativeTime(data.generatedAt)}` : " · first update pending"}
               </span>
               <SortSelect value={filters.sort} onChange={(sort) => update({ sort })} />
             </div>
@@ -175,11 +158,10 @@ export function JobBoard() {
               </EmptyState>
             ) : (
               <ol className="border-b-[1.5px] border-rule">
-                {results.map((job, i) => (
+                {results.map((job) => (
                   <JobRow
                     key={job.id}
                     job={job}
-                    index={i}
                     open={filters.job === job.id}
                     onToggle={openJob}
                     saved={isSaved(job.id)}

@@ -7,7 +7,6 @@ import { ArrowUpRightIcon, StarIcon } from "./Icons";
 
 interface Props {
   job: Job;
-  index: number;
   open: boolean;
   onToggle: (id: string) => void;
   saved: boolean;
@@ -21,7 +20,7 @@ export function jobPlace(job: Job): string {
   return job.location && !/remote/i.test(job.location) ? `Remote · ${job.location}` : "Remote";
 }
 
-export function JobRow({ job, index, open, onToggle, saved, onToggleSave, stale, showNew = true }: Props) {
+export function JobRow({ job, open, onToggle, saved, onToggleSave, stale, showNew = true }: Props) {
   const fresh = showNew && !stale && isNew(job.firstSeen);
   const primary = job.links[0];
   const deadlineDays = job.deadline ? daysUntil(job.deadline) : null;
@@ -35,9 +34,8 @@ export function JobRow({ job, index, open, onToggle, saved, onToggleSave, stale,
         onClick={() => onToggle(job.id)}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        className="focus-ring group grid w-full grid-cols-[2.25rem_minmax(0,1fr)_auto] gap-x-2 py-[18px] text-left sm:grid-cols-[2.75rem_minmax(0,1fr)_auto]"
+        className="focus-ring group grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-4 py-[18px] text-left"
       >
-        <span className="pt-1.5 text-[13px] text-muted tabular-nums">{String(index + 1).padStart(2, "0")}</span>
         <span className="min-w-0">
           <span
             className={`block text-lg leading-tight font-semibold tracking-[-0.035em] decoration-orange decoration-2 underline-offset-4 group-hover:underline sm:text-[22px] ${
@@ -77,7 +75,7 @@ export function JobRow({ job, index, open, onToggle, saved, onToggleSave, stale,
       </button>
 
       {open && (
-        <div id={panelId} className="pb-7 sm:pl-[2.75rem]">
+        <div id={panelId} className="pb-7">
           {stale && (
             <p className="mb-4 rounded-[10px] bg-sage px-3 py-2 text-sm text-sage-ink">
               This job is no longer listed by its sources. It may be filled.
@@ -134,7 +132,7 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 
 export function JobRowSkeleton() {
   return (
-    <div className="animate-pulse border-t-[1.5px] border-line py-5 sm:pl-[2.75rem]">
+    <div className="animate-pulse border-t-[1.5px] border-line py-5">
       <div className="h-6 w-2/3 rounded bg-line" />
       <div className="mt-2.5 h-4 w-1/3 rounded bg-line/70" />
     </div>

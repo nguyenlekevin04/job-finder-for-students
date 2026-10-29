@@ -53,11 +53,10 @@ export function SavedJobs() {
           </EmptyState>
         ) : (
           <ol className="border-b-[1.5px] border-rule">
-            {list.map(({ job, stale }, i) => (
+            {list.map(({ job, stale }) => (
               <JobRow
                 key={job.id}
                 job={job}
-                index={i}
                 open={open === job.id}
                 onToggle={(id) => setOpen((o) => (o === id ? null : id))}
                 saved

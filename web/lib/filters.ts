@@ -10,7 +10,6 @@ export interface Filters {
   fields: Field[];
   english: boolean;
   remote: boolean; // include remote jobs
-  sources: string[];
   fresh: boolean; // only jobs first seen in the last 7 days
   sort: Sort;
   job: string | null; // the expanded job; not a filter, but shared through the URL
@@ -22,7 +21,6 @@ export const DEFAULT_FILTERS: Filters = {
   fields: [],
   english: false,
   remote: true,
-  sources: [],
   fresh: false,
   sort: "newest",
   job: null,
@@ -38,7 +36,6 @@ export function filtersFromParams(p: URLSearchParams): Filters {
     fields: list(p.get("field")).filter((f): f is Field => ALL_FIELDS.includes(f as Field)),
     english: p.get("en") === "1",
     remote: p.get("remote") !== "0",
-    sources: list(p.get("source")),
     fresh: p.get("new") === "1",
     sort: p.get("sort") === "company" ? "company" : "newest",
     job: p.get("job") || null,
@@ -52,7 +49,6 @@ export function filtersToParams(f: Filters): URLSearchParams {
   if (f.fields.length) p.set("field", f.fields.join(","));
   if (f.english) p.set("en", "1");
   if (!f.remote) p.set("remote", "0");
-  if (f.sources.length) p.set("source", f.sources.join(","));
   if (f.fresh) p.set("new", "1");
   if (f.sort !== "newest") p.set("sort", f.sort);
   if (f.job) p.set("job", f.job);
@@ -60,7 +56,7 @@ export function filtersToParams(f: Filters): URLSearchParams {
 }
 
 export function activeFilterCount(f: Filters): number {
-  return f.types.length + f.fields.length + f.sources.length + (f.english ? 1 : 0) + (f.remote ? 0 : 1) + (f.fresh ? 1 : 0);
+  return f.types.length + f.fields.length + (f.english ? 1 : 0) + (f.remote ? 0 : 1) + (f.fresh ? 1 : 0);
 }
 
 export function jobDate(job: Job): string {
@@ -94,8 +90,7 @@ export function applyFilters(jobs: Job[], f: Filters, index: Fuse<Job> | null): 
       (!f.fields.length || j.fields.some((x) => f.fields.includes(x))) &&
       (!f.english || j.englishFriendly) &&
       (f.remote || !j.remote) &&
-      (!f.fresh || isNew(j.firstSeen)) &&
-      (!f.sources.length || j.links.some((l) => f.sources.includes(l.source))),
+      (!f.fresh || isNew(j.firstSeen))
   );
   return [...result].sort((a, b) =>
     f.sort === "company"

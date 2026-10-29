@@ -6,8 +6,7 @@ import { ALL_FIELDS, ALL_TYPES, FIELD_LABELS, TYPE_LABELS, type Job } from "@/li
 
 interface Props {
   filters: Filters;
-  jobs: Job[]; // all jobs, for the counts next to each option
-  sources: string[];
+  jobs: Job[]; // all jobs, for the type counts
   onChange: (patch: Partial<Filters>) => void;
   onReset: () => void;
   activeCount: number;
@@ -42,9 +41,14 @@ function Option({ on, onClick, count, children }: { on: boolean; onClick: () => 
   );
 }
 
-export function FilterGroups({ filters, jobs, sources, onChange, onReset, activeCount }: Props) {
-  // On phones only the type row shows until "More filters" is opened.
+export function FilterGroups({ filters, jobs, onChange, onReset, activeCount }: Props) {
+  // Only the type row shows until "More filters" is opened. It opens by itself when one
+  // of its filters is active (e.g. from a shared link) and then stays open, so an active
+  // filter is never hidden and the panel doesn't jump. "Fresh" is left out: the ticket
+  // in the list already shows that state.
   const [more, setMore] = useState(false);
+  const moreActive = filters.fields.length > 0 || filters.english || !filters.remote;
+  if (moreActive && !more) setMore(true);
   const count = (pred: (j: Job) => boolean) => jobs.filter(pred).length;
 
   return (
@@ -65,14 +69,13 @@ export function FilterGroups({ filters, jobs, sources, onChange, onReset, active
         ))}
       </Group>
 
-      <div className={`${more ? "block" : "hidden"} lg:block`}>
+      <div className={more ? "block" : "hidden"}>
         <Group title="Field">
           {ALL_FIELDS.map((f) => (
             <Option
               key={f}
               on={filters.fields.includes(f)}
               onClick={() => onChange({ fields: toggle(filters.fields, f) })}
-              count={count((j) => j.fields.includes(f))}
             >
               {FIELD_LABELS[f]}
             </Option>
@@ -90,27 +93,14 @@ export function FilterGroups({ filters, jobs, sources, onChange, onReset, active
             Fresh this week
           </Option>
         </Group>
-
-        {sources.length > 1 && (
-          <Group title="Source">
-            {sources.map((s) => (
-              <Option
-                key={s}
-                on={filters.sources.includes(s)}
-                onClick={() => onChange({ sources: toggle(filters.sources, s) })}
-                count={count((j) => j.links.some((l) => l.source === s))}
-              >
-                {s}
-              </Option>
-            ))}
-          </Group>
-        )}
       </div>
 
       <div className="mt-5 flex gap-5 text-sm">
-        <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more} className="focus-ring hit link-u rounded lg:hidden">
-          {more ? "Fewer filters" : "More filters"}
-        </button>
+        {!(more && moreActive) && (
+          <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more} className="focus-ring hit link-u rounded">
+            {more ? "Fewer filters" : "More filters"}
+          </button>
+        )}
         {activeCount > 0 && (
           <button type="button" onClick={onReset} className="focus-ring hit link-u rounded">
             Clear {activeCount} filter{activeCount === 1 ? "" : "s"}
