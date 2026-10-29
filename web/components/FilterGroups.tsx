@@ -96,7 +96,10 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount }: 
             Fresh this week
           </Option>
         </Group>
-        {filters.hours && <p className="mt-2 text-xs text-muted">Only jobs that state their hours.</p>}
+        {/* Always present, so screen readers announce the note when the filter turns on. */}
+        <p aria-live="polite" className={filters.hours ? "mt-2 text-xs text-muted" : "sr-only"}>
+          {filters.hours ? "Only jobs that state their hours." : ""}
+        </p>
       </div>
 
       <div className="mt-5 flex gap-5 text-sm">
