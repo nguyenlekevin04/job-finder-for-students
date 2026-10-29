@@ -27,6 +27,11 @@ from fetcher.store import JsonFileStore, get_store  # noqa: E402
 
 OUTPUT = ROOT / "web" / "public" / "jobs.json"  # local fallback when Supabase isn't configured
 
+# The live site's Supabase project (public: it's also in the site's code). Only the
+# scheduled GitHub Action may write to it; it sets ALLOW_PRODUCTION_WRITE=1. Local
+# runs and staging use the staging project, so a buggy test run can't reach students.
+PRODUCTION_PROJECT_REF = "ywurtulsjybbdfzqfowq"
+
 # Direct employer sources come first: the first link of a merged job is its "Apply now"
 # button, and the employer's own page beats a job-board copy.
 SOURCES = [
@@ -173,6 +178,10 @@ def main(argv: list[str] | None = None) -> int:
     if "--require-db" in argv and isinstance(store, JsonFileStore):
         print("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set – refusing to fall back to jobs.json.")
         return 2
+    if PRODUCTION_PROJECT_REF in os.environ.get("SUPABASE_URL", "") and os.environ.get("ALLOW_PRODUCTION_WRITE") != "1":
+        print("Refusing to write to the production database: only the scheduled GitHub Action does that.\n"
+              "Point SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY in .env at the staging project.")
+        return 4
 
     today = date.today().isoformat()
     raw, status = run_sources()

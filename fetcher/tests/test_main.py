@@ -95,3 +95,21 @@ def test_main_saves_then_fails_when_a_source_is_broken(monkeypatch, tmp_path):
     saved = json.loads((tmp_path / "jobs.json").read_text())
     assert saved["count"] == 1  # the healthy source's jobs were still saved
 
+
+def test_production_writes_need_the_ci_flag(monkeypatch):
+    monkeypatch.setattr(main, "load_env", lambda: None)
+    monkeypatch.setenv("SUPABASE_URL", f"https://{main.PRODUCTION_PROJECT_REF}.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+    monkeypatch.delenv("ALLOW_PRODUCTION_WRITE", raising=False)
+    monkeypatch.setattr(main, "run_sources", lambda: (_ for _ in ()).throw(AssertionError("must not fetch")))
+    assert main.main(["--require-db"]) == 4
+
+
+def test_production_flag_lets_the_scheduled_run_through(monkeypatch):
+    monkeypatch.setattr(main, "load_env", lambda: None)
+    monkeypatch.setenv("SUPABASE_URL", f"https://{main.PRODUCTION_PROJECT_REF}.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+    monkeypatch.setenv("ALLOW_PRODUCTION_WRITE", "1")
+    monkeypatch.setattr(main, "run_sources", lambda: ([], {"A": {"ok": False, "count": 0, "error": "x"}}))
+    assert main.main(["--require-db"]) == 1  # got past the guard; all sources "failed", so nothing is written
+

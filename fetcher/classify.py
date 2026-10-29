@@ -75,9 +75,19 @@ NON_TECH_TITLE = re.compile(
     r"|übersetz|translat|sprachprüf|analyst - investment|investment|finance|finanz|buchhalt|accounting"
     r"|controlling|\bhr\b|human resources|personal|recruit|legal|recht|jurist|einkauf|procurement"
     r"|kunden|customer success|assistenz|event|kommunikation|communication|\bpr\b|logistik"
-    r"|metal|flotation|chemi|recycling|biolog|medizin|pharma|oxide|werkstoff|keramik|korrosion",
+    r"|metal|flotation|chemi|recycling|biolog|medizin|pharma|oxide|werkstoff|keramik|korrosion"
+    r"|consulting|beratung",
     re.I)
 MIN_DESC_HITS = 3
+
+# Hands-on maintenance, repair, technician and building-services roles. Chip fabs post
+# many of these; they aren't jobs for CS/AI students (Otto, 2026-10-29). Engineering
+# work (design, automation, test, firmware, process/yield analysis) stays in. A title
+# that also names software/data/AI work keeps the job.
+HANDS_ON_TITLE = re.compile(
+    r"instandhalt|wartung|reparatur|\brepair|maintenance|servicetechni|mechatroniker|\btechniker|technician"
+    r"|kalibrier|calibration|facility|gebäude(technik|management)|technische ausrüstung|\btga\b",
+    re.I)
 
 # Phrases that look techy but aren't (removed before matching).
 # Phrases that contain tech words but say nothing about the role ("Adobe Creative Cloud",
@@ -184,6 +194,8 @@ def classify(job: Job) -> dict | None:
             and _field_hits(job.description) >= MIN_DESC_HITS):
         fields = _fields(job.description)
     if not fields:
+        return None
+    if HANDS_ON_TITLE.search(job.title) and not (_fields(job.title) & {"ai", "data", "software"}):
         return None
 
     order = list(FIELD_LABELS)
