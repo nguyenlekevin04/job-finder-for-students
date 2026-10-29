@@ -13,6 +13,7 @@ interface Props {
   saved: boolean;
   onToggleSave: (job: Job) => void;
   stale?: boolean; // on the Saved page: no longer in today's data
+  showNew?: boolean; // false when every job is new, so the label would mean nothing
 }
 
 export function jobPlace(job: Job): string {
@@ -20,8 +21,8 @@ export function jobPlace(job: Job): string {
   return job.location && !/remote/i.test(job.location) ? `Remote · ${job.location}` : "Remote";
 }
 
-export function JobRow({ job, index, open, onToggle, saved, onToggleSave, stale }: Props) {
-  const fresh = !stale && isNew(job.firstSeen);
+export function JobRow({ job, index, open, onToggle, saved, onToggleSave, stale, showNew = true }: Props) {
+  const fresh = showNew && !stale && isNew(job.firstSeen);
   const primary = job.links[0];
   const deadlineDays = job.deadline ? daysUntil(job.deadline) : null;
   const panelId = `job-${job.id}`;

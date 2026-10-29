@@ -114,7 +114,7 @@ export function JobBoard() {
           day.
         </p>
 
-        <div className="mt-7 flex items-center gap-3 border-b-2 border-rule py-2.5 text-lg">
+        <div className="mt-7 flex items-center gap-3 border-b-2 border-rule py-1 text-lg">
           <SearchIcon width={19} height={19} className="shrink-0 text-muted" />
           <input
             ref={searchRef}
@@ -123,7 +123,7 @@ export function JobBoard() {
             onChange={(e) => update({ q: e.target.value })}
             placeholder="Search jobs, companies, skills…"
             aria-label="Search jobs"
-            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
+            className="h-11 min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
           />
           {filters.q ? (
             <button
@@ -156,7 +156,8 @@ export function JobBoard() {
         {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
         {data && (
           <>
-            {newCount > 0 && <NewTicket count={newCount} active={filters.fresh} onToggle={() => update({ fresh: !filters.fresh })} />}
+            {/* Highlighting "new" only means something when some jobs aren't. */}
+            {newCount > 0 && newCount < jobs.length && <NewTicket count={newCount} active={filters.fresh} onToggle={() => update({ fresh: !filters.fresh })} />}
             <div className="flex items-center justify-between gap-4 pb-2.5 text-[13px] text-muted">
               <span>
                 {results.length === jobs.length ? `Showing all ${jobs.length} jobs` : `${results.length} of ${jobs.length} jobs match`}
@@ -183,6 +184,7 @@ export function JobBoard() {
                     onToggle={openJob}
                     saved={isSaved(job.id)}
                     onToggleSave={toggle}
+                    showNew={newCount < jobs.length}
                   />
                 ))}
               </ol>

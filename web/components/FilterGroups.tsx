@@ -21,7 +21,7 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   return (
     <div role="group" aria-label={title} className="mt-5">
       <h3 className="mb-1.5 text-xs font-medium text-muted">{title}</h3>
-      <div className="flex flex-wrap gap-x-[18px] gap-y-1.5 text-[15px] font-semibold tracking-[-0.02em]">{children}</div>
+      <div className="flex flex-wrap gap-x-[18px] gap-y-3 text-[15px] lg:gap-y-1.5 font-semibold tracking-[-0.02em]">{children}</div>
     </div>
   );
 }
@@ -32,7 +32,7 @@ function Option({ on, onClick, count, children }: { on: boolean; onClick: () => 
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={`focus-ring rounded-sm border-b-2 pb-0.5 transition ${
+      className={`focus-ring hit rounded-sm border-b-2 pb-0.5 transition ${
         on ? "border-orange text-ink" : "border-transparent text-muted hover:text-ink"
       } ${count === 0 && !on ? "opacity-50" : ""}`}
     >
@@ -87,7 +87,7 @@ export function FilterGroups({ filters, jobs, sources, onChange, onReset, active
             English-friendly
           </Option>
           <Option on={filters.fresh} onClick={() => onChange({ fresh: !filters.fresh })}>
-            New this week
+            Fresh this week
           </Option>
         </Group>
 
@@ -108,11 +108,11 @@ export function FilterGroups({ filters, jobs, sources, onChange, onReset, active
       </div>
 
       <div className="mt-5 flex gap-5 text-sm">
-        <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more} className="focus-ring link-u rounded lg:hidden">
+        <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more} className="focus-ring hit link-u rounded lg:hidden">
           {more ? "Fewer filters" : "More filters"}
         </button>
         {activeCount > 0 && (
-          <button type="button" onClick={onReset} className="focus-ring link-u rounded">
+          <button type="button" onClick={onReset} className="focus-ring hit link-u rounded">
             Clear {activeCount} filter{activeCount === 1 ? "" : "s"}
           </button>
         )}
@@ -128,7 +128,7 @@ export function SortSelect({ value, onChange }: { value: Sort; onChange: (s: Sor
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as Sort)}
-        className="focus-ring cursor-pointer rounded bg-transparent pr-1 text-right text-muted hover:text-ink"
+        className="focus-ring min-h-10 cursor-pointer rounded bg-transparent pr-1 text-right text-muted hover:text-ink"
       >
         <option value="newest">Sorted by newest</option>
         <option value="company">Sorted by company</option>

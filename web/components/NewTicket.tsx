@@ -13,7 +13,7 @@ export function NewTicket({ count, active, onToggle }: { count: number; active: 
       </div>
       <div className="flex w-[124px] flex-col items-end justify-between border-l-2 border-dashed border-sage-ink/30 px-4 py-4 text-xs font-semibold sm:w-[150px] sm:px-5 sm:py-5">
         <span className="tabular-nums">Last {NEW_DAYS} days</span>
-        <button type="button" onClick={onToggle} aria-pressed={active} className="focus-ring rounded text-right underline decoration-2 underline-offset-4">
+        <button type="button" onClick={onToggle} aria-pressed={active} className="focus-ring hit rounded text-right underline decoration-2 underline-offset-4">
           {active ? "Show all →" : "Show them →"}
         </button>
       </div>
