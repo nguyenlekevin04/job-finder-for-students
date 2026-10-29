@@ -1,6 +1,6 @@
 import pytest
 
-from fetcher.classify import classify, is_english
+from fetcher.classify import SNIPPET_LEN, classify, is_english
 from fetcher.models import Job
 
 
@@ -76,5 +76,5 @@ def test_english_detection(title, description, expected):
 
 def test_snippet_is_trimmed():
     tags = classify(job("Werkstudent Software", description="word " * 200))
-    assert len(tags["snippet"]) <= 281
+    assert len(tags["snippet"]) <= SNIPPET_LEN + 1
     assert tags["snippet"].endswith("…")

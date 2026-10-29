@@ -3,26 +3,84 @@
 /* Dark mode follows the .dark class on <html> (set before paint in layout.tsx). */
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-}
-
+/* Colors live in CSS variables so one class (bg-canvas, text-ink, ...) works in both themes. */
 :root {
   color-scheme: light;
+  --c-canvas: #f8f5ee;
+  --c-surface: #fffdf8;
+  --c-ink: #1f1d1a;
+  --c-muted: #6f6a62;
+  --c-line: #e3ddd1;
+  --c-rule: #1f1d1a;
+  --c-btn: #1f1d1a;
+  --c-btn-ink: #f8f5ee;
+  --c-orange: #e9774a; /* decoration only: dots, underlines, the slash */
+  --c-orange-text: #b5532f; /* orange that is readable as text */
+  --c-sage: #dce3d3;
+  --c-sage-ink: #3e4c38;
+  --c-live: #5f9a5c;
+  --grain: 0.045;
 }
 :root.dark {
   color-scheme: dark;
+  --c-canvas: #252523;
+  --c-surface: #2d2d2a;
+  --c-ink: #edeae3;
+  --c-muted: #a29e96;
+  --c-line: #3a3935;
+  --c-rule: #57554f;
+  --c-btn: #edeae3;
+  --c-btn-ink: #1f1d1a;
+  --c-orange: #ec855b;
+  --c-orange-text: #ec855b;
+  --c-sage: #34392f;
+  --c-sage-ink: #c7d3bb;
+  --c-live: #7fbf7b;
+  --grain: 0;
+}
+
+@theme inline {
+  --font-sans: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --color-canvas: var(--c-canvas);
+  --color-surface: var(--c-surface);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-line: var(--c-line);
+  --color-rule: var(--c-rule);
+  --color-btn: var(--c-btn);
+  --color-btn-ink: var(--c-btn-ink);
+  --color-orange: var(--c-orange);
+  --color-orange-text: var(--c-orange-text);
+  --color-sage: var(--c-sage);
+  --color-sage-ink: var(--c-sage-ink);
+  --color-live: var(--c-live);
 }
 
 body {
-  @apply bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
+  @apply bg-canvas text-ink;
+}
+
+/* Faint paper grain on the light theme. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 ::selection {
-  @apply bg-indigo-200 text-indigo-950 dark:bg-indigo-500/40 dark:text-white;
+  background: color-mix(in srgb, var(--c-orange) 30%, transparent);
 }
 
 .focus-ring {
-  @apply outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50 dark:focus-visible:ring-offset-zinc-950;
+  @apply outline-none focus-visible:ring-2 focus-visible:ring-orange focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
+}
+
+/* Underlined text link with an orange line. */
+.link-u {
+  @apply font-semibold underline decoration-orange decoration-2 underline-offset-4 hover:decoration-ink;
 }

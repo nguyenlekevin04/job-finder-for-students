@@ -99,7 +99,7 @@ EN_REQUIRED = re.compile(
 EN_TITLE = re.compile(r"working student|intern(ship)?\b|thes[ie]s|engineer|developer|scientist|research", re.I)
 DE_TITLE = re.compile(r"werkstudent|praktik|arbeit\b|entwickl|informatik|studentische|m/w/d|w/m/d", re.I)
 
-SNIPPET_LEN = 280
+SNIPPET_LEN = 700
 
 
 def _types(text: str) -> list[str]:

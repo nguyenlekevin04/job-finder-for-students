@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   activeFilterCount,
   applyFilters,
@@ -10,14 +10,14 @@ import {
   filtersToParams,
   makeIndex,
   type Filters,
-  type Sort,
 } from "@/lib/filters";
 import { isNew, relativeTime } from "@/lib/format";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useJobsFile } from "@/lib/useJobs";
-import { FilterPanel } from "./FilterPanel";
-import { FilterIcon, SearchIcon, XIcon } from "./Icons";
-import { JobCard } from "./JobCard";
+import { FilterGroups, SortSelect } from "./FilterGroups";
+import { SearchIcon, XIcon } from "./Icons";
+import { JobRow } from "./JobRow";
+import { NewTicket } from "./NewTicket";
 import { EmptyState, ErrorState, LoadingList } from "./States";
 
 export function JobBoard() {
@@ -53,11 +53,9 @@ export function JobBoard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  const [showFilters, setShowFilters] = useState(false);
-  const query = filters.q;
-  const setQuery = (q: string) => setFilters((f) => ({ ...f, q }));
   const update = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
-  const reset = () => setFilters(DEFAULT_FILTERS);
+  const reset = () => setFilters((f) => ({ ...DEFAULT_FILTERS, job: f.job }));
+  const openJob = (id: string) => setFilters((f) => ({ ...f, job: f.job === id ? null : id }));
 
   const data = state.status === "ready" ? state.data : null;
   const jobs = useMemo(() => data?.jobs ?? [], [data]);
@@ -70,158 +68,127 @@ export function JobBoard() {
   const newCount = useMemo(() => jobs.filter((j) => isNew(j.firstSeen, 7)).length, [jobs]);
   const active = activeFilterCount(filters);
 
+  // A shared link with ?job= scrolls to that job once the data is in.
+  const scrolled = useRef(false);
+  useEffect(() => {
+    if (!data || scrolled.current) return;
+    scrolled.current = true;
+    if (filters.job) document.getElementById(`row-${filters.job}`)?.scrollIntoView({ block: "start" });
+  }, [data, filters.job]);
+
+  // "/" jumps to the search field, like the hint says.
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || el.closest("input, textarea, select, [contenteditable]")) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
-    <div>
-      {/* Hero */}
-      <section className="pt-10 pb-8 sm:pt-14">
-        <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          Student jobs in AI, ML &amp; Computer Science around Dresden
-        </h1>
-        <p className="mt-3 max-w-2xl text-zinc-600 dark:text-zinc-400">
-          Werkstudent positions, internships and thesis topics from job boards, Fraunhofer, HZDR and TU Dresden, checked
-          every morning.
-        </p>
-        <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-10 pt-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-14 lg:pt-12">
+      {/* Intro, search and filters */}
+      <section className="lg:sticky lg:top-6 lg:self-start">
+        <p className="flex items-center gap-2 text-[13px] font-medium text-muted">
           {data ? (
             <>
-              <Stat value={data.count} label="open positions" />
-              <Stat value={newCount} label="new this week" accent />
-              {data.generatedAt ? (
-                <span className="text-zinc-500 dark:text-zinc-400" title={new Date(data.generatedAt).toLocaleString("en-GB")}>
-                  Updated {relativeTime(data.generatedAt)}
-                </span>
-              ) : (
-                <span className="text-zinc-500 dark:text-zinc-400">Waiting for the first update</span>
-              )}
+              <span className="size-[7px] rounded-full bg-live shadow-[0_0_0_3px] shadow-live/25" />
+              {data.generatedAt ? `Updated ${relativeTime(data.generatedAt)}` : "Waiting for the first update"} ·{" "}
+              {data.count} open position{data.count === 1 ? "" : "s"}
             </>
           ) : (
-            <span className="h-7 w-72 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-800" />
+            <span className="h-4 w-56 animate-pulse rounded bg-line" />
+          )}
+        </p>
+        <h1 className="mt-3.5 text-[44px] leading-[0.96] font-semibold tracking-[-0.05em] text-balance sm:text-[56px] xl:text-[64px]">
+          Student tech jobs, made in{" "}
+          <span className="font-serif text-[1.12em] font-normal tracking-[-0.02em] text-orange-text">Dresden.</span>
+        </h1>
+        <p className="mt-4 max-w-[24rem] text-[17px] leading-snug text-muted">
+          Werkstudent roles, internships and thesis topics in AI, data and software. Collected from six sources, every
+          day.
+        </p>
+
+        <div className="mt-7 flex items-center gap-3 border-b-2 border-rule py-2.5 text-lg">
+          <SearchIcon width={19} height={19} className="shrink-0 text-muted" />
+          <input
+            ref={searchRef}
+            type="search"
+            value={filters.q}
+            onChange={(e) => update({ q: e.target.value })}
+            placeholder="Search jobs, companies, skills…"
+            aria-label="Search jobs"
+            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
+          />
+          {filters.q ? (
+            <button
+              type="button"
+              onClick={() => update({ q: "" })}
+              aria-label="Clear search"
+              className="focus-ring grid size-6 place-items-center rounded text-muted hover:text-ink"
+            >
+              <XIcon width={15} height={15} />
+            </button>
+          ) : (
+            <kbd className="hidden rounded-md border border-line px-1.5 font-sans text-xs text-muted sm:block">/</kbd>
           )}
         </div>
+
+        {data ? (
+          <FilterGroups filters={filters} jobs={jobs} sources={sources} onChange={update} onReset={reset} activeCount={active} />
+        ) : (
+          <div className="mt-6 space-y-3">
+            {Array.from({ length: 3 }, (_, i) => (
+              <div key={i} className="h-5 w-4/5 animate-pulse rounded bg-line" />
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Search + sort */}
-      <div className="sticky top-14 z-20 -mx-4 mb-6 border-b border-zinc-200/80 bg-zinc-50/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 dark:border-zinc-800/80 dark:bg-zinc-950/90">
-        <div className="flex gap-2">
-          <div className="relative min-w-0 flex-1">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-zinc-400" width={17} height={17} />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search jobs, companies, skills…"
-              aria-label="Search jobs"
-              className="focus-ring h-10 w-full rounded-lg border border-zinc-200 bg-white pr-9 pl-9 text-sm placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 [&::-webkit-search-cancel-button]:hidden"
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                aria-label="Clear search"
-                className="focus-ring absolute top-1/2 right-2 grid size-6 -translate-y-1/2 place-items-center rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-              >
-                <XIcon width={14} height={14} />
-              </button>
-            )}
-          </div>
-          <select
-            value={filters.sort}
-            onChange={(e) => update({ sort: e.target.value as Sort })}
-            aria-label="Sort jobs"
-            className="focus-ring h-10 w-[7.5rem] shrink-0 rounded-lg border border-zinc-200 bg-white px-2 text-sm sm:w-auto sm:px-2.5 dark:border-zinc-700 dark:bg-zinc-900"
-          >
-            <option value="newest">Newest</option>
-            <option value="company">Company A–Z</option>
-          </select>
-          <button
-            type="button"
-            onClick={() => setShowFilters((s) => !s)}
-            aria-expanded={showFilters}
-            className="focus-ring inline-flex h-10 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium lg:hidden dark:border-zinc-700 dark:bg-zinc-900"
-          >
-            <FilterIcon />
-            <span className="hidden sm:inline">Filters</span>
-            {active > 0 && <span className="rounded-full bg-indigo-600 px-1.5 text-xs text-white">{active}</span>}
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
-        <aside className={`${showFilters ? "block" : "hidden"} lg:block`}>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 lg:sticky lg:top-36 lg:border-0 lg:bg-transparent lg:p-0 dark:border-zinc-800 dark:bg-zinc-900 lg:dark:bg-transparent">
-            {data ? (
-              <FilterPanel
-                filters={filters}
-                jobs={jobs}
-                sources={sources}
-                onChange={update}
-                onReset={reset}
-                activeCount={active}
-              />
+      {/* Job list */}
+      <section aria-live="polite" className="min-w-0">
+        {state.status === "loading" && <LoadingList />}
+        {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
+        {data && (
+          <>
+            {newCount > 0 && <NewTicket count={newCount} active={filters.fresh} onToggle={() => update({ fresh: !filters.fresh })} />}
+            <div className="flex items-center justify-between gap-4 pb-2.5 text-[13px] text-muted">
+              <span>
+                {results.length === jobs.length ? `Showing all ${jobs.length} jobs` : `${results.length} of ${jobs.length} jobs match`}
+              </span>
+              <SortSelect value={filters.sort} onChange={(sort) => update({ sort })} />
+            </div>
+            {jobs.length === 0 ? (
+              <EmptyState title="No jobs yet">The list is filled every morning. Check back soon.</EmptyState>
+            ) : results.length === 0 ? (
+              <EmptyState title="Nothing matches">
+                Try a broader search or fewer filters.{" "}
+                <button type="button" onClick={reset} className="focus-ring link-u rounded text-ink">
+                  Clear filters
+                </button>
+              </EmptyState>
             ) : (
-              <div className="space-y-3">
-                {Array.from({ length: 8 }, (_, i) => (
-                  <div key={i} className="h-7 animate-pulse rounded bg-zinc-200/70 dark:bg-zinc-800" />
+              <ol className="border-b-[1.5px] border-rule">
+                {results.map((job, i) => (
+                  <JobRow
+                    key={job.id}
+                    job={job}
+                    index={i}
+                    open={filters.job === job.id}
+                    onToggle={openJob}
+                    saved={isSaved(job.id)}
+                    onToggleSave={toggle}
+                  />
                 ))}
-              </div>
+              </ol>
             )}
-          </div>
-        </aside>
-
-        <section aria-live="polite" className="min-w-0">
-          {state.status === "loading" && <LoadingList />}
-          {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
-          {data && (
-            <>
-              <div className="mb-3 flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
-                <span>
-                  {results.length === jobs.length ? (
-                    <>Showing all <b className="font-semibold text-zinc-900 dark:text-zinc-100">{jobs.length}</b> jobs</>
-                  ) : (
-                    <>
-                      <b className="font-semibold text-zinc-900 dark:text-zinc-100">{results.length}</b> of {jobs.length} jobs match
-                    </>
-                  )}
-                </span>
-                {(active > 0 || query) && (
-                  <button type="button" onClick={reset} className="focus-ring rounded font-medium text-indigo-600 hover:underline dark:text-indigo-400">
-                    Reset all
-                  </button>
-                )}
-              </div>
-              {jobs.length === 0 ? (
-                <EmptyState title="No jobs yet" icon={<SearchIcon width={20} height={20} />}>
-                  The job list is filled every morning. Check back soon.
-                </EmptyState>
-              ) : results.length === 0 ? (
-                <EmptyState title="No jobs match these filters" icon={<SearchIcon width={20} height={20} />}>
-                  Try a broader search, fewer filters, or turn on remote jobs.
-                </EmptyState>
-              ) : (
-                <div className="space-y-3">
-                  {results.map((job) => (
-                    <JobCard key={job.id} job={job} saved={isSaved(job.id)} onToggleSave={toggle} />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </section>
-      </div>
+          </>
+        )}
+      </section>
     </div>
-  );
-}
-
-function Stat({ value, label, accent }: { value: number; label: string; accent?: boolean }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 ring-1 ring-inset ${
-        accent
-          ? "bg-emerald-50 text-emerald-800 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/25"
-          : "bg-white text-zinc-700 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-zinc-800"
-      }`}
-    >
-      <b className="font-semibold tabular-nums">{value}</b> {label}
-    </span>
   );
 }
