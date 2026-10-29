@@ -49,3 +49,14 @@ jobs:
       - run: npm test
       # Without Supabase env vars the build reads jobs.json; that's fine for checking it compiles.
       - run: npm run build
+      # Browser smoke tests (Playwright) against the static export with fixture data.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+          retention-days: 7
