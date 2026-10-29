@@ -20,7 +20,11 @@
       "firstSeen": "2026-01-19",
       "lastSeen": "2026-01-20",
       "links": [{ "source": "Elbe Robotics", "url": "https://jobs.example.com/elbe-robotics/ml-werkstudent" }],
-      "snippet": "Train and evaluate computer vision models for warehouse robots."
+      "snippet": "Train and evaluate computer vision models for warehouse robots.",
+      "hoursMin": 15,
+      "hoursMax": 20,
+      "payAmount": 15,
+      "payUnit": "hour"
     },
     {
       "id": "e2e-data-internship",
@@ -71,7 +75,9 @@
       "firstSeen": "2026-01-16",
       "lastSeen": "2026-01-20",
       "links": [{ "source": "Cloudhaus", "url": "https://jobs.example.com/cloudhaus/backend" }],
-      "snippet": "Python and Postgres services for a SaaS product, fully remote in Germany."
+      "snippet": "Python and Postgres services for a SaaS product, fully remote in Germany.",
+      "hoursMin": null,
+      "hoursMax": 20
     },
     {
       "id": "e2e-security-internship",
@@ -105,7 +111,8 @@
       "firstSeen": "2026-01-14",
       "lastSeen": "2026-01-20",
       "links": [{ "source": "Pixelwerk", "url": "https://careers.example.net/pixelwerk/frontend" }],
-      "snippet": "React and TypeScript for a design tool."
+      "snippet": "React and TypeScript for a design tool.",
+      "hoursMin": 25
     }
   ]
 }

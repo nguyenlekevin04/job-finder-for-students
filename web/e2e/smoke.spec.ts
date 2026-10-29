@@ -48,6 +48,61 @@ test("type filter narrows, syncs the URL and survives a reload", async ({ page }
   await expect(typeOption(page, "Internship")).toHaveAttribute("aria-pressed", "true");
 });
 
+test("hours and pay show in the row and as facts when the posting states them", async ({ page }) => {
+  const [ml, , thesis, backend, , frontend] = fixture.jobs;
+  const rowItem = (title: string) => page.locator("li", { has: row(page, title) });
+  await openBoard(page);
+  await expect(rowItem(ml.title).getByText("15–20 h/week · €15/h", { exact: true })).toBeVisible();
+  await expect(rowItem(backend.title).getByText("up to 20 h/week", { exact: true })).toBeVisible();
+  await expect(rowItem(frontend.title).getByText("from 25 h/week", { exact: true })).toBeVisible();
+  await expect(rowItem(thesis.title)).not.toContainText("h/week");
+
+  await row(page, ml.title).click();
+  const facts = rowItem(ml.title).locator("dl");
+  await expect(facts.locator("div").first()).toHaveText("Hours15–20 h/week");
+  await expect(facts.locator("div").nth(1)).toHaveText("Pay€15/h");
+
+  await row(page, thesis.title).click();
+  await expect(rowItem(thesis.title).locator("dt", { hasText: /^(Hours|Pay)$/ })).toHaveCount(0);
+});
+
+test("on a phone the terms follow the type on its line", async ({ page }) => {
+  const ml = fixture.jobs[0];
+  await page.setViewportSize({ width: 375, height: 812 });
+  await openBoard(page);
+  const item = page.locator("li", { has: row(page, ml.title) });
+  await expect(item.getByText("New · Werkstudent · 15–20 h/week · €15/h", { exact: true })).toBeVisible();
+});
+
+test("'Up to 20 h/week' keeps jobs stating at most 20 hours, syncs ?hours=20 and survives a reload", async ({ page }) => {
+  const option = () => page.getByRole("group", { name: "Options" }).getByRole("button", { name: /^Up to 20 h\/week/ });
+  const note = () => page.getByText("Only jobs that state their hours.");
+  await openBoard(page);
+  await page.getByRole("button", { name: "More filters" }).click();
+  await expect(option()).toContainText("2"); // the count sup
+  await expect(note()).toHaveCount(0);
+
+  await option().click();
+  await expect(count(page)).toHaveText(new RegExp(`^2 of ${TOTAL} jobs`));
+  await expect(page.locator('li[id^="row-"]')).toHaveCount(2);
+  await expect(page.locator("#row-e2e-ml-werkstudent")).toBeVisible();
+  await expect(page.locator("#row-e2e-remote-backend")).toBeVisible();
+  await expect(page).toHaveURL(/[?&]hours=20/);
+  await expect(note()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Clear 1 filter" })).toBeVisible();
+
+  await page.reload();
+  await expect(count(page)).toHaveText(new RegExp(`^2 of ${TOTAL} jobs`));
+  await expect(option()).toBeVisible(); // the panel opened itself
+  await expect(option()).toHaveAttribute("aria-pressed", "true");
+
+  await typeOption(page, "Werkstudent").click();
+  await expect(page.getByRole("button", { name: "Clear 2 filters" })).toBeVisible();
+  await page.getByRole("button", { name: "Clear 2 filters" }).click();
+  await expect(count(page)).toHaveText(new RegExp(`^${TOTAL} jobs`));
+  await expect(page).not.toHaveURL(/hours=/);
+});
+
 test("back and forward restore filters", async ({ page }) => {
   await openBoard(page);
   await typeOption(page, "Thesis").click();
