@@ -178,7 +178,7 @@ def main(argv: list[str] | None = None) -> int:
     if "--require-db" in argv and isinstance(store, JsonFileStore):
         print("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set – refusing to fall back to jobs.json.")
         return 2
-    if PRODUCTION_PROJECT_REF in os.environ.get("SUPABASE_URL", "") and os.environ.get("ALLOW_PRODUCTION_WRITE") != "1":
+    if PRODUCTION_PROJECT_REF in os.environ.get("SUPABASE_URL", "").lower() and os.environ.get("ALLOW_PRODUCTION_WRITE") != "1":
         print("Refusing to write to the production database: only the scheduled GitHub Action does that.\n"
               "Point SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY in .env at the staging project.")
         return 4
