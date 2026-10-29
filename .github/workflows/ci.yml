@@ -47,9 +47,12 @@ jobs:
       - run: npx next typegen
       - run: npx tsc --noEmit
       - run: npm test
-      # Without Supabase env vars the build reads jobs.json; that's fine for checking it compiles.
-      - run: npm run build
-      # Browser smoke tests (Playwright) against the static export with fixture data.
+      # Browser smoke tests (Playwright). test:e2e builds the static export itself (with fixture
+      # data and no Supabase env), so it also checks that the site compiles.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - if: failure()

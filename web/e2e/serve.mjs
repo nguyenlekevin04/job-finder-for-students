@@ -21,7 +21,13 @@ const TYPES = {
 };
 
 function fileFor(pathname) {
-  const rel = normalize(decodeURIComponent(pathname)).replace(/^(\.\.[/\\])+/, "");
+  let decoded;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return null; // malformed escape like "/%E0" -> 404 instead of crashing the server
+  }
+  const rel = normalize(decoded).replace(/^(\.\.[/\\])+/, "");
   let file = join(root, rel);
   if (!file.startsWith(root)) return null;
   try {
