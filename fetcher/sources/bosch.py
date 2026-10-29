@@ -17,6 +17,7 @@ API = "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings"
 SITE = "https://jobs.smartrecruiters.com/BoschGroup"
 PAGE = 100
 MAX_PAGES = 5
+FEED_SLACK = 2  # postings that may close while paging
 
 
 def _label(value) -> str:
@@ -69,7 +70,9 @@ def fetch() -> list[Job]:
         time.sleep(0.4)
     else:  # a cut-off list would make the missing postings count as closed
         raise RuntimeError(f"{NAME}: more than {MAX_PAGES * PAGE} postings; raise MAX_PAGES")
-    if total and rows < min(total, MAX_PAGES * PAGE):  # an empty or short page before the reported end
+    # An empty or short page before the reported end. A slack of 2 tolerates postings that
+    # close while the pages are being fetched, so that alone never fails the source.
+    if total and rows < min(total, MAX_PAGES * PAGE) - FEED_SLACK:
         raise RuntimeError(f"{NAME}: feed ended early: got {rows} of {total}")
     for job in jobs:
         if is_student_title(f"{job.title} {job.tags}"):

@@ -19,6 +19,7 @@ SITE = "https://globalfoundries.wd1.myworkdayjobs.com/External"
 API = "https://globalfoundries.wd1.myworkdayjobs.com/wday/cxs/globalfoundries/External"
 PAGE = 20  # Workday's maximum page size
 MAX_PAGES = 10
+FEED_SLACK = 2  # postings that may close while paging
 
 # Descriptions open with a standard company blurb ("Über GF … www.gf.com.").
 INTRO = re.compile(r"^(Über|About) GF\b.{0,1500}?www\.gf\.com\s*\.?\s*", re.S)
@@ -90,7 +91,9 @@ def fetch() -> list[Job]:
         time.sleep(0.4)
     else:  # a cut-off list would make the missing postings count as closed
         raise RuntimeError(f"{NAME}: more than {MAX_PAGES * PAGE} postings; raise MAX_PAGES")
-    if total and rows < min(total, MAX_PAGES * PAGE):  # an empty or short page before the reported end
+    # An empty or short page before the reported end. A slack of 2 tolerates postings that
+    # close while the pages are being fetched, so that alone never fails the source.
+    if total and rows < min(total, MAX_PAGES * PAGE) - FEED_SLACK:
         raise RuntimeError(f"{NAME}: feed ended early: got {rows} of {total}")
     for job in jobs:
         if is_student_title(job.title):

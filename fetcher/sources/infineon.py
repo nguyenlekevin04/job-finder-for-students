@@ -19,6 +19,7 @@ SEARCH = f"{BASE}/api/pcsx/search"
 DETAIL = f"{BASE}/api/pcsx/position_details"
 PAGE = 10  # the API returns 10 positions per page
 MAX_PAGES = 15
+FEED_SLACK = 2  # postings that may close while paging
 
 # Every description opens with the same slogan ("#WeAreIn … Are you in?").
 INTRO = re.compile(r"^.{0,600}?Are you in\?\s*", re.S)
@@ -72,7 +73,9 @@ def fetch() -> list[Job]:
         time.sleep(0.4)
     else:  # a cut-off list would make the missing postings count as closed
         raise RuntimeError(f"{NAME}: more than {MAX_PAGES * PAGE} postings; raise MAX_PAGES")
-    if total and rows < min(total, MAX_PAGES * PAGE):  # an empty or short page before the reported end
+    # An empty or short page before the reported end. A slack of 2 tolerates postings that
+    # close while the pages are being fetched, so that alone never fails the source.
+    if total and rows < min(total, MAX_PAGES * PAGE) - FEED_SLACK:
         raise RuntimeError(f"{NAME}: feed ended early: got {rows} of {total}")
     for job in jobs:
         if is_student_title(job.title):
