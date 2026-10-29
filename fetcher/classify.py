@@ -86,7 +86,7 @@ MIN_DESC_HITS = 3
 # that also names software/data/AI work keeps the job. "Predictive maintenance" /
 # "vorausschauende Wartung" is a data/ML topic, not hands-on work, so it stays in.
 HANDS_ON_TITLE = re.compile(
-    r"instandhalt|(?<!vorausschauende )wartung|reparatur|\brepair|(?<!predictive )maintenance|servicetechni|mechatroniker|\btechniker|technician"
+    r"instandhalt|(?<!vorausschauenden )(?<!vorausschauende )wartung|reparatur|\brepair|(?<!predictive[ -])maintenance|servicetechni|mechatroniker|\btechniker|technician"
     r"|kalibrier|calibration|facility|gebäude(technik|management)|technische ausrüstung|\btga\b",
     re.I)
 

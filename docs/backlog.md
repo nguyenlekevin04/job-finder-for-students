@@ -36,17 +36,15 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 5. **Custom domain** (S, **shareholder decision: ~€10/year**): As a student, I want a short, trustworthy address, so that I remember it and can share it with classmates.
    - Acceptance: the domain serves production, the vercel.app address redirects to it, and saved jobs and the theme carry over.
 
-## Fixes (from the sprint 1 release review)
+## Fixes (from the release reviews)
 
 Non-blocking findings; the tech lead decides the order. Most are small.
 
-1. **Predictive-maintenance jobs are dropped** (should-fix, S): the hands-on title rule removes ML roles like "Masterarbeit Predictive Maintenance". Exclude "predictive maintenance" / "vorausschauende Wartung" from `HANDS_ON_TITLE` and add test cases.
-2. **Vercel can skip a needed build** (should-fix, S): `ignoreCommand` in `web/vercel.json` only compares the last commit. Compare against `VERCEL_GIT_PREVIOUS_SHA` and build when it's missing.
-3. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
-4. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
-5. **Small items** (nice-to-have, S):
+1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
+2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
+3. **Employer feeds can be cut off silently** (should-fix, S): Infineon, GlobalFoundries, Bosch, Fraunhofer and Amazon stop at a page cap (150–500 postings; today's counts are 6–60). If a site grows past it, the missing postings count as closed. Make `fetch()` fail when it hits the cap, so the source counts as failed and nothing is removed.
+4. **Small items** (nice-to-have, S):
    - the Saved page title lacks "[STAGING]" on staging
-   - the production guard should compare the database URL in lowercase
    - an outdated comment in `web/.env.example`
    - the clear-search button drops keyboard focus
    - the manual "Run workflow" button defaults to production; switch the default to staging

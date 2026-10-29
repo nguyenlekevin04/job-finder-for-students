@@ -17,7 +17,7 @@ def now(jid, *sources):
     return j
 
 
-def run(previous, current, ok=None, partial=(), checks=None):
+def run(previous, current, ok=None, partial=(), checks=None, raw_urls=(), accept=(), today=TODAY):
     ok = ok or {s: True for j in [*previous, *current] for l in j["links"] for s in [l["source"]]}
     checks = checks or {}
     return decide(
@@ -26,7 +26,9 @@ def run(previous, current, ok=None, partial=(), checks=None):
         source_ok=ok,
         partial=set(partial),
         check=lambda src, url: checks.get(url, UNKNOWN),
-        today=TODAY,
+        today=today,
+        raw_urls={*raw_urls, *(l["url"] for j in current for l in j["links"])},
+        accept=set(accept),
     )
 
 
@@ -107,6 +109,62 @@ def test_guard_allows_half_and_ignores_tiny_sources():
     tiny = [job("h1", "HZDR"), job("h2", "HZDR")]
     r = run(tiny, [], ok={"HZDR": True})
     assert r.removed == {"h1", "h2"} and not r.problems
+
+
+def test_multi_link_job_keeps_the_unknown_link_and_drops_the_closed_one():
+    prev = [job("a", "Bosch", "Arbeitsagentur")]
+    closed = {"https://Arbeitsagentur/a": CLOSED}
+    ok = {"Bosch": False, "Arbeitsagentur": True}
+    r = run(prev, [now("a", "Arbeitsagentur")], ok=ok, partial={"Arbeitsagentur"}, checks=closed)
+    assert ids(r) == {"a"} and not r.removed
+    assert [l["source"] for l in r.jobs[0]["links"]] == ["Bosch"]
+    assert r.jobs[0]["lastSeen"] == "2026-10-29"
+    # Next day: Bosch still failing, Arbeitsagentur still lists it as closed, still within grace.
+    r = run(r.jobs, [now("a", "Arbeitsagentur")], ok=ok, partial={"Arbeitsagentur"}, checks=closed,
+            today="2026-10-31")
+    assert ids(r) == {"a"} and not r.removed
+    assert [l["source"] for l in r.jobs[0]["links"]] == ["Bosch"]
+
+
+def test_guard_lets_a_few_real_closures_through():
+    prev = [job(f"j{i}", "HZDR") for i in range(3)]
+    r = run(prev, [now("j0", "HZDR")])
+    assert r.removed == {"j1", "j2"} and not r.problems
+
+
+def test_guard_blocks_until_the_owner_accepts():
+    prev = [job(f"j{i}", "Infineon") for i in range(6)]
+    current = [now("j0", "Infineon"), now("j1", "Infineon")]
+    r = run(prev, current)
+    assert not r.removed and len(r.jobs) == 6
+    assert r.problems == ["Infineon: would remove 4 of 6 jobs at once; kept them. "
+                          "If they really closed, run 'Update jobs' with accept_removals=Infineon."]
+    r = run(prev, current, accept={"Infineon"})
+    assert r.removed == {"j2", "j3", "j4", "j5"} and not r.problems
+
+
+def test_guard_never_blocks_grace_period_removals():
+    prev = [job(f"j{i}", "Bosch", last="2026-10-27") for i in range(4)]
+    r = run(prev, [], ok={"Bosch": False})
+    assert r.removed == {"j0", "j1", "j2", "j3"} and not r.problems
+
+
+def test_listed_but_unclassified_posting_is_unknown_not_closed():
+    prev = [job("a", "HZDR"), job("b", "HZDR"), job("c", "HZDR")]
+    current = [now("b", "HZDR"), now("c", "HZDR")]
+    r = run(prev, current, raw_urls={"https://HZDR/a"})
+    assert ids(r) == {"a", "b", "c"} and not r.removed
+    assert next(j for j in r.jobs if j["id"] == "a")["lastSeen"] == "2026-10-29"
+    assert r.stats["HZDR"] == {OPEN: 2, CLOSED: 0, UNKNOWN: 1}
+    later = run(r.jobs, current, raw_urls={"https://HZDR/a"}, today="2026-11-01")
+    assert later.removed == {"a"}
+
+
+def test_stats_count_links_of_jobs_kept_by_the_guard_as_unknown():
+    prev = [job(f"j{i}", "Infineon") for i in range(4)]
+    r = run(prev, [now("j0", "Infineon")])
+    assert r.problems
+    assert r.stats["Infineon"] == {OPEN: 1, CLOSED: 0, UNKNOWN: 3}
 
 
 def test_aggregator_status_codes():

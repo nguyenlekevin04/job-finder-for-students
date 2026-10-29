@@ -191,6 +191,11 @@ def make_checker(sources=SOURCES):
     return check
 
 
+def accepted_removals() -> set[str]:
+    """Sources whose large removal the owner approved for this run (ACCEPT_REMOVALS="HZDR,Bosch")."""
+    return {n.strip() for n in os.environ.get("ACCEPT_REMOVALS", "").split(",") if n.strip()}
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     load_env()
@@ -218,6 +223,8 @@ def main(argv: list[str] | None = None) -> int:
         partial={s.NAME for s in SOURCES if getattr(s, "FEED", "complete") == "partial"},
         check=make_checker(),
         today=today,
+        raw_urls={r.url for r in raw},
+        accept=accepted_removals(),
     )
     for name, counts in result.stats.items():
         if name in status:

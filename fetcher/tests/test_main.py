@@ -127,3 +127,10 @@ def test_production_flag_lets_the_scheduled_run_through(monkeypatch):
     monkeypatch.setattr(main, "run_sources", lambda: ([], {"A": {"ok": False, "count": 0, "error": "x"}}))
     assert main.main(["--require-db"]) == 1  # got past the guard; all sources "failed", so nothing is written
 
+
+
+def test_accepted_removals_from_env(monkeypatch):
+    monkeypatch.setenv("ACCEPT_REMOVALS", " HZDR, Bosch ,,")
+    assert main.accepted_removals() == {"HZDR", "Bosch"}
+    monkeypatch.setenv("ACCEPT_REMOVALS", "")
+    assert main.accepted_removals() == set()
