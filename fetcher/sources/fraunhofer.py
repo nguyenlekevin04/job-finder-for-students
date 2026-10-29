@@ -51,15 +51,23 @@ def parse_detail(html: str) -> tuple[str, str | None]:
     return (clean_text(str(body))[:4000] if body else ""), date
 
 
+def is_last_page(page: list[Job]) -> bool:
+    """The portal has no total; a page shorter than PAGE_SIZE is the last one."""
+    return len(page) < PAGE_SIZE
+
+
 def fetch() -> list[Job]:
     jobs: list[Job] = []
-    for start in range(0, MAX_ROWS, PAGE_SIZE):
+    # One extra probe page, so a list of exactly MAX_ROWS postings still ends on a short page.
+    for start in range(0, MAX_ROWS + PAGE_SIZE, PAGE_SIZE):
         html = get_text(f"{BASE}/search/", params={"q": "", "locationsearch": "Dresden", "startrow": start})
         page = parse_list(html)
         jobs.extend(page)
-        if len(page) < PAGE_SIZE:
+        if is_last_page(page):
             break
         time.sleep(0.4)
+    else:  # a cut-off list would make the missing postings count as closed
+        raise RuntimeError(f"{NAME}: more than {MAX_ROWS} postings; raise MAX_ROWS")
 
     for job in (j for j in jobs if STUDENT_HINT.search(j.title)):
         try:

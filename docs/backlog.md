@@ -2,25 +2,21 @@
 
 Owner: Otto (product owner). Ranked by value to students against effort. Free tiers only; anything that costs money goes to the shareholder.
 
-## Now
+## Now (sprint 3: launch to students)
 
-**Sprint 2 goal: only show jobs that are still open.**
+Runs in parallel to the reliability work (browser tests, feed page caps, supply chain). Item 0 blocks the launch; items 1–3 are the visible features, in priority order.
 
-1. **Closed jobs leave the board by the next daily update** (M): As a student checking the board between lectures, I want every job I see to still accept applications, so that I don't waste my few free minutes on dead postings.
-   - Acceptance (fetcher, each daily run):
-     - Every listed job's own posting page is checked once per run (~1 request per job, free).
-     - A job is **closed** when its page returns 404/410, redirects away from the posting (to a search, list or home page), or shows a "no longer available" / "nicht mehr verfügbar" message. A closed job is removed in that run, even if its source feed still lists it.
-     - A job missing from a source that **succeeded** this run is removed unless its page check confirms it is open. This replaces the 7-day grace period.
-     - A **failed source** removes nothing on feed absence; its jobs stay unless their own page check says closed.
-     - An **inconclusive** check (timeout, 5xx, 403/429, captcha, unknown page) keeps the job if its feed still lists it. If the feed also dropped it, it stays for at most 2 runs, then goes.
-     - Guard: if one run would remove more than half of a source's jobs, no removals for that source happen, and the health alarm fires (exit 3).
-     - The run log and `fetch_runs` show per source how many jobs were checked, open, closed or inconclusive.
-     - Offline tests with saved fixtures cover each case: 404, 410, redirect, "no longer available" text, open page, timeout, failed source, and the half-removal guard.
-   - Acceptance (site):
-     - A saved job that is no longer on the board shows **"No longer available"** on the Saved page. "Apply now" is replaced by a plain link labelled "View original posting". The job stays saved until the student removes it.
-     - A shared link `?job=<id>` to a removed job shows "This job is no longer available" and the board below, not an empty panel.
-   - Out of scope: deadlines (0 of 40 jobs have one), checks more than once a day or live in the browser, a "report closed job" button, changes to job IDs.
-   - Open question for the tech lead: per-source rules for "closed" pages (Arbeitsagentur, Arbeitnow, Workday, Eightfold). Size may grow if a source needs special handling.
+0. **Imprint and privacy page** (S, frontend, **launch blocker**): As a student, I want to see who runs the board and what happens to my data, so that I can trust it.
+   - Acceptance: `/imprint/` (Impressum, § 5 DDG) and `/privacy/` (Datenschutzerklärung, GDPR Art. 13) pages, linked from the footer on every page. Privacy covers Vercel hosting logs (IP), Supabase requests from the browser, localStorage (bookmarks, theme, last visit), and analytics if added. No cookies, no consent banner.
+   - **Shareholder decision:** the imprint needs a real name and a postal address that can receive mail. Wording isn't legal advice; the shareholder signs off.
+1. **Hours and pay in every job** (M, both: Jonas extracts, Mia shows): As a student, I want to see hours per week and pay at a glance, so that I know right away if a job fits around my lectures.
+   - Acceptance: the daily fetcher extracts hours per week (e.g. "15–20 h/week") and hourly or monthly pay when the posting states them (German and English wording), saved in new fields (schema, `COLUMNS`, types and `JOB_SELECT` in sync). The job row and the open job show them; if not stated, nothing is shown (no guesses). A "Up to 20 h/week" filter keeps jobs with known hours ≤ 20. A hand check of 30 postings finds no wrong value; tests use saved fixtures.
+   - Notes: job IDs don't change. Pay is shown only as stated, never estimated.
+2. **New since your last visit** (S, frontend): As a student who checks between lectures, I want to see what's new since I last looked, so that I don't reread the whole list.
+   - Acceptance: the browser stores the time of the last visit in localStorage (nothing leaves the device). On return, a line says "5 new since Tuesday" with a one-tap "Show only new" view (in the URL, so it can be shared); those jobs carry the "New" badge. The first visit shows no count. The mark moves forward only on the next visit (not while the page is open), and works with storage blocked (then nothing is shown).
+3. **Share a job** (S, frontend): As a student, I want to send a job to a classmate on WhatsApp in one tap, so that we can apply together and the board spreads by word of mouth.
+   - Acceptance: a Share button on the open job. On phones it opens the native share sheet (Web Share API) with title, company and the `?job=` link; elsewhere it copies the link and confirms "Link copied". The link opens that job (or the "no longer available" notice). No tracking parameters, no third-party scripts.
+   - Out of scope: a per-job preview image (needs per-job pages; see SEO in Later).
 
 ## Next
 
@@ -52,6 +48,10 @@ Non-blocking findings; the tech lead decides the order. Most are small.
 
 ## Later
 
+- **Pages search engines can read** (M): per-job and per-company pages built at deploy time, so students find jobs on Google. Waits for serving the job list from the CDN (docs/capacity.md); today all jobs render in the browser only.
+- **RSS / calendar feed of deadlines** (S–M): few students use RSS; a static feed needs a rebuild or public storage after each fetch. After the CDN switch.
+- **Company pages** (M): little value at today's ~100 jobs from a few dozen employers; the company filter/search covers it.
+
 - **Login / accounts** (L): As a student, I want my saved jobs on my phone and my laptop, so that I don't lose them. Waits: bookmarks in the browser cover the need today. Accounts bring privacy, security and support costs. Look at it again only if students ask for sync.
   - **Technical preconditions (tech lead, fixed before any build):**
     - **Sign-in without passwords:** magic link or OAuth with PKCE (Supabase Auth, free tier). We never store passwords.
@@ -62,6 +62,11 @@ Non-blocking findings; the tech lead decides the order. Most are small.
     - **Data access:** new tables (e.g. `bookmarks`) only with RLS `user_id = auth.uid()`. The existing tables stay read-only for the public.
     - **Law:** privacy policy and imprint, data export and deletion (GDPR). Session cookies are strictly necessary, so no consent banner (TTDSG §25(2)). No tracking cookies.
     - **Before release:** `/hackerattack login` (Kevin) covers session theft, fixation, CSRF, IDOR on bookmarks, open redirects in the login flow, and rate limits on magic links.
+
+## Done (sprint 2: only open jobs)
+
+- **Closed jobs leave the board by the next daily update.** Employer and institute feeds are complete, so a posting they stop listing is removed in that run. Arbeitsagentur and Arbeitnow postings are checked one by one (404/410 = closed). A failed source removes nothing. A job nobody can confirm stays at most 2 days. A guard (≥3 and >50% of a source) blocks mass removals and raises the alarm; the owner can approve once with `accept_removals`. Per-source open/closed/unconfirmed counts are in `fetch_runs`. On the site, a closed saved job shows "Closed", the notice "This job is no longer available." and "View original posting"; a shared link to a removed job shows the notice.
+- Adzuna source removed; security fixes from the attack review (docs/security.md).
 
 ## Done (sprint 1: safe shipping)
 
