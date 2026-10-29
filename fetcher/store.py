@@ -10,6 +10,7 @@ import json
 import os
 from datetime import date, timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import requests
 
@@ -57,7 +58,9 @@ class SupabaseStore:
     name = "Supabase"
 
     def __init__(self, url: str, key: str, session: requests.Session | None = None):
-        self.base = url.rstrip("/") + "/rest/v1"
+        # Keep only scheme and host, so a URL pasted with "/rest/v1/" (or any path) still works.
+        parts = urlsplit(url.strip())
+        self.base = f"{parts.scheme}://{parts.netloc}/rest/v1"
         self.session = session or requests.Session()
         self.session.headers.update({"apikey": key, "Content-Type": "application/json"})
         # Legacy keys are JWTs and also go in Authorization; new "sb_secret_" keys don't.

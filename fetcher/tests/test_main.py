@@ -105,6 +105,15 @@ def test_production_writes_need_the_ci_flag(monkeypatch):
     assert main.main(["--require-db"]) == 4
 
 
+def test_production_guard_ignores_url_case(monkeypatch):
+    monkeypatch.setattr(main, "load_env", lambda: None)
+    monkeypatch.setenv("SUPABASE_URL", f"https://{main.PRODUCTION_PROJECT_REF.upper()}.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+    monkeypatch.delenv("ALLOW_PRODUCTION_WRITE", raising=False)
+    monkeypatch.setattr(main, "run_sources", lambda: (_ for _ in ()).throw(AssertionError("must not fetch")))
+    assert main.main(["--require-db"]) == 4
+
+
 def test_production_flag_lets_the_scheduled_run_through(monkeypatch):
     monkeypatch.setattr(main, "load_env", lambda: None)
     monkeypatch.setenv("SUPABASE_URL", f"https://{main.PRODUCTION_PROJECT_REF}.supabase.co")
