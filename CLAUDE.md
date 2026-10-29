@@ -71,11 +71,22 @@ Root `.env` (read by a minimal loader in `main.py`; real env vars win) holds `SU
 
 ## Team (project agents in `.claude/agents/`)
 
-The user calls these by name; start them only when asked. The main session is the **tech lead**: it briefs the agents, checks their output against the code, makes the code changes, and commits.
+The user calls these by name; start them only when asked.
 
-- **Review team**: `code-reviewer` (read-only; bugs, security and code quality in existing code, never missing features) and `review-fixer` (applies confirmed findings).
-- **Iris**: UI/UX designer (`iris`). Looks at the real page (desktop and phone, light and dark) and returns prioritized design changes. Doesn't edit code.
-- **Otto**: product owner (`otto`). Writes user stories with acceptance criteria and prioritizes. May only edit `docs/backlog.md`.
+- **Tech lead and project manager: the main Claude session.**
+  - Acts as an architect and tech lead with 10+ years of big-tech experience.
+  - Decides what is technically necessary and how and when things get built.
+  - Briefs the agents, checks their output against the code, implements, and commits.
+- **Otto (`otto`): senior product owner.**
+  - Says what he wants for students and why, as user stories with acceptance criteria.
+  - May only edit `docs/backlog.md`.
+- **Iris (`iris`): UI/UX expert** (master's in design, 15 years).
+  - Analyses the real page when asked and discusses proposals with the tech lead, who decides what gets implemented.
+  - Doesn't edit code.
+- **Review team: staff engineers.**
+  - `code-reviewer` is read-only and covers bugs, security and code quality in existing code, never missing features.
+  - `review-fixer` applies confirmed findings.
+
+**Flow:** Otto states the want → the tech lead decides scope, technical needs and order → Iris and the tech lead agree on UX changes → the tech lead builds → the review team reviews and fixes → the tech lead verifies and commits.
 
 New agent files only load as agent types after a session restart. Until then, run them as general-purpose agents told to follow their file.
-
