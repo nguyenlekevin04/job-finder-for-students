@@ -279,16 +279,30 @@ def test_arbeitnow_country_sites_are_allowed():
     assert not main.safe_link("Arbeitnow", "https://www.arbeitnow.evil/jobs/x")
 
 
-def test_hours_and_pay_are_extracted_and_filled_as_pairs():
+def test_hours_and_pay_come_only_from_the_first_posting():
     jobs = main.build_jobs([
         raw("Werkstudent Softwareentwicklung (m/w/d)", source="A", description="Software, Python, Git. 15 €/Std."),
         raw("Werkstudent Softwareentwicklung (w/m/d)", source="B",
             description="Python, Git. 10-20 h/Woche, 1.200 €/Monat"),
     ])
     (job,) = jobs.values()
-    # The first posting has pay but no hours: hours come from the second, pay stays the first's.
-    assert (job["hoursMin"], job["hoursMax"]) == (10, 20)
+    # The first posting has pay but no hours: a later copy fills neither.
+    assert (job["hoursMin"], job["hoursMax"]) == (None, None)
     assert (job["payAmount"], job["payUnit"]) == (15.0, "hour")
+
+
+def test_aggregator_copy_cannot_add_pay_to_an_employer_job():
+    """Kevin's proof: an exact-title Arbeitnow copy of an Infineon posting claims a wage."""
+    title, company = "Werkstudent Softwareentwicklung (m/w/d)", "Infineon"
+    jobs = main.build_jobs([
+        Job(source="Infineon", source_id="1", title=title, company=company,
+            url="https://jobs.infineon.com/careers/job/1", description="Du entwickelst Software in Dresden."),
+        Job(source="Arbeitnow", source_id="x", title=title, company=company,
+            url="https://www.arbeitnow.com/jobs/x", description="Python, Git. Stundenlohn: 45 €"),
+    ])
+    (job,) = jobs.values()
+    assert job["payAmount"] is None and job["payUnit"] is None
+    assert job["hoursMax"] is None
 
 
 def test_hours_and_pay_default_to_none():
@@ -356,6 +370,19 @@ def test_globalfoundries_twin_needs_another_source():
     ])
     assert len(jobs) == 2
     assert sum(len(j["links"]) for j in jobs.values()) == 3
+
+
+def test_padded_aggregator_title_is_not_a_globalfoundries_twin():
+    """Kevin's proof: an Arbeitnow copy whose title is the real one plus made-up terms."""
+    real = "Werkstudent*in im Bereich Machine Learning & Virtual Metrology"
+    copy = Job(source="Arbeitnow", source_id="x", title=real + " - 60 EUR pro Stunde, 40 Std./Woche",
+               company="GlobalFoundries", url="https://www.arbeitnow.com/jobs/x")
+    jobs = main.build_jobs([gf(real), copy])
+    assert len(jobs) == 2
+    employer = jobs[main.job_id(real, "GlobalFoundries")]
+    assert employer["links"] == [{"source": "GlobalFoundries", "url": gf(real).url}]
+    assert employer["payAmount"] is None and employer["hoursMax"] is None
+    assert main.truncated_twin({"x": employer}, real[:50], GF_COMPANY_BA, "Arbeitnow") is None
 
 
 def test_is_globalfoundries():

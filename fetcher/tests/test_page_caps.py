@@ -62,6 +62,20 @@ def test_infineon_exact_multiple_stops_on_count(monkeypatch):
     assert len(infineon.fetch()) == 20
 
 
+def test_infineon_empty_page_before_count_raises(monkeypatch):
+    monkeypatch.setattr(infineon, "get_json", lambda url, params: _infineon_page(
+        infineon.PAGE if params["start"] == 0 else 0, 60, params["start"]))
+    with pytest.raises(RuntimeError, match="Infineon: feed ended early: got 10 of 60"):
+        infineon.fetch()
+
+
+def test_infineon_short_page_before_count_raises(monkeypatch):
+    monkeypatch.setattr(infineon, "get_json", lambda url, params: _infineon_page(
+        infineon.PAGE if params["start"] == 0 else 4, 60, params["start"]))
+    with pytest.raises(RuntimeError, match="Infineon: feed ended early: got 14 of 60"):
+        infineon.fetch()
+
+
 # --- GlobalFoundries (Workday: 20 per page, `total` only on the first page) ---
 
 def _gf_page(offset: int, n: int, total: int) -> dict:
@@ -91,6 +105,19 @@ def test_globalfoundries_reads_every_page_although_later_totals_are_zero(monkeyp
     assert len(globalfoundries.fetch()) == 43
 
 
+def test_globalfoundries_empty_page_before_total_raises(monkeypatch):
+    monkeypatch.setattr(globalfoundries, "post_json", lambda url, body: _gf_page(
+        body["offset"], globalfoundries.PAGE if body["offset"] == 0 else 0, 60))
+    with pytest.raises(RuntimeError, match="GlobalFoundries: feed ended early: got 20 of 60"):
+        globalfoundries.fetch()
+
+
+def test_globalfoundries_exact_multiple_is_fine(monkeypatch):
+    monkeypatch.setattr(globalfoundries, "post_json",
+                        lambda url, body: _gf_page(body["offset"], globalfoundries.PAGE, 60))
+    assert len(globalfoundries.fetch()) == 60
+
+
 # --- Bosch (SmartRecruiters: 100 per page, `totalFound`) ---
 
 def _bosch_page(offset: int, n: int, total: int) -> dict:
@@ -116,6 +143,25 @@ def test_bosch_feed_ending_early_is_fine(monkeypatch):
     monkeypatch.setattr(bosch, "get_json",
                         lambda url, params: _bosch_page(params["offset"], min(100, 142 - params["offset"]), 142))
     assert len(bosch.fetch()) == 142
+
+
+def test_bosch_empty_page_before_total_raises(monkeypatch):
+    monkeypatch.setattr(bosch, "get_json", lambda url, params: _bosch_page(
+        params["offset"], bosch.PAGE if params["offset"] == 0 else 0, 160))
+    with pytest.raises(RuntimeError, match="Bosch: feed ended early: got 100 of 160"):
+        bosch.fetch()
+
+
+def test_bosch_short_page_before_total_raises(monkeypatch):
+    monkeypatch.setattr(bosch, "get_json", lambda url, params: _bosch_page(params["offset"], 30, 60))
+    with pytest.raises(RuntimeError, match="Bosch: feed ended early: got 30 of 60"):
+        bosch.fetch()
+
+
+def test_bosch_exact_multiple_is_fine(monkeypatch):
+    monkeypatch.setattr(bosch, "get_json",
+                        lambda url, params: _bosch_page(params["offset"], min(100, 200 - params["offset"]), 200))
+    assert len(bosch.fetch()) == 200
 
 
 # --- Fraunhofer (HTML portal: 25 rows per page, no total) ---

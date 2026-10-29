@@ -14,6 +14,8 @@ Every link of a job gets a state, then the job gets a verdict:
   detail page timed out, or it was reclassified) is unknown too, not closed.
 
 Verdict: any open link keeps the job (lastSeen = today). All links closed removes it.
+Complete-feed links are ordered before aggregator links, and when a job's first link comes
+from a complete feed and is closed, its aggregator links don't count: the employer decides.
 Otherwise the job is unconfirmed and stays for ``UNCONFIRMED_DAYS`` after it was last
 confirmed open. Closed links are dropped from every job that stays.
 
@@ -87,12 +89,19 @@ def decide(
         if jid in current and before:
             # Keep older links that today's feeds didn't return, so they get checked too.
             links += [l for l in before.get("links", []) if l["url"] not in listed_urls]
+        # Complete-feed (employer) links stay ahead of aggregator links, so an aggregator copy
+        # never becomes the "Apply now" link of an employer's job.
+        links.sort(key=lambda l: l["source"] in partial)
         states = [link_state(l, l["url"] in listed_urls) for l in links]
         link_states[jid] = [(l["source"], s) for l, s in zip(links, states)]
 
-        if OPEN in states:
+        # The employer is authoritative: when the job's first link comes from a complete feed and
+        # that feed says closed, aggregator copies can't keep the job open.
+        employer_closed = bool(links) and links[0]["source"] not in partial and states[0] == CLOSED
+        judged = [s for l, s in zip(links, states) if not (employer_closed and l["source"] in partial)]
+        if OPEN in judged:
             verdict = OPEN
-        elif all(s == CLOSED for s in states):
+        elif all(s == CLOSED for s in judged):
             verdict = CLOSED
         else:
             last = (before or {}).get("lastSeen") or today
