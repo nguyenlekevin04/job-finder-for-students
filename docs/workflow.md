@@ -37,6 +37,14 @@ Run it with the skills in `.claude/skills/`:
    - The author never approves their own change: the reviewer always has the last word on a fix.
 6. **Pull request into `staging`** (tech lead), using the template checklist. It merges when CI is green and every box is checked.
 
+## End of sprint: dead-code cleanup
+
+Before every release, the review team removes dead code:
+- **`code-reviewer`** lists dead code with evidence: unused functions, files, components, exports, CSS classes, dependencies (`package.json`, `requirements.txt`), test fixtures, feature flags, and leftovers of removed features. Evidence means no references found with `grep`, plus `npx knip` / `vulture` where they help.
+- **`review-fixer`** deletes what the tech lead confirms, on `chore/cleanup-sprint-<n>`. All tests, lint, type-check and the build stay green.
+- The PR goes into `staging` before the release PR, so the release review covers it.
+- **Kept on purpose:** documented hooks (e.g. `is_enabled()`), temporary code with a dated removal note (e.g. the Render forward), and anything a doc names as an extension point.
+
 ## Testing → production: `staging` → `main`
 
 7. **Release** (`/release`):

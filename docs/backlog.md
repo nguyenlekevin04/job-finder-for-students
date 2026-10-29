@@ -2,9 +2,21 @@
 
 Owner: Otto (product owner). Ranked by value to students against effort. Free tiers only; anything that costs money goes to the shareholder.
 
-## Now
+## Now (sprint 3: launch to students)
 
-_Empty: sprint 2 is being released._
+Runs in parallel to the reliability work (browser tests, feed page caps, supply chain). Item 0 blocks the launch; items 1–3 are the visible features, in priority order.
+
+0. **Imprint and privacy page** (S, frontend, **launch blocker**): As a student, I want to see who runs the board and what happens to my data, so that I can trust it.
+   - Acceptance: `/imprint/` (Impressum, § 5 DDG) and `/privacy/` (Datenschutzerklärung, GDPR Art. 13) pages, linked from the footer on every page. Privacy covers Vercel hosting logs (IP), Supabase requests from the browser, localStorage (bookmarks, theme, last visit), and analytics if added. No cookies, no consent banner.
+   - **Shareholder decision:** the imprint needs a real name and a postal address that can receive mail. Wording isn't legal advice; the shareholder signs off.
+1. **Hours and pay in every job** (M, both: Jonas extracts, Mia shows): As a student, I want to see hours per week and pay at a glance, so that I know right away if a job fits around my lectures.
+   - Acceptance: the daily fetcher extracts hours per week (e.g. "15–20 h/week") and hourly or monthly pay when the posting states them (German and English wording), saved in new fields (schema, `COLUMNS`, types and `JOB_SELECT` in sync). The job row and the open job show them; if not stated, nothing is shown (no guesses). A "Up to 20 h/week" filter keeps jobs with known hours ≤ 20. A hand check of 30 postings finds no wrong value; tests use saved fixtures.
+   - Notes: job IDs don't change. Pay is shown only as stated, never estimated.
+2. **New since your last visit** (S, frontend): As a student who checks between lectures, I want to see what's new since I last looked, so that I don't reread the whole list.
+   - Acceptance: the browser stores the time of the last visit in localStorage (nothing leaves the device). On return, a line says "5 new since Tuesday" with a one-tap "Show only new" view (in the URL, so it can be shared); those jobs carry the "New" badge. The first visit shows no count. The mark moves forward only on the next visit (not while the page is open), and works with storage blocked (then nothing is shown).
+3. **Share a job** (S, frontend): As a student, I want to send a job to a classmate on WhatsApp in one tap, so that we can apply together and the board spreads by word of mouth.
+   - Acceptance: a Share button on the open job. On phones it opens the native share sheet (Web Share API) with title, company and the `?job=` link; elsewhere it copies the link and confirms "Link copied". The link opens that job (or the "no longer available" notice). No tracking parameters, no third-party scripts.
+   - Out of scope: a per-job preview image (needs per-job pages; see SEO in Later).
 
 ## Next
 
@@ -35,6 +47,10 @@ Non-blocking findings; the tech lead decides the order. Most are small.
    - the manual "Run workflow" button defaults to production; switch the default to staging
 
 ## Later
+
+- **Pages search engines can read** (M): per-job and per-company pages built at deploy time, so students find jobs on Google. Waits for serving the job list from the CDN (docs/capacity.md); today all jobs render in the browser only.
+- **RSS / calendar feed of deadlines** (S–M): few students use RSS; a static feed needs a rebuild or public storage after each fetch. After the CDN switch.
+- **Company pages** (M): little value at today's ~100 jobs from a few dozen employers; the company filter/search covers it.
 
 - **Login / accounts** (L): As a student, I want my saved jobs on my phone and my laptop, so that I don't lose them. Waits: bookmarks in the browser cover the need today. Accounts bring privacy, security and support costs. Look at it again only if students ask for sync.
   - **Technical preconditions (tech lead, fixed before any build):**
