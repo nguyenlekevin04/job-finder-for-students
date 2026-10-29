@@ -1,7 +1,7 @@
 // Builds the static export the smoke tests run against (`npm run test:e2e`).
 //
-// - Copies e2e/fixtures/jobs.json to public/jobs.json (git-ignored; this replaces
-//   any local fetcher output there). The first job's firstSeen is set to today, so
+// - Copies e2e/fixtures/jobs.json to public/jobs.json for the build and puts any
+//   existing local fetcher output back afterwards. The first job's firstSeen is set to today, so
 //   the "new" features always have exactly one new job, however old the fixture is.
 // - Builds with the Supabase and deploy-env variables set to empty strings, so the
 //   site reads jobs.json and shows no staging banner. Empty, not deleted: Next.js
@@ -11,7 +11,7 @@
 // Browsers are installed once with `npx playwright install --with-deps chromium`
 // (in CI; locally `npx playwright install chromium` is enough).
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,7 +22,11 @@ const now = new Date();
 const today = [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((n) => String(n).padStart(2, "0")).join("-");
 data.jobs[0].firstSeen = today; // local date, the way the site compares it
 data.jobs[0].lastSeen = today;
-writeFileSync(join(web, "public/jobs.json"), JSON.stringify(data, null, 2));
+const target = join(web, "public/jobs.json");
+const backup = join(web, ".jobs.json.e2e-backup"); // outside public/, so it is never exported
+const hadData = existsSync(target);
+if (hadData) renameSync(target, backup); // keep the developer's real data
+writeFileSync(target, JSON.stringify(data, null, 2));
 
 const env = {
   ...process.env,
@@ -32,4 +36,5 @@ const env = {
   NEXT_BASE_PATH: "",
 };
 const res = spawnSync("npx", ["next", "build"], { cwd: web, env, stdio: "inherit", shell: process.platform === "win32" });
+if (hadData) renameSync(backup, target); // the export in out/ already holds the fixture
 process.exit(res.status ?? 1);
