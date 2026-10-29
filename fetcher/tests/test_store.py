@@ -101,3 +101,10 @@ def test_get_store_picks_backend(monkeypatch, tmp_path):
     monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "sb_secret_x")
     assert isinstance(get_store(tmp_path / "j.json"), SupabaseStore)
+
+
+def test_base_url_accepts_rest_suffix():
+    for url in ["https://x.supabase.co", "https://x.supabase.co/", "https://x.supabase.co/rest/v1",
+                "https://x.supabase.co/rest/v1/", " https://x.supabase.co/rest/v1// ",
+                "https://x.supabase.co/rest/v1/jobs?select=id"]:
+        assert SupabaseStore(url, "sb_secret_x", session=FakeSession()).base == "https://x.supabase.co/rest/v1"
