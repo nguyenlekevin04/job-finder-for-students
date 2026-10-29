@@ -45,7 +45,7 @@ npm test           # vitest unit tests (lib/*.test.ts)
 
 `.claude/launch.json` has a `static-site` config that serves `web/out` on :4173 for browser checks of the real build.
 
-Root `.env` (read by a minimal loader in `main.py`; real env vars win) holds `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and optional `ADZUNA_APP_ID` / `ADZUNA_APP_KEY`; the same names are GitHub secrets. Without Adzuna keys that source is reported as skipped.
+Root `.env` (read by a minimal loader in `main.py`; real env vars win) holds `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (staging values locally); production and staging values are GitHub secrets.
 
 ## Fetcher architecture
 
@@ -57,8 +57,9 @@ Root `.env` (read by a minimal loader in `main.py`; real env vars win) holds `SU
   - When tuning keywords, re-check with the parametrized cases in `test_classify.py`.
 - **`main.py`** pipeline: run sources (one failing source never stops the others; per-source status is saved) → strip "Company: " title prefixes → classify → dedupe by `job_id()` = sha1 of normalized title|company → `store.save()`. If every source fails, nothing is written.
   - `SOURCES` order matters: direct employer/institute sources come before aggregators, because a merged job's first link is its "Apply now" button.
+  - **Links and merges are hardened** (security attack #1): `safe_link()` accepts only `https://` URLs on the hosts in `LINK_HOSTS` (per source; add the host when you add a source, or all its postings are skipped). When duplicates merge, the first (highest-priority) posting keeps its snippet, dates and language; later copies only fill empty fields.
   - **Source health alarm:** after saving, `health_problems()` flags sources that failed or returned 0 postings (unless the module sets `MAY_BE_EMPTY = True`). `main()` then returns 3, so the Action fails and GitHub emails the owner.
-  - Errors and tracebacks go through `redact()`, which strips URL query strings. They may carry API keys (Adzuna), and the status is stored in the publicly readable `fetch_runs` table.
+  - Errors and tracebacks go through `redact()`, which strips URL query strings. They may carry API keys, and the status is stored in the publicly readable `fetch_runs` table.
 - **Employer career feeds** (Infineon/Eightfold, GlobalFoundries/Workday, Bosch/SmartRecruiters, Amazon) list every role without descriptions. Their sources fetch the full posting only when `classify.is_student_title()` matches, which keeps it to a handful of requests per run. Each strips the company's boilerplate intro so the snippet starts with the role. Workday search needs POST (`net.post_json`). The session asks for gzip only, because amazon.jobs answers the default zstd offer with a body urllib3 can't decode.
 - **`store.py`** has two backends behind `get_store()`: `SupabaseStore` (plain `requests` against PostgREST: `previous()` pages through every row, `save(jobs, removed, …)` upserts with `on_conflict=id` + `resolution=merge-duplicates`, deletes `removed` by id and inserts a `fetch_runs` row) and `JsonFileStore` (same on the file). `COLUMNS` maps the camelCase job dict to snake_case columns — keep it, `schema.sql`, `web/lib/types.ts` and `JOB_SELECT` in `web/lib/useJobs.ts` in sync. Legacy JWT keys (`eyJ…`) also go in `Authorization`; new `sb_secret_`/`sb_publishable_` keys only in `apikey`.
 - **Open jobs only** (`fetcher/availability.py`, pure, tested offline): `decide()` gives every link open/closed/unknown and every job a verdict. Sources default to a complete feed (listed = open, not listed while the source worked = closed); aggregators set `FEED = "partial"` and may define `check(url)`. A posting the source still lists (`raw_urls`) but that didn't become a job today (detail page timed out, reclassified) is unknown, not closed. `lastSeen` means "last confirmed open"; unconfirmed jobs stay `UNCONFIRMED_DAYS` (2), and closed links are dropped from every job that stays. A guard keeps a source's jobs and raises the alarm when the source's own closed links would remove at least `GUARD_MIN_REMOVALS` (3) and more than half of its jobs in one run; removals after the grace period are never blocked. To approve a real mass closure, run "Update jobs" with `accept_removals=<Source>` (env `ACCEPT_REMOVALS`). Per-source link counts go into `fetch_runs.sources[name].links`. New sources: set `FEED = "partial"` if the feed is capped or search-ranked.
@@ -92,6 +93,9 @@ The user calls these by name; start them only when asked or when `/feature` or `
 - **Iris (`iris`): UI/UX expert** (master's in design, 15 years).
   - Analyses the real page when asked and discusses proposals with the tech lead, who decides what gets implemented.
   - Doesn't edit code.
+- **Kevin (`kevin`): ethical hacker (red team).**
+  - Attacks our own system (staging for anything that writes, production read-only) and reports findings with proof.
+  - Run with `/hackerattack [focus]` once per sprint before the release, and before logins or new secrets: Kevin attacks → the tech lead triages → the review team fixes and verifies against his proof. Kevin isn't part of code or release review. Results go to `docs/security.md`.
 - **Review team: staff engineers.**
   - `code-reviewer` is read-only and covers bugs, security and code quality in existing code, never missing features.
   - `review-fixer` applies confirmed findings.

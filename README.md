@@ -15,7 +15,6 @@ Werkstudent, internship and thesis positions in **AI, ML, Computer Science and r
 |---|---|---|
 | Bundesagentur für Arbeit | Official Jobsuche API | Biggest source; ~18 searches within 30 km of Dresden |
 | Arbeitnow | Public JSON API | Dresden + fully remote postings |
-| Adzuna | API (free key) | Optional, skipped without a key |
 | TU Dresden | HTML job board | Mostly staff/HiWi jobs, so few results get through |
 | Fraunhofer | HTML job portal | All Dresden institutes |
 | HZDR | HTML list | Internships and theses |
@@ -89,7 +88,6 @@ See `docs/capacity.md` for what 5,000 users cost on the free tiers, and when the
 
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`: production
 - `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_SERVICE_ROLE_KEY`: staging
-- optional: `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` (free key from https://developer.adzuna.com)
 
 The schedule fills both databases every morning. **Actions → Update jobs → Run workflow** fills the one you pick. If the staging secrets are missing, the staging run fails instead of falling back to production.
 

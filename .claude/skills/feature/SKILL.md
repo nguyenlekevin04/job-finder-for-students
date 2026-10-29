@@ -15,7 +15,7 @@ Team agents live in `.claude/agents/`. If `otto`, `iris`, `code-reviewer` or `re
 2. **Technical design.** Write a short plan: files, data/schema changes (staging first), risks, tests, rollback. Keep it in the pull request description later.
 3. **UX design** (skip only for changes with no visible effect). Brief Iris with the story and your plan; she returns the design. Settle disagreements yourself, and give the reason.
 4. **Build** on `feature/<short-name>` from `staging`. Tests for new logic. Run locally: `python -m pytest fetcher/tests -q`; in `web/`: `npm run lint`, `npx next typegen && npx tsc --noEmit`, `npm test`, `npm run build`. Check visible changes in the browser.
-5. **Code review.** Run `code-reviewer` on the branch diff (`git diff staging...HEAD`). Verify each finding yourself; pass only the confirmed ones to `review-fixer`; then run `code-reviewer` once more on the fixes. Commit.
+5. **Code review, scaled to risk** (see `docs/workflow.md` phase 5). Run `code-reviewer` on the branch diff (`git diff staging...HEAD`) and verify each finding yourself. Small change: fix confirmed findings directly; re-review only non-trivial fixes. Normal change: pass confirmed findings to `review-fixer`, then run `code-reviewer` once more on the fixes. Brief agents with the files that matter, not the whole repo. Commit.
 6. **Pull request into `staging`** with `gh pr create --base staging`, filling `.github/pull_request_template.md`. Don't merge with red checks.
 
 ## Report to the shareholder

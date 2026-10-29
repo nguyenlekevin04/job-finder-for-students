@@ -55,8 +55,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ALLOW_PRODUCTION_WRITE: "1"
           ACCEPT_REMOVALS: ${{ inputs.accept_removals }}
-          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
-          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
         run: python fetcher/main.py --require-db
 
       - name: Fetch jobs into the staging database
@@ -65,6 +63,4 @@ jobs:
           SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
           ACCEPT_REMOVALS: ${{ inputs.accept_removals }}
-          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
-          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
         run: python fetcher/main.py --require-db

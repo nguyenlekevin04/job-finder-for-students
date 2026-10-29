@@ -20,7 +20,7 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
      - A saved job that is no longer on the board shows **"No longer available"** on the Saved page. "Apply now" is replaced by a plain link labelled "View original posting". The job stays saved until the student removes it.
      - A shared link `?job=<id>` to a removed job shows "This job is no longer available" and the board below, not an empty panel.
    - Out of scope: deadlines (0 of 40 jobs have one), checks more than once a day or live in the browser, a "report closed job" button, changes to job IDs.
-   - Open question for the tech lead: per-source rules for "closed" pages (Arbeitsagentur, Arbeitnow, Adzuna redirects, Workday, Eightfold). Size may grow if a source needs special handling.
+   - Open question for the tech lead: per-source rules for "closed" pages (Arbeitsagentur, Arbeitnow, Workday, Eightfold). Size may grow if a source needs special handling.
 
 ## Next
 
@@ -43,7 +43,8 @@ Non-blocking findings; the tech lead decides the order. Most are small.
 1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
 2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
 3. **Employer feeds can be cut off silently** (should-fix, S): Infineon, GlobalFoundries, Bosch, Fraunhofer and Amazon stop at a page cap (150–500 postings; today's counts are 6–60). If a site grows past it, the missing postings count as closed. Make `fetch()` fail when it hits the cap, so the source counts as failed and nothing is removed.
-4. **Small items** (nice-to-have, S):
+4. **Supply chain hardening** (security, S): pin GitHub Actions to commit SHAs and restrict allowed actions; add `pip-audit` to CI; a full `script-src` CSP with hashes for the two inline scripts; a lock file with hashes (`pip-compile --generate-hashes`) for transitive Python dependencies (`docs/security.md`, attack #1).
+5. **Small items** (nice-to-have, S):
    - the Saved page title lacks "[STAGING]" on staging
    - an outdated comment in `web/.env.example`
    - the clear-search button drops keyboard focus
@@ -52,6 +53,15 @@ Non-blocking findings; the tech lead decides the order. Most are small.
 ## Later
 
 - **Login / accounts** (L): As a student, I want my saved jobs on my phone and my laptop, so that I don't lose them. Waits: bookmarks in the browser cover the need today. Accounts bring privacy, security and support costs. Look at it again only if students ask for sync.
+  - **Technical preconditions (tech lead, fixed before any build):**
+    - **Sign-in without passwords:** magic link or OAuth with PKCE (Supabase Auth, free tier). We never store passwords.
+    - **Sessions in cookies, not localStorage:** HttpOnly, Secure, SameSite=Lax, `__Host-` prefix, set by the server (Next.js on Vercel with `@supabase/ssr`). This means leaving `output: "export"` for the auth routes, which is an architecture change. A token in localStorage can be stolen by any XSS.
+    - **Short-lived tokens:** access token about 1 h, refresh tokens rotated with reuse detection. Logout revokes all sessions (`signOut({ scope: "global" })`). Account deletion removes everything.
+    - **CSRF:** SameSite=Lax plus an Origin check on every write.
+    - **XSS:** a strict Content-Security-Policy first, because job data comes from third-party feeds.
+    - **Data access:** new tables (e.g. `bookmarks`) only with RLS `user_id = auth.uid()`. The existing tables stay read-only for the public.
+    - **Law:** privacy policy and imprint, data export and deletion (GDPR). Session cookies are strictly necessary, so no consent banner (TTDSG §25(2)). No tracking cookies.
+    - **Before release:** `/hackerattack login` (Kevin) covers session theft, fixation, CSRF, IDOR on bookmarks, open redirects in the login flow, and rate limits on magic links.
 
 ## Done (sprint 1: safe shipping)
 

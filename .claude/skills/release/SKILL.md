@@ -14,10 +14,11 @@ Team agents live in `.claude/agents/`. If they aren't available as agent types, 
 1. **Scope.** `git fetch` and list what ships: `git log --oneline origin/main..origin/staging` and `git diff --stat origin/main...origin/staging`. If nothing differs, tell the shareholder and stop.
 2. **Release pull request:** `gh pr create --base main --head staging --title "Release: <summary>"` with the template. It must merge with a **merge commit** (never squash), so `staging` and `main` stay in sync.
 3. **Staging site.** It's the Vercel preview of the `staging` branch (needs a Vercel login). Get a link the agents' browser can open with the Vercel MCP (`get_access_to_vercel_url` or a share link), and check that it shows the STAGING banner and staging data.
-4. **Team review, in parallel:**
-   - **Iris:** UI/UX on the staging link: minimal, clean, intuitive, mobile at 375px, dark mode, keyboard and contrast. Verdict: approve or block, with concrete findings.
-   - **Review team (`code-reviewer`):** the release diff (`origin/main...origin/staging`) for bugs and security, plus a click-through on the staging link (search, filters, open job, save, Saved page, back/forward).
-   - **Otto:** acceptance criteria of the shipped stories (from `docs/backlog.md` and the PR descriptions). Verdict per story.
+4. **Team review, in parallel, only what this release needs** (each PR into `staging` was already code-reviewed):
+   - **Review team (QA), always:** a click-through on the staging link (search, filters, open job, save, Saved page, back/forward, plus what changed), and a skim of the release diff (`origin/main...origin/staging`) for anything unreviewed. Use a general-purpose agent with the browser, told to follow `.claude/agents/code-reviewer.md`.
+   - **Iris, only if `web/` changed visibly:** UI/UX on the staging link: minimal, clean, intuitive, mobile at 375px, dark mode, keyboard and contrast. Verdict: approve or block, with concrete findings.
+   - **Otto, only if a user story ships:** acceptance criteria (from `docs/backlog.md` and the PR descriptions). Verdict per story.
+   - Kevin is not part of the release review; `/hackerattack` runs separately, once per sprint before the release.
 5. **Decide.** Verify every finding against the code yourself. A blocking finding goes back through `/feature` as a fix into `staging`, then restart at step 1. Non-blocking ones go to `docs/backlog.md`.
 6. **Shareholder report** (plain words, no jargon):
    - What ships, from the student's point of view.
