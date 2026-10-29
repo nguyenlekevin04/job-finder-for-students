@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from urllib.parse import quote
 
 import pytest
@@ -72,6 +73,68 @@ def test_later_copy_fills_only_empty_fields():
     job = next(iter(jobs.values()))
     assert job["postedAt"] == "2026-10-01"
     assert [l["source"] for l in job["links"]] == ["A", "B"]
+
+
+def test_snippet_and_english_flag_come_from_the_same_posting():
+    jobs = main.build_jobs([
+        raw("Werkstudent Softwareentwicklung", source="A"),
+        raw("Werkstudent Softwareentwicklung", source="B",
+            description="You will build Python services in our English-speaking team. " * 5),
+    ])
+    job = next(iter(jobs.values()))
+    assert job["snippet"].startswith("You will build Python")
+    assert job["englishFriendly"] is True
+
+
+def test_future_posted_dates_are_ignored():
+    jobs = main.build_jobs([
+        raw("Werkstudent Softwareentwicklung", source="A", posted="2999-01-01"),
+        raw("Werkstudent Softwareentwicklung", source="B", posted="2999-02-01"),
+        raw("Werkstudent Data Science", source="A", posted="2999-01-01"),
+        raw("Werkstudent Data Science", source="B", posted="2026-10-01"),
+    ])
+    assert sorted(str(j["postedAt"]) for j in jobs.values()) == ["2026-10-01", "None"]
+
+
+def test_rejected_postings_are_counted_and_reported():
+    status = {"A": {"ok": True, "count": 2}, "B": {"ok": True, "count": 1}}
+    main.build_jobs([
+        raw("Werkstudent Softwareentwicklung", source="A", url="https://evil.example/1"),
+        raw("Werkstudent Data Science", source="A", url="javascript:alert(1)"),
+        raw("Werkstudent Embedded", source="B"),
+    ], status)
+    assert status["A"]["rejected"] == 2
+    assert "rejected" not in status["B"]
+    assert main.health_problems(status, [_Src("A"), _Src("B")]) == [
+        "A: 2 postings had a link outside its allowed hosts (LINK_HOSTS); check if the source moved"]
+
+
+def test_stored_unsafe_links_are_dropped_and_linkless_jobs_removed(monkeypatch, tmp_path):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    monkeypatch.setattr(main, "load_env", lambda: None)
+    out = tmp_path / "jobs.json"
+    monkeypatch.setattr(main, "OUTPUT", out)
+    good = main.build_jobs([raw("Werkstudent Softwareentwicklung", source="A")])
+    jid = next(iter(good))
+    stored = {
+        **good[jid], "firstSeen": "2026-10-01", "lastSeen": date.today().isoformat(),
+        # Bosch and Arbeitnow didn't run today, so only safe_link can drop their links.
+        "links": [*good[jid]["links"], {"source": "Bosch", "url": "https://evil.example/x"}],
+    }
+    bad = {**stored, "id": "bad", "title": "Werkstudent Phishing",
+           "links": [{"source": "Arbeitnow", "url": "javascript:alert(1)"}]}
+    closed = {**stored, "id": "closed", "title": "Werkstudent Alt", "links": [{"source": "A", "url": "https://a/alt"}]}
+    out.write_text(json.dumps({"jobs": [stored, bad, closed]}))
+    status = {"A": {"ok": True, "count": 1}, "B": {"ok": True, "count": 1}}
+    # B's posting is rejected (https://a/ isn't B's host): it must not count as "still listed".
+    monkeypatch.setattr(main, "run_sources", lambda: (
+        [raw("Werkstudent Softwareentwicklung", source="A"),
+         raw("Werkstudent Alt", source="B", url="https://a/alt")], status))
+    main.main([])
+    saved = {j["id"]: j for j in json.loads(out.read_text())["jobs"]}
+    assert set(saved) == {jid}
+    assert saved[jid]["links"] == good[jid]["links"]
 
 
 def test_safe_link():

@@ -225,3 +225,11 @@ def test_renaming_the_only_job_of_a_source_raises_no_alarm():
     r = decide(previous={"old-id": old}, current={"new-id": renamed}, source_ok={"Bosch": True}, partial=set(),
                check=lambda s, u: UNKNOWN, today=TODAY, raw_urls=set())
     assert r.removed == {"old-id"} and not r.problems
+
+
+def test_job_without_links_is_removed():
+    linkless = {**job("a"), "links": []}
+    r = run([linkless, job("b", "Bosch")], [now("b", "Bosch")])
+    assert ids(r) == {"b"}
+    assert r.removed == {"a"}
+    assert r.problems == []

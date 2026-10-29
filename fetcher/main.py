@@ -150,6 +150,9 @@ def health_problems(status: dict, sources: list = SOURCES) -> list[str]:
             problems.append(f"{name} failed: {s.get('error', '')}")
         elif s["count"] == 0 and name not in may_be_empty:
             problems.append(f"{name} returned no postings (did the site change?)")
+        if s.get("rejected"):
+            problems.append(f"{name}: {s['rejected']} postings had a link outside its allowed hosts "
+                            "(LINK_HOSTS); check if the source moved")
     return problems
 
 
@@ -158,8 +161,8 @@ def run_sources() -> tuple[list, dict]:
     for src in SOURCES:
         name = src.NAME
         if hasattr(src, "is_enabled") and not src.is_enabled():
-            status[name] = {"ok": False, "count": 0, "skipped": True, "error": "No API key set"}
-            print(f"- {name}: skipped (no API key)")
+            status[name] = {"ok": False, "count": 0, "skipped": True, "error": "Disabled"}
+            print(f"- {name}: skipped (disabled)")
             continue
         started = time.time()
         try:
@@ -174,10 +177,14 @@ def run_sources() -> tuple[list, dict]:
     return raw, status
 
 
-def build_jobs(raw: list) -> dict[str, dict]:
-    """Classify and merge duplicates. Returns id -> job dict."""
+def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
+    """Classify and merge duplicates. Returns id -> job dict.
+
+    Postings with a link outside their source's LINK_HOSTS are skipped and counted in
+    status[source]["rejected"] (when status is given), so the health alarm reports them."""
     jobs: dict[str, dict] = {}
     rejected: Counter[str] = Counter()
+    today = date.today().isoformat()
     for r in raw:
         if not safe_link(r.source, r.url):
             rejected[r.source] += 1
@@ -188,6 +195,7 @@ def build_jobs(raw: list) -> dict[str, dict]:
             continue
         jid = job_id(r.title, r.company)
         link = {"source": r.source, "url": r.url}
+        posted_at = r.posted_at if r.posted_at and r.posted_at <= today else None  # a future date would sort first
         if jid in jobs:
             # raw arrives in SOURCES order, so the first posting is the most trusted one: a later
             # copy (e.g. an aggregator's) only fills what it left empty and can't replace its text.
@@ -195,11 +203,10 @@ def build_jobs(raw: list) -> dict[str, dict]:
             if all(l["url"] != r.url for l in j["links"]):
                 j["links"].append(link)
             if not j["postedAt"]:
-                j["postedAt"] = r.posted_at
-            if not j["snippet"]:
-                j["snippet"] = tags["snippet"]
-            if j["englishFriendly"] is None:
-                j["englishFriendly"] = tags["englishFriendly"]
+                j["postedAt"] = posted_at
+            if not j["snippet"] and tags["snippet"]:
+                # Flag and snippet come from the same posting.
+                j["snippet"], j["englishFriendly"] = tags["snippet"], tags["englishFriendly"]
             j["fields"] = sorted(set(j["fields"]) | set(tags["fields"]), key=list(FIELD_LABELS).index)
             continue
         jobs[jid] = {
@@ -209,14 +216,23 @@ def build_jobs(raw: list) -> dict[str, dict]:
             "location": r.location,
             "remote": r.remote,
             **{k: tags[k] for k in ("type", "types", "fields", "englishFriendly")},
-            "postedAt": r.posted_at,
+            "postedAt": posted_at,
             "deadline": r.deadline,
             "links": [link],
             "snippet": tags["snippet"],
         }
     for source, n in rejected.items():
         print(f"  ! {source}: skipped {n} postings with a link outside its allowed hosts")
+        if status is not None and source in status:
+            status[source]["rejected"] = n
     return jobs
+
+
+def drop_unsafe_links(previous: dict[str, dict]) -> dict[str, dict]:
+    """Stored jobs without links that fail safe_link (e.g. saved before LINK_HOSTS existed).
+    A job left with no links gets an empty list, so decide() removes it."""
+    return {jid: {**j, "links": [l for l in j.get("links", []) if safe_link(l.get("source"), l.get("url"))]}
+            for jid, j in previous.items()}
 
 
 def make_checker(sources=SOURCES):
@@ -257,14 +273,14 @@ def main(argv: list[str] | None = None) -> int:
 
     today = date.today().isoformat()
     raw, status = run_sources()
-    current = build_jobs(raw)
+    current = build_jobs(raw, status)
 
     if not any(s["ok"] for s in status.values()):
         print(f"All sources failed – leaving {store.name} untouched.")
         return 1
 
     result = decide(
-        previous=store.previous(),
+        previous=drop_unsafe_links(store.previous()),
         current=current,
         source_ok={name: s["ok"] for name, s in status.items()},
         partial={s.NAME for s in SOURCES if getattr(s, "FEED", "complete") == "partial"},
@@ -272,7 +288,7 @@ def main(argv: list[str] | None = None) -> int:
         today=today,
         # Postings listed today that didn't become a job (e.g. not classified). A URL that moved
         # to another job (title edited, new id) isn't here, so its old job closes at once.
-        raw_urls={r.url for r in raw} - {l["url"] for j in current.values() for l in j["links"]},
+        raw_urls={r.url for r in raw if safe_link(r.source, r.url)} - {l["url"] for j in current.values() for l in j["links"]},
         accept=accepted_removals(),
     )
     for name, counts in result.stats.items():
