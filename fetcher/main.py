@@ -223,7 +223,9 @@ def main(argv: list[str] | None = None) -> int:
         partial={s.NAME for s in SOURCES if getattr(s, "FEED", "complete") == "partial"},
         check=make_checker(),
         today=today,
-        raw_urls={r.url for r in raw},
+        # Postings listed today that didn't become a job (e.g. not classified). A URL that moved
+        # to another job (title edited, new id) isn't here, so its old job closes at once.
+        raw_urls={r.url for r in raw} - {l["url"] for j in current.values() for l in j["links"]},
         accept=accepted_removals(),
     )
     for name, counts in result.stats.items():

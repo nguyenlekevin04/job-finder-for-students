@@ -181,3 +181,19 @@ def test_arbeitsagentur_check_asks_the_detail_api(monkeypatch):
     monkeypatch.setattr(arbeitsagentur, "status_code", lambda url, headers=None: seen.setdefault("url", url) and 404)
     assert arbeitsagentur.check("https://www.arbeitsagentur.de/jobsuche/jobdetail/10001-1001916728-S") == CLOSED
     assert seen["url"].endswith("/pc/v4/jobdetails/MTAwMDEtMTAwMTkxNjcyOC1T")
+
+
+def test_renamed_job_closes_its_old_id_at_once():
+    # The employer edited the title: same URL, new id. main.py leaves such URLs out of raw_urls.
+    old = job("old-id", "Bosch")
+    renamed = {**now("new-id", "Bosch"), "links": old["links"]}
+    r = decide(previous={"old-id": old}, current={"new-id": renamed}, source_ok={"Bosch": True}, partial=set(),
+               check=lambda s, u: UNKNOWN, today=TODAY, raw_urls=set())
+    assert r.removed == {"old-id"} and ids(r) == {"new-id"}
+
+
+def test_accept_ignores_case():
+    prev = [job(f"j{i}", "Infineon") for i in range(6)]
+    r = decide(previous={j["id"]: j for j in prev}, current={}, source_ok={"Infineon": True}, partial=set(),
+               check=lambda s, u: UNKNOWN, today=TODAY, raw_urls=set(), accept={"infineon"})
+    assert len(r.removed) == 6 and not r.problems

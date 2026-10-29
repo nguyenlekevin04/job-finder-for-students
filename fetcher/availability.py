@@ -99,7 +99,7 @@ def decide(
             if verdict == CLOSED:
                 expired.add(jid)
         if verdict != CLOSED:
-            job["links"] = [l for l, s in zip(links, states) if s != CLOSED] or links
+            job["links"] = [l for l, s in zip(links, states) if s != CLOSED]
 
         job["firstSeen"] = (before or {}).get("firstSeen") or today
         job["lastSeen"] = today if verdict == OPEN else (before or {}).get("lastSeen") or today
@@ -111,7 +111,10 @@ def decide(
     removed = {jid for jid, v in verdicts.items() if v == CLOSED and jid in previous}
     restored: set[str] = set()
     problems: list[str] = []
-    for src in sorted({l["source"] for j in previous.values() for l in j.get("links", [])} - set(accept)):
+    accepted = {a.lower() for a in accept}
+    for src in sorted({l["source"] for j in previous.values() for l in j.get("links", [])}):
+        if src.lower() in accepted:
+            continue
         had = [jid for jid, j in previous.items() if any(l["source"] == src for l in j.get("links", []))]
         gone = [jid for jid in had if jid in removed and jid not in expired
                 and (src, CLOSED) in link_states[jid]]
