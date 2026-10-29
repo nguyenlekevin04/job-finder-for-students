@@ -11,9 +11,10 @@ import {
   makeIndex,
   type Filters,
 } from "@/lib/filters";
-import { isNew, relativeTime } from "@/lib/format";
+import { isNew, localDay, relativeTime, visitDayLabel } from "@/lib/format";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useJobsFile } from "@/lib/useJobs";
+import { useLastVisit } from "@/lib/useLastVisit";
 import { FilterGroups, SortSelect } from "./FilterGroups";
 import { SearchIcon, XIcon } from "./Icons";
 import { JobRow } from "./JobRow";
@@ -63,6 +64,20 @@ export function JobBoard() {
   const results = useMemo(() => applyFilters(jobs, filters, index), [jobs, filters, index]);
   const newCount = useMemo(() => jobs.filter((j) => isNew(j.firstSeen)).length, [jobs]);
   const active = activeFilterCount(filters);
+
+  // "New" is either "since your last visit" or, on a first visit, "this week".
+  // A ?since= link wins over the stored mark, so a shared link shows the same set.
+  const lastVisit = useLastVisit(); // undefined until hydrated, null on a first visit
+  const markDay = lastVisit ? localDay(lastVisit) : null;
+  const sinceDay = filters.since ?? markDay;
+  const sinceCount = useMemo(() => (sinceDay ? jobs.filter((j) => j.firstSeen > sinceDay).length : 0), [jobs, sinceDay]);
+  const newMode: "since" | "nothing" | "week" | null = filters.since || (markDay && sinceCount > 0)
+    ? "since"
+    : markDay
+      ? "nothing"
+      : lastVisit === null
+        ? "week"
+        : null;
 
   // A shared link with ?job= scrolls to that job once the data is in.
   const scrolled = useRef(false);
@@ -144,7 +159,22 @@ export function JobBoard() {
         {data && (
           <>
             {/* Highlighting "new" only means something when some jobs aren't. */}
-            {newCount > 0 && newCount < jobs.length && <NewTicket count={newCount} active={filters.fresh} onToggle={() => update({ fresh: !filters.fresh })} />}
+            {newMode === "since" && sinceDay && (
+              <NewTicket
+                since={sinceDay}
+                count={sinceCount}
+                active={!!filters.since}
+                onToggle={() => update({ since: filters.since ? null : sinceDay })}
+              />
+            )}
+            {newMode === "nothing" && markDay && markDay !== localDay(new Date()) && (
+              <p className="mb-6 border-l-2 border-rule pl-3 text-sm text-muted">
+                Nothing new since {visitDayLabel(markDay)}. The list updates every morning.
+              </p>
+            )}
+            {newMode === "week" && newCount > 0 && newCount < jobs.length && (
+              <NewTicket count={newCount} active={filters.fresh} onToggle={() => update({ fresh: !filters.fresh })} />
+            )}
             {/* A shared ?job= link to a job that closed since: say so instead of opening nothing. */}
             {filters.job && !jobs.some((j) => j.id === filters.job) && (
               <p role="status" className="mb-4 flex flex-wrap items-baseline gap-x-3 border-l-2 border-rule pl-3 text-sm text-muted">
@@ -187,7 +217,8 @@ export function JobBoard() {
                     onToggle={openJob}
                     saved={isSaved(job.id)}
                     onToggleSave={toggle}
-                    showNew={newCount < jobs.length}
+                    showNew={newMode === "since" || (newMode === "week" && newCount < jobs.length)}
+                    newSince={newMode === "since" ? sinceDay : null}
                   />
                 ))}
               </ol>

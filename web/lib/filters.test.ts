@@ -47,11 +47,12 @@ describe("URL <-> filters", () => {
       english: true,
       remote: false,
       fresh: true,
+      since: "2026-10-27",
       sort: "company",
       job: "abc123",
     });
     const qs = filtersToParams(all).toString();
-    expect(qs).toBe("q=python&type=thesis%2Cinternship&field=ai&en=1&remote=0&new=1&sort=company&job=abc123");
+    expect(qs).toBe("q=python&type=thesis%2Cinternship&field=ai&en=1&remote=0&new=1&since=2026-10-27&sort=company&job=abc123");
     expect(filtersFromParams(new URLSearchParams(qs))).toEqual(all);
   });
 
@@ -61,6 +62,12 @@ describe("URL <-> filters", () => {
     expect(parsed.fields).toEqual([]);
     expect(parsed.sort).toBe("newest");
     expect(parsed.job).toBeNull();
+  });
+
+  it("only accepts a real YYYY-MM-DD date for ?since=", () => {
+    expect(filtersFromParams(new URLSearchParams("since=2026-10-27")).since).toBe("2026-10-27");
+    expect(filtersFromParams(new URLSearchParams("since=yesterday")).since).toBeNull();
+    expect(filtersFromParams(new URLSearchParams("since=2026-10-27T10:00")).since).toBeNull();
   });
 
   it("trims the search text", () => {
@@ -73,6 +80,7 @@ describe("activeFilterCount", () => {
   it("counts real filters but not search, sort or the open job", () => {
     expect(activeFilterCount(f({ q: "x", sort: "company", job: "abc" }))).toBe(0);
     expect(activeFilterCount(f({ types: ["thesis"], fields: ["ai", "data"], english: true, remote: false, fresh: true }))).toBe(6);
+    expect(activeFilterCount(f({ since: "2026-10-27" }))).toBe(1);
   });
 });
 
@@ -104,6 +112,16 @@ describe("applyFilters", () => {
 
   it("'fresh' keeps only jobs first seen within the last 7 days", () => {
     expect(ids(applyFilters(jobs, f({ fresh: true }), null))).toEqual(["c"]);
+  });
+
+  it("'since' keeps only jobs first seen after that day", () => {
+    const seen = [
+      job({ id: "old", firstSeen: "2026-10-26" }),
+      job({ id: "same", firstSeen: "2026-10-27" }),
+      job({ id: "new", firstSeen: "2026-10-28" }),
+    ];
+    expect(ids(applyFilters(seen, f({ since: "2026-10-27" }), null))).toEqual(["new"]);
+    expect(applyFilters(seen, f({ since: "2026-10-29" }), null)).toEqual([]);
   });
 
   it("never hides jobs because one is open", () => {

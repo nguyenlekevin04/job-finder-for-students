@@ -40,3 +40,24 @@ export function relativeTime(iso: string): string {
   if (hours < 48) return rtf.format(-hours, "hour");
   return rtf.format(-Math.round(hours / 24), "day");
 }
+
+const weekdayFmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: "UTC" });
+const dayMonthFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+
+/** The local calendar date ("YYYY-MM-DD") of an ISO date-time or Date. */
+export function localDay(at: string | Date): string {
+  const d = typeof at === "string" ? new Date(at) : at;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** The day of the last visit, for "Since …" and "Nothing new since …":
+ *  "earlier today", "yesterday", a weekday for 2–6 days ago, else "21 Oct". */
+export function visitDayLabel(isoDay: string, now = new Date()): string {
+  const days = daysBetween(isoDay, now);
+  const date = new Date(`${isoDay.slice(0, 10)}T00:00:00Z`);
+  if (days <= 0) return "earlier today";
+  if (days === 1) return "yesterday";
+  if (days < 7) return weekdayFmt.format(date);
+  return date.getUTCFullYear() === now.getFullYear() ? dayMonthFmt.format(date) : dateFmt.format(date);
+}

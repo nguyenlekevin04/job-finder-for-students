@@ -141,7 +141,7 @@ test("?job= for an unknown job shows a notice that Dismiss clears", async ({ pag
   await expect(page).not.toHaveURL(/job=/);
 });
 
-for (const path of ["/", "/saved/"]) {
+for (const path of ["/", "/saved/", "/imprint/", "/privacy/"]) {
   test(`no console errors on ${path}`, async ({ page }) => {
     const errors: string[] = [];
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
@@ -161,3 +161,64 @@ for (const path of ["/", "/saved/"]) {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 }
+
+test("Copy link copies a ?job= link and confirms it", async ({ page, context, baseURL }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseURL });
+  const job = fixture.jobs[2];
+  await openBoard(page);
+  await row(page, job.title).click();
+  await page.getByRole("button", { name: "Copy link" }).click();
+  await expect(page.getByRole("button", { name: "Link copied" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Link copied" })).toBeAttached();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toBe(`${baseURL}/?job=${job.id}`);
+});
+
+test("a first visit shows this week's new jobs", async ({ page }) => {
+  await openBoard(page);
+  await expect(page.getByRole("paragraph").filter({ hasText: /^Fresh this week$/ })).toBeVisible();
+  await expect(page.getByText("Welcome back")).toHaveCount(0);
+  await page.getByRole("button", { name: "Show only new →" }).click();
+  await expect(page).toHaveURL(/[?&]new=1/);
+  await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
+});
+
+test("a returning visit shows what's new since then and filters to it", async ({ page }) => {
+  // e2e/build.mjs sets the first job's firstSeen to today; the others are months old.
+  const threeDaysAgo = new Date(Date.now() - 3 * 86_400_000).toISOString();
+  await page.addInitScript(
+    ([key, value]) => {
+      if (sessionStorage.getItem("e2e-seeded")) return; // seed once, not on reload
+      localStorage.setItem(key, value);
+      sessionStorage.setItem("e2e-seeded", "1");
+    },
+    ["dsj:lastVisit", threeDaysAgo],
+  );
+  await openBoard(page);
+  await expect(page.getByText("Welcome back")).toBeVisible();
+  await expect(page.getByText(/^Since \w+day$/)).toBeVisible();
+  await page.getByRole("button", { name: "Show only new →" }).click();
+  await expect(page).toHaveURL(/[?&]since=\d{4}-\d{2}-\d{2}/);
+  await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
+  await expect(page.getByRole("button", { name: "Show all →" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Clear 1 filter" })).toBeVisible();
+
+  // A reload keeps the same view: the mark is pinned for the tab.
+  await page.reload();
+  await expect(page.getByText("Welcome back")).toBeVisible();
+  await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
+});
+
+test("the footer links to the imprint and privacy pages", async ({ page }) => {
+  await openBoard(page);
+  const legal = page.getByRole("navigation", { name: "Legal" });
+  await legal.getByRole("link", { name: "Imprint" }).click();
+  await expect(page).toHaveURL(/\/imprint\/$/);
+  await expect(page).toHaveTitle("Imprint · dresden/jobs");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who runs this board.");
+
+  await legal.getByRole("link", { name: "Privacy" }).click();
+  await expect(page).toHaveURL(/\/privacy\/$/);
+  await expect(page).toHaveTitle("Privacy · dresden/jobs");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your privacy.");
+});
