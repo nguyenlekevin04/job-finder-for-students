@@ -9,11 +9,14 @@ A job board for student roles (Werkstudent, internship, thesis) in AI/ML/CS arou
 ```
 GitHub Action (daily) ─▶ fetcher/ (Python) ─writes─▶ Supabase Postgres (jobs, fetch_runs)
                                                             ▲ read-only REST (anon key)
-                              Render Static Site: web/ (Next.js export) ─fetch() in browser
+                              Vercel (static): web/ (Next.js export) ─fetch() in browser
 ```
 
-- `.github/workflows/update-jobs.yml`: on push to `fetcher/**` it only runs pytest; on the daily schedule / manual dispatch it runs `python fetcher/main.py --require-db` with Supabase secrets. It no longer commits data or deploys.
-- `render.yaml` (Blueprint) builds `web/` into `web/out` as a Render Static Site. `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are inlined at **build time**, so changing them needs a Render redeploy.
+- **Environments:** dev (local) and staging both use the **staging** Supabase project. Production (`main`) uses the production project. Branch flow: feature → PR into `staging` → PR `staging` → `main`; both are protected and need CI.
+- `.github/workflows/ci.yml`: fetcher tests, plus website lint / tsc / vitest / build, on every PR and on pushes to `main` / `staging`.
+- `.github/workflows/update-jobs.yml`: the daily schedule fetches into both databases (matrix); manual dispatch picks one. Production uses `SUPABASE_*` secrets plus `ALLOW_PRODUCTION_WRITE=1`; staging uses `STAGING_SUPABASE_*`, with no fallback. `main.py` refuses to write to `PRODUCTION_PROJECT_REF` without that flag, so local runs can never touch production.
+- Hosting is **Vercel** (project root `web/`, config `web/vercel.json`). Production deploys from `main`; previews (the `staging` branch and every PR) use the staging project plus `NEXT_PUBLIC_DEPLOY_ENV=staging`, which adds a STAGING banner and noindex. `NEXT_PUBLIC_*` values are inlined at **build time**, so redeploy after changing them. `render.yaml` is the legacy Render site, kept only to forward its old address.
+- `docs/capacity.md` covers free-tier limits for 5,000 users and the switch point: at 100 jobs, or above 2.5 GB/month of Supabase egress, serve the job list from the CDN.
 - `supabase/schema.sql` is the source of truth for tables and RLS (anon = select only; the fetcher uses the service_role / secret key, which bypasses RLS). Re-runnable.
 - **Local fallback:** with no Supabase env vars, the fetcher writes `web/public/jobs.json` (git-ignored) and the site reads it. Both paths must keep working.
 
@@ -35,6 +38,7 @@ npm run dev        # dev server on :3000
 npm run build      # static export to web/out/
 npm run lint       # eslint
 npx tsc --noEmit   # type-check
+npm test           # vitest unit tests (lib/*.test.ts)
 ```
 
 `web/.env.local` (from `web/.env.example`) makes `dev`/`build` read from Supabase; without it the site reads `web/public/jobs.json`.
@@ -64,7 +68,7 @@ Root `.env` (read by a minimal loader in `main.py`; real env vars win) holds `SU
 
 - **Next.js 16** — read `web/AGENTS.md`: APIs differ from older versions; check `web/node_modules/next/dist/docs/` before using framework features.
 - `output: "export"` (static only). `cacheComponents` / `partialPrefetching` (PPR) **cannot** be enabled with export — the build fails. No server features (route handlers, server actions, rewrites, image optimization).
-- Optional `basePath` from `NEXT_BASE_PATH` (unused on Render) is re-exposed as `NEXT_PUBLIC_BASE_PATH` for the `jobs.json` fallback URL. `trailingSlash: true` so `/saved/` exports as `saved/index.html`.
+- Optional `basePath` from `NEXT_BASE_PATH` (unused on Vercel) is re-exposed as `NEXT_PUBLIC_BASE_PATH` for the `jobs.json` fallback URL. `trailingSlash: true` so `/saved/` exports as `saved/index.html`.
 - `lib/useJobs.ts` loads data client-side once and caches it module-wide: from Supabase REST (jobs + latest `fetch_runs` row, aliased to camelCase in `JOB_SELECT`) when the `NEXT_PUBLIC_SUPABASE_*` vars are set, else `jobs.json`. All job rendering is client-only, so there are no SSR date/locale mismatches.
 - **Filters** (`lib/filters.ts` + `components/JobBoard.tsx`): component state is the source of truth and is mirrored to the URL after 250 ms via `router.replace`; external URL changes (back/forward) flow back through the `seenParams`/`pushed` render-time check. Don't derive filters directly from `useSearchParams` on each click — fast consecutive clicks lose updates. `JobBoard` uses `useSearchParams`, so it must stay inside the `<Suspense>` in `app/page.tsx` or the export build fails.
 - **Bookmarks** (`lib/useBookmarks.ts`): `useSyncExternalStore` over localStorage (all access in try/catch), storing whole `Job` objects so the Saved page can show jobs that vanished from the data ("No longer listed").

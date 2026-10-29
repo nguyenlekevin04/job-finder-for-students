@@ -4,7 +4,7 @@ Werkstudent, internship and thesis positions in **AI, ML, Computer Science and r
 
 - **Fetcher** (`fetcher/`, Python): pulls postings, keeps only student tech jobs, removes duplicates, and saves them to **Supabase** (or to `web/public/jobs.json` when no Supabase keys are set).
 - **Database** (Supabase Postgres, `supabase/schema.sql`): `jobs` and `fetch_runs` tables. Visitors can only read.
-- **Website** (`web/`, Next.js + Tailwind + Fuse.js): a static site hosted on **Render** that loads jobs from Supabase and does search, filters and bookmarks in the browser.
+- **Website** (`web/`, Next.js + Tailwind + Fuse.js): a static site hosted on **Vercel** that loads jobs from Supabase and does search, filters and bookmarks in the browser.
 - **GitHub Action** (`.github/workflows/update-jobs.yml`): runs the fetcher every morning and writes to Supabase. The site picks up new jobs without a rebuild.
 
 ## Sources
@@ -42,7 +42,9 @@ Without Supabase keys this writes `web/public/jobs.json`. With `SUPABASE_URL` an
 cd web && npm install && npm run dev
 ```
 
-Then open http://localhost:3000. To read from Supabase instead of `jobs.json`, copy `web/.env.example` to `web/.env.local` and fill in the URL and anon key. `npm run build` creates the static site in `web/out/`.
+Then open http://localhost:3000. To read from Supabase instead of `jobs.json`, copy `web/.env.example` to `web/.env.local` and fill in the **staging** project's URL and anon key. `npm run build` creates the static site in `web/out/`.
+
+Local fetches must use the staging project too: the fetcher refuses to write to the production database unless it runs as the scheduled GitHub Action.
 
 Run the tests:
 
@@ -50,11 +52,32 @@ Run the tests:
 python -m pytest fetcher/tests -q
 ```
 
+```bash
+cd web && npm test
+```
+
+## Environments and workflow
+
+| | Website | Database | Deploys from |
+|---|---|---|---|
+| **dev** | `npm run dev` on your machine | staging Supabase project | – |
+| **staging** | Vercel preview at the `staging` branch URL (orange STAGING banner, hidden from search engines) | staging Supabase project | `staging` branch, and every pull request gets its own preview |
+| **production** | Vercel production deployment | production Supabase project | `main` |
+
+1. Create a branch from `staging`, then open a pull request into `staging`.
+2. CI runs the fetcher tests, plus the website's lint, type check, unit tests and build. Vercel posts a preview link.
+3. After merging, check the staging URL.
+4. Open a pull request from `staging` into `main`. Merging it puts the change live.
+
+`main` and `staging` are protected: changes only land through pull requests with passing checks.
+
+See `docs/capacity.md` for what 5,000 users cost on the free tiers, and when the setup has to change.
+
 ## Deploy
 
-### 1. Supabase
+### 1. Supabase (two projects: production and staging)
 
-1. Create a project at https://supabase.com (region: Central EU / Frankfurt).
+1. Create each project at https://supabase.com (region: Central EU / Frankfurt).
 2. **SQL Editor** → paste `supabase/schema.sql` → **Run**.
 3. **Project Settings → API Keys**: note the Project URL, the anon/publishable key (public, read-only) and the service_role/secret key (private, can write).
 
@@ -62,15 +85,23 @@ python -m pytest fetcher/tests -q
 
 **Settings → Secrets and variables → Actions → New repository secret**:
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`: production
+- `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_SERVICE_ROLE_KEY`: staging
 - optional: `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` (free key from https://developer.adzuna.com)
 
-Then **Actions → Update jobs → Run workflow** to fill the database. Pushes to `fetcher/` only run the tests; the schedule and the manual button fetch jobs.
+The schedule fills both databases every morning. **Actions → Update jobs → Run workflow** fills the one you pick. If the staging secrets are missing, the staging run fails instead of falling back to production.
 
-### 3. Render (website)
+### 3. Vercel (website)
 
-**New → Blueprint** → pick this repo. Render reads `render.yaml` and asks for `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. It rebuilds automatically when `web/` changes on `main`. These values are baked in at build time, so after changing them use **Manual Deploy** on Render.
+**Add New → Project** → import this repo. Set **Root Directory** to `web`. Vercel detects Next.js; `web/vercel.json` adds headers and skips builds when `web/` didn't change. Environment variables:
+
+| Variable | Production | Preview (staging + pull requests) |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | production project URL | staging project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | production anon key | staging anon key |
+| `NEXT_PUBLIC_DEPLOY_ENV` | (leave unset) | `staging` |
+
+These values are baked in at build time, so redeploy after changing them. The old Render site (`render.yaml`) stays only to forward its address to Vercel.
 
 Free Supabase projects pause after a week without activity; the daily fetch keeps the project active.
 
