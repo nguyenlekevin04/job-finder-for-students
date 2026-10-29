@@ -113,6 +113,7 @@ def is_globalfoundries(company: str) -> bool:
 
 
 TWIN_MIN_TITLE = 40  # shorter titles are too generic to match by prefix
+TWIN_SOURCE = "Arbeitsagentur"  # the only source that cuts titles off; others could pad a title to match
 
 
 def truncated_twin(jobs: dict[str, dict], title: str, company: str, source: str) -> str | None:
@@ -122,11 +123,11 @@ def truncated_twin(jobs: dict[str, dict], title: str, company: str, source: str)
     GmbH & Co. KG" with titles cut off ("... Machine Learning & Virt"), so job_id() differs from
     the employer's own posting. A match needs the same company, one normalized title equal to
     or a prefix of the other, the shorter one at least TWIN_MIN_TITLE characters, and exactly
-    one such job. A job that already has a link from the same source is never a twin: one feed
-    doesn't list a posting twice, so "... Process Control" and "... Process Control and Yield"
+    one such job. Only postings from TWIN_SOURCE match. A job that already has a link from the
+    same source is never a twin: one feed doesn't list a posting twice, so "... Process Control" and "... Process Control and Yield"
     from the GlobalFoundries feed are two jobs. Job ids stay as they are.
     """
-    if not is_globalfoundries(company):
+    if source != TWIN_SOURCE or not is_globalfoundries(company):
         return None
     t = norm_title(title)
     matches = []
@@ -235,7 +236,7 @@ def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
         terms = extract_terms(r.title, r.tags, r.description)  # full description, before the snippet cut
         if jid in jobs:
             # raw arrives in SOURCES order, so the first posting is the most trusted one: a later
-            # copy (e.g. an aggregator's) only fills what it left empty and can't replace its text.
+            # copy (e.g. an aggregator's) only fills an empty date or snippet and can't replace its text.
             j = jobs[jid]
             if all(l["url"] != r.url for l in j["links"]):
                 j["links"].append(link)
@@ -244,11 +245,7 @@ def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
             if not j["snippet"] and tags["snippet"]:
                 # Flag and snippet come from the same posting.
                 j["snippet"], j["englishFriendly"] = tags["snippet"], tags["englishFriendly"]
-            # Hours and pay are filled as pairs, so min and max (or amount and unit) come from one posting.
-            if j["hoursMin"] is None and j["hoursMax"] is None:
-                j["hoursMin"], j["hoursMax"] = terms["hoursMin"], terms["hoursMax"]
-            if j["payAmount"] is None:
-                j["payAmount"], j["payUnit"] = terms["payAmount"], terms["payUnit"]
+            # Hours and pay come only from the first posting: a later copy could invent them.
             j["fields"] = sorted(set(j["fields"]) | set(tags["fields"]), key=list(FIELD_LABELS).index)
             continue
         jobs[jid] = {

@@ -78,17 +78,20 @@ def is_last_page(data: dict, page: int, total: int) -> bool:
 
 def fetch() -> list[Job]:
     jobs: list[Job] = []
-    total = 0
+    total = rows = 0
     for page in range(MAX_PAGES):
         data = post_json(f"{API}/jobs", {"appliedFacets": {}, "limit": PAGE, "offset": page * PAGE,
                                          "searchText": "Dresden"})
         total = total or data.get("total") or 0
+        rows += len(data.get("jobPostings") or [])
         jobs.extend(parse_list(data))
         if is_last_page(data, page, total):
             break
         time.sleep(0.4)
     else:  # a cut-off list would make the missing postings count as closed
         raise RuntimeError(f"{NAME}: more than {MAX_PAGES * PAGE} postings; raise MAX_PAGES")
+    if total and rows < min(total, MAX_PAGES * PAGE):  # an empty or short page before the reported end
+        raise RuntimeError(f"{NAME}: feed ended early: got {rows} of {total}")
     for job in jobs:
         if is_student_title(job.title):
             try:

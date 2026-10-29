@@ -1,6 +1,6 @@
 # Direct dependencies. After editing, regenerate the hashed lock used by the daily fetch:
 #   pip-compile --generate-hashes --allow-unsafe --strip-extras --no-emit-index-url \
 #     --output-file fetcher/requirements.lock fetcher/requirements.txt
-requests==2.32.5
+requests==2.33.0
 beautifulsoup4==4.12.3
-pytest==8.3.4
+pytest==9.0.3

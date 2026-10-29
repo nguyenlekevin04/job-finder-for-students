@@ -59,15 +59,21 @@ def is_last_page(data: dict, page: int) -> bool:
 
 def fetch() -> list[Job]:
     jobs: list[Job] = []
+    total = rows = 0
     for page in range(MAX_PAGES):
         data = get_json(SEARCH, params={"domain": "infineon.com", "query": "", "location": "Dresden",
                                         "start": page * PAGE, "filter_distance": 30})
+        body = data.get("data") or {}
+        total = total or body.get("count") or 0
+        rows += len(body.get("positions") or [])
         jobs.extend(parse_search(data))
         if is_last_page(data, page):
             break
         time.sleep(0.4)
     else:  # a cut-off list would make the missing postings count as closed
         raise RuntimeError(f"{NAME}: more than {MAX_PAGES * PAGE} postings; raise MAX_PAGES")
+    if total and rows < min(total, MAX_PAGES * PAGE):  # an empty or short page before the reported end
+        raise RuntimeError(f"{NAME}: feed ended early: got {rows} of {total}")
     for job in jobs:
         if is_student_title(job.title):
             try:
