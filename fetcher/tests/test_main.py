@@ -341,6 +341,23 @@ def test_globalfoundries_twin_needs_one_long_prefix_match():
     assert len(jobs) == 2
 
 
+def test_globalfoundries_twin_needs_another_source():
+    # One feed doesn't list a posting twice: same-source prefix titles are two jobs.
+    jobs = main.build_jobs([
+        gf("Working Student Machine Learning for Process Control"),
+        gf("Working Student Machine Learning for Process Control and Yield"),
+    ])
+    assert len(jobs) == 2
+    # Arbeitsagentur's cut-off copies of two jobs still merge with their own feed posting.
+    jobs = main.build_jobs([
+        gf("Werkstudent*in im Bereich Machine Learning & Virtual Metrology"),
+        gf("Werkstudent*in im Bereich TCAD – Machine Learning & KI"),
+        ba("Werkstudent*in im Bereich Machine Learning & Virt"),
+    ])
+    assert len(jobs) == 2
+    assert sum(len(j["links"]) for j in jobs.values()) == 3
+
+
 def test_is_globalfoundries():
     assert main.is_globalfoundries("GlobalFoundries")
     assert main.is_globalfoundries(GF_COMPANY_BA)

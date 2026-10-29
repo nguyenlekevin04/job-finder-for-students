@@ -115,21 +115,23 @@ def is_globalfoundries(company: str) -> bool:
 TWIN_MIN_TITLE = 40  # shorter titles are too generic to match by prefix
 
 
-def truncated_twin(jobs: dict[str, dict], title: str, company: str) -> str | None:
+def truncated_twin(jobs: dict[str, dict], title: str, company: str, source: str) -> str | None:
     """Id of the one GlobalFoundries job this posting duplicates, else None.
 
     The Arbeitsagentur lists GlobalFoundries postings as "GlobalFoundries Management Services
     GmbH & Co. KG" with titles cut off ("... Machine Learning & Virt"), so job_id() differs from
     the employer's own posting. A match needs the same company, one normalized title equal to
     or a prefix of the other, the shorter one at least TWIN_MIN_TITLE characters, and exactly
-    one such job. Job ids stay as they are.
+    one such job. A job that already has a link from the same source is never a twin: one feed
+    doesn't list a posting twice, so "... Process Control" and "... Process Control and Yield"
+    from the GlobalFoundries feed are two jobs. Job ids stay as they are.
     """
     if not is_globalfoundries(company):
         return None
     t = norm_title(title)
     matches = []
     for jid, j in jobs.items():
-        if not is_globalfoundries(j["company"]):
+        if not is_globalfoundries(j["company"]) or any(l["source"] == source for l in j["links"]):
             continue
         other = norm_title(j["title"])
         short, long = sorted((t, other), key=len)
@@ -227,7 +229,7 @@ def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
             continue
         jid = job_id(r.title, r.company)
         if jid not in jobs:
-            jid = truncated_twin(jobs, r.title, r.company) or jid
+            jid = truncated_twin(jobs, r.title, r.company, r.source) or jid
         link = {"source": r.source, "url": r.url}
         posted_at = r.posted_at if r.posted_at and r.posted_at <= today else None  # a future date would sort first
         terms = extract_terms(r.title, r.tags, r.description)  # full description, before the snippet cut

@@ -38,6 +38,16 @@ W = "Werkstudent Softwareentwicklung (m/w/d)"
     (W, "Vollzeit mit 45 Stunden pro Woche.", (None, None)),
     (W, "20 Std./Woche oder 30 Std./Woche nach Absprache", (None, None)),  # conflicting values
     ("Werkstudent 24h-Service", "Kundenservice rund um die Uhr", (None, None)),
+    # full-time boilerplate is not the student's hours
+    (W, "Die regelmäßige wöchentliche Arbeitszeit für Vollzeitbeschäftigte beträgt 40 Stunden pro Woche. "
+        "Als Werkstudent arbeitest du bis zu 20 Stunden pro Woche.", (None, 20)),
+    (W, "Die regelmäßige wöchentliche Arbeitszeit für Vollzeitbeschäftigte beträgt 40 Stunden pro Woche. "
+        "Als Werkstudent arbeitest du bis zu 20 Stunden.", (None, None)),  # 20 has no weekly cue
+    # times of day and breaks
+    (W, "Arbeitszeit: Gleitzeit 7-19 h", (None, None)),
+    (W, "Arbeitszeit: Mo-Fr 9-17 h", (None, None)),
+    ("Working Student ML", "working hours: 9 to 17 h", (None, None)),
+    (W, "Teilzeit, 2 h Mittagspause", (None, None)),
 ])
 def test_hours(title, desc, expected):
     assert extract_hours(title, "", desc) == expected
@@ -69,6 +79,7 @@ def test_hours(title, desc, expected):
     ("We raised >€10m in funding in the first 2 years", (None, None)),
     ("Payment includes the standard expense allowance", (None, None)),
     ("15 €/h oder 17 €/h für Masterstudierende", (None, None)),  # conflicting
+    ("Vergütung: 1.500 € pro Monat (brutto), zzgl. 13,50 € pro Stunde für Überstunden", (1500.0, "month")),
 ])
 def test_pay(desc, expected):
     assert extract_pay("Werkstudent Data (m/w/d)", "", desc) == expected

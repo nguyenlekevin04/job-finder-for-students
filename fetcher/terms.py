@@ -51,6 +51,10 @@ BREAK = re.compile(r"semesterferien|vorlesungsfrei|semester\s*break|semesterbrea
 MAX_BEFORE = re.compile(r"\b(?:max\.?|maximal|maximum|höchstens|bis\s+zu|up\s+to|no\s+more\s+than|nicht\s+mehr\s+als|at\s+most)"
                         r"(?:\s+(?:mit|of|von))?\s*$", re.I)
 MIN_BEFORE = re.compile(r"\b(?:mind\.?|mindestens|min\.?|ab|at\s+least|minimum(?:\s+of)?|from)\s*$", re.I)
+FULL_TIME = re.compile(r"vollzeit|full[- ]time", re.I)  # "Arbeitszeit für Vollzeitbeschäftigte: 40 Stunden"
+CLOCK_AFTER = re.compile(r"^\W{0,3}\s*(?:uhr|mittagspause|pause|break)", re.I)  # "9-17 Uhr", "2 h Mittagspause"
+CLOCK_BEFORE = re.compile(r"gleitzeit|mo\.?\s*-\s*fr|montag", re.I)  # "Gleitzeit 7-19 h", "Mo-Fr 9-17 h"
+TIER4_MIN = 5  # "Teilzeit, 2 h ..." is not a weekly figure
 
 
 def _clause_before(text: str, start: int) -> str:
@@ -69,9 +73,15 @@ def _clause_after(text: str, end: int) -> str:
     return after[:m.start()] if m else after
 
 
-def _hour_candidate(text: str, m: re.Match) -> tuple[int | None, int | None] | None:
+def _hour_candidate(text: str, m: re.Match, weekly: bool = True, min_hours: int = HOURS_RANGE[0]
+                    ) -> tuple[int | None, int | None] | None:
+    """weekly=False for patterns without a weekly unit (tier 4, title), where a range may be a time of day."""
     if NOT_WEEKLY.search(text[m.end():m.end() + 25]):
         return None
+    if FULL_TIME.search(text[max(0, m.start() - 60):m.end()]) or FULL_TIME.search(_clause_after(text, m.end())):
+        return None  # full-time boilerplate, not the student's hours
+    if CLOCK_AFTER.search(text[m.end():m.end() + 20]) or CLOCK_BEFORE.search(_clause_before(text, m.start("lo"))):
+        return None  # a time of day or a break, not hours per week
     if BREAK.search(_clause_after(text, m.end())) or BREAK.search(_clause_before(text, m.start())):
         return None  # semester-break hours; the lecture-period value is the one that matters
     lo, hi = int(m.group("lo")), m.group("hi")
@@ -79,6 +89,8 @@ def _hour_candidate(text: str, m: re.Match) -> tuple[int | None, int | None] | N
         hi = int(hi)
         if hi < lo:
             return None
+        if not weekly and 6 <= lo <= 9 and hi >= 17:
+            return None  # "9 to 17 h" is office hours; "15-20 h" and "10-20 h" stay
         lo_v, hi_v = lo, hi
     else:
         before = text[max(0, m.start("lo") - 25):m.start("lo")]
@@ -88,7 +100,7 @@ def _hour_candidate(text: str, m: re.Match) -> tuple[int | None, int | None] | N
             lo_v, hi_v = lo, None
         else:
             lo_v = hi_v = lo
-    lo_ok, hi_ok = HOURS_RANGE
+    lo_ok, hi_ok = min_hours, HOURS_RANGE[1]
     if any(v is not None and not lo_ok <= v <= hi_ok for v in (lo_v, hi_v)):
         return None
     return lo_v, hi_v
@@ -111,10 +123,11 @@ def extract_hours(title: str, tags: str, description: str) -> tuple[int | None, 
     head = _clean(f"{title} . {tags}")
     full = _clean(f"{title} . {tags} . {description}")
     for pattern in HOUR_TIERS:
-        cands = [c for m in pattern.finditer(full) if (c := _hour_candidate(full, m))]
+        args = (False, TIER4_MIN) if pattern is HOUR_TIERS[-1] else ()
+        cands = [c for m in pattern.finditer(full) if (c := _hour_candidate(full, m, *args))]
         if cands:
             return _pick_hours(cands) or (None, None)
-    cands = [c for m in TITLE_HOURS.finditer(head) if (c := _hour_candidate(head, m))]
+    cands = [c for m in TITLE_HOURS.finditer(head) if (c := _hour_candidate(head, m, False))]
     if cands:
         return _pick_hours(cands) or (None, None)
     return None, None
@@ -145,7 +158,7 @@ PAY_KEYWORDS = [  # "Stundenlohn: 15 €", "monthly stipend of EUR 1,200"
 NOT_PAY = re.compile(r"mindestlohn|minimum\s+wage|zuschuss|zulage|ticket|jobrad|fahrtkosten|\bessen|kantine|prämie|bonus"
                      r"|subsid|budget|guthaben|gutschein|voucher|mitgliedschaft|membership|rabatt|discount|altersvorsorge"
                      r"|pension|umzug|relocation|einstieg|starting\s+salary|after\s+graduation|nach\s+(?:dem|deinem|ihrem)\s+studium"
-                     r"|vollzeit|full[- ]time", re.I)
+                     r"|vollzeit|full[- ]time|überstunden|overtime|zzgl|zuzüglich", re.I)
 QUALIFIED = re.compile(r"\b(?:bis\s+zu|up\s+to|max\.?|maximal|höchstens|ab|from|mind\.?|mindestens|at\s+least|ca\.?|circa|approx\.?|about|rund|etwa)\s*(?:€|eur|euro)?\s*$", re.I)
 RANGE_BEFORE = re.compile(r"\d\s*(?:€|eur|euro)?\s*(?:-|bis|to)\s*(?:€|eur|euro)?\s*$", re.I)
 RANGE_AFTER = re.compile(r"^\s*(?:€|eur|euro)?\s*(?:-|bis|to)\s*(?:€|eur|euro)?\s*\d", re.I)
