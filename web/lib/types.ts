@@ -22,6 +22,12 @@ export interface Job {
   lastSeen: string;
   links: JobLink[];
   snippet: string;
+  // Only when the posting states them; null otherwise. A single value has min === max,
+  // "max. 20 h" has only hoursMax, "mind. 10 h" only hoursMin.
+  hoursMin?: number | null;
+  hoursMax?: number | null;
+  payAmount?: number | null; // EUR, as stated
+  payUnit?: "hour" | "month" | null;
 }
 
 export interface SourceStatus {
