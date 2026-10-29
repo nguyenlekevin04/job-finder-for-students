@@ -24,8 +24,8 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: fetcher/requirements.txt
-      - run: pip install -r fetcher/requirements.txt
+          cache-dependency-path: fetcher/requirements.lock
+      - run: pip install --require-hashes -r fetcher/requirements.lock
       - run: python -m pytest fetcher/tests -q
 
   web:
