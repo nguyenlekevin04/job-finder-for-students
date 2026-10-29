@@ -25,10 +25,12 @@ describe("advanceVisit", () => {
     });
   });
 
-  it("a reload within 30 minutes keeps the record (and the mark)", () => {
+  it("a reload within 30 minutes keeps the mark and slides the window", () => {
     const rec: VisitRecord = { seen: "2026-10-26", seenAt: "2026-10-26T08:00:00.000Z", next: "2026-10-29", nextAt: NOW.toISOString() };
-    expect(advanceVisit(rec, "2026-10-29", minutes(10))).toBe(rec);
-    expect(advanceVisit(rec, "2026-10-29", minutes(30))).toBe(rec);
+    const a = advanceVisit(rec, "2026-10-29", minutes(25));
+    expect(a).toMatchObject({ seen: "2026-10-26", seenAt: rec.seenAt, next: "2026-10-29", nextAt: minutes(25).toISOString() });
+    // 50 minutes after the first load but only 25 after the last one: still the same visit.
+    expect(advanceVisit(a, "2026-10-29", minutes(50))).toMatchObject({ seen: "2026-10-26", nextAt: minutes(50).toISOString() });
   });
 
   it("the next day rolls forward: this visit's newest job becomes the mark", () => {

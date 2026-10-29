@@ -60,7 +60,11 @@ export function advanceVisit(stored: VisitRecord | null, maxFirstSeen: string | 
   const at = now.toISOString();
   if (!stored) return { seen: null, seenAt: at, next: maxFirstSeen, nextAt: at };
   // A clock that went backwards also counts as a new visit, so the record can't get stuck.
-  if (Math.abs(now.getTime() - Date.parse(stored.nextAt)) <= SAME_VISIT_MS) return stored;
+  if (Math.abs(now.getTime() - Date.parse(stored.nextAt)) <= SAME_VISIT_MS) {
+    // Same visit: slide the window from this load, so a long session keeps its "new since" view.
+    const next = stored.next && maxFirstSeen ? (stored.next > maxFirstSeen ? stored.next : maxFirstSeen) : stored.next ?? maxFirstSeen;
+    return { ...stored, next, nextAt: at };
+  }
   return { seen: stored.next, seenAt: stored.nextAt, next: maxFirstSeen, nextAt: at };
 }
 

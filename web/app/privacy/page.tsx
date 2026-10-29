@@ -9,6 +9,8 @@ import { LEGAL_PLACEHOLDERS, OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Privacy", // layout template adds " · dresden/jobs"
+  // Keep the operator's name and address out of search results; the page stays reachable from the footer.
+  robots: { index: false, follow: true },
 };
 
 const code = "rounded bg-line/60 px-1 font-mono text-[14px]";

@@ -6,6 +6,8 @@ import { LEGAL_PLACEHOLDERS, OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Imprint", // layout template adds " · dresden/jobs"
+  // Keep the operator's name and address out of search results; the page stays reachable from the footer.
+  robots: { index: false, follow: true },
 };
 
 const SECTIONS: [string, React.ReactNode][] = [
