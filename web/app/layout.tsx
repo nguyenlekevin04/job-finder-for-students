@@ -3,6 +3,7 @@ import { Instrument_Serif, Schibsted_Grotesk } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { moveScript } from "@/lib/legacyHost";
 
 const grotesk = Schibsted_Grotesk({ variable: "--font-grotesk", subsets: ["latin"] });
 const serif = Instrument_Serif({ variable: "--font-instrument-serif", subsets: ["latin"], weight: "400", style: "italic" });
@@ -36,6 +37,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${grotesk.variable} ${serif.variable} h-full antialiased`}
     >
       <head>
+        {/* Must run before the theme script, so a theme carried over from the old address applies. */}
+        <script dangerouslySetInnerHTML={{ __html: moveScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="isolate flex min-h-full flex-col font-sans">
