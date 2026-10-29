@@ -95,7 +95,7 @@ The user calls these by name; start them only when asked or when `/feature` or `
   - Doesn't edit code.
 - **Kevin (`kevin`): ethical hacker (red team).**
   - Attacks our own system (staging for anything that writes, production read-only) and reports findings with proof.
-  - Run with `/hackerattack [focus]`: Kevin attacks → the tech lead triages → review team fixes → Kevin re-checks. Results go to `docs/security.md`.
+  - Run with `/hackerattack [focus]` once per sprint before the release, and before logins or new secrets: Kevin attacks → the tech lead triages → the review team fixes and verifies against his proof. Kevin isn't part of code or release review. Results go to `docs/security.md`.
 - **Review team: staff engineers.**
   - `code-reviewer` is read-only and covers bugs, security and code quality in existing code, never missing features.
   - `review-fixer` applies confirmed findings.

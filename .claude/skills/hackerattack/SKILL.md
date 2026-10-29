@@ -1,6 +1,6 @@
 ---
 name: hackerattack
-description: Run a security attack on our own system with Kevin (ethical hacker), triage his findings as tech lead, have the review team fix the confirmed ones, and let Kevin re-attack to verify. Use when the user types /hackerattack (optionally with a focus, e.g. "/hackerattack auth") or asks Kevin to attack the system.
+description: Run a security attack on our own system with Kevin (ethical hacker), triage his findings as tech lead, and have the review team fix and verify the confirmed ones. Use when the user types /hackerattack (optionally with a focus, e.g. "/hackerattack auth") or asks Kevin to attack the system.
 ---
 
 # /hackerattack: Kevin attacks, the team fixes
@@ -20,8 +20,8 @@ If `kevin`, `code-reviewer` or `review-fixer` aren't available as agent types, s
    - **backlog:** the rest
    - **no action:** with the reason
    Production-affecting critical findings are reported to the shareholder immediately, before fixing.
-4. **Fix.** Give the confirmed "fix now" findings to `review-fixer` (with Kevin's proof). Then `code-reviewer` checks the fixes.
-5. **Verify.** Run Kevin again, only on the fixed findings, to confirm they're closed.
+4. **Fix.** Give the confirmed "fix now" findings to `review-fixer` (with Kevin's proof).
+5. **Verify.** `code-reviewer` checks the fixes and replays Kevin's proof against them (offline tests or a safe request on staging). Kevin is not part of the review: he attacks and reports, nothing else.
 6. **Ship.** Commit on `security/<short-name>`, open a PR into `staging` with the template, and merge it when green. Fixes reach production with the next `/release`, which needs the shareholder's OK.
 7. **Record.** Append a dated entry to `docs/security.md`:
    - scope
