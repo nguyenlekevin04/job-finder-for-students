@@ -64,15 +64,28 @@ def parse_detail(data: dict) -> tuple[str, str | None]:
     return INTRO.sub("", clean_text(info.get("jobDescription")))[:4000], to_day(info.get("startDate"))
 
 
+def is_last_page(data: dict, page: int, total: int) -> bool:
+    """True when page `page` (0-based) ends the feed.
+
+    Workday reports `total` only on the first page (later pages say 0), so the
+    caller passes the first page's total.
+    """
+    return not data.get("jobPostings") or (page + 1) * PAGE >= total
+
+
 def fetch() -> list[Job]:
     jobs: list[Job] = []
+    total = 0
     for page in range(MAX_PAGES):
         data = post_json(f"{API}/jobs", {"appliedFacets": {}, "limit": PAGE, "offset": page * PAGE,
                                          "searchText": "Dresden"})
+        total = total or data.get("total") or 0
         jobs.extend(parse_list(data))
-        if (page + 1) * PAGE >= (data.get("total") or 0):
+        if is_last_page(data, page, total):
             break
         time.sleep(0.4)
+    else:  # a cut-off list would make the missing postings count as closed
+        raise RuntimeError(f"{NAME}: more than {MAX_PAGES * PAGE} postings; raise MAX_PAGES")
     for job in jobs:
         if is_student_title(job.title):
             try:

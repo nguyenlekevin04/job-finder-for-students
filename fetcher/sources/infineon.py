@@ -50,16 +50,24 @@ def parse_detail(data: dict) -> str:
     return OUTRO.sub("", INTRO.sub("", text))[:4000]
 
 
+def is_last_page(data: dict, page: int) -> bool:
+    """True when page `page` (0-based) ends the feed: a short page or the reported count reached."""
+    body = data.get("data") or {}
+    count = body.get("count")
+    return len(body.get("positions") or []) < PAGE or (count is not None and (page + 1) * PAGE >= count)
+
+
 def fetch() -> list[Job]:
     jobs: list[Job] = []
     for page in range(MAX_PAGES):
         data = get_json(SEARCH, params={"domain": "infineon.com", "query": "", "location": "Dresden",
                                         "start": page * PAGE, "filter_distance": 30})
-        positions = (data.get("data") or {}).get("positions") or []
         jobs.extend(parse_search(data))
-        if len(positions) < PAGE:
+        if is_last_page(data, page):
             break
         time.sleep(0.4)
+    else:  # a cut-off list would make the missing postings count as closed
+        raise RuntimeError(f"{NAME}: more than {MAX_PAGES * PAGE} postings; raise MAX_PAGES")
     for job in jobs:
         if is_student_title(job.title):
             try:
