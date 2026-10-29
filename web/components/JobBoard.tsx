@@ -67,9 +67,12 @@ export function JobBoard() {
 
   // "New" is either "since your last visit" or, on a first visit, "this week".
   // A ?since= link wins over the stored mark, so a shared link shows the same set.
-  const lastVisit = useLastVisit(); // undefined until hydrated, null on a first visit
-  const markDay = lastVisit ? localDay(lastVisit) : null;
+  const lastVisit = useLastVisit(data ? jobs : null); // undefined until the data is in, null on a first visit
+  const markDay = lastVisit?.seen ?? null;
   const sinceDay = filters.since ?? markDay;
+  // "Since Tuesday" names the day of that visit, not the newest job it had.
+  const visitDay = lastVisit ? localDay(lastVisit.seenAt) : null;
+  const labelDay = visitDay && (!filters.since || filters.since === markDay) ? visitDay : sinceDay;
   const sinceCount = useMemo(() => (sinceDay ? jobs.filter((j) => j.firstSeen > sinceDay).length : 0), [jobs, sinceDay]);
   const newMode: "since" | "nothing" | "week" | null = filters.since || (markDay && sinceCount > 0)
     ? "since"
@@ -161,15 +164,15 @@ export function JobBoard() {
             {/* Highlighting "new" only means something when some jobs aren't. */}
             {newMode === "since" && sinceDay && (
               <NewTicket
-                since={sinceDay}
+                since={labelDay}
                 count={sinceCount}
                 active={!!filters.since}
                 onToggle={() => update({ since: filters.since ? null : sinceDay })}
               />
             )}
-            {newMode === "nothing" && markDay && markDay !== localDay(new Date()) && (
+            {newMode === "nothing" && visitDay && visitDay !== localDay(new Date()) && (
               <p className="mb-6 border-l-2 border-rule pl-3 text-sm text-muted">
-                Nothing new since {visitDayLabel(markDay)}. The list updates every morning.
+                Nothing new since {visitDayLabel(visitDay)}. The list updates every morning.
               </p>
             )}
             {newMode === "week" && newCount > 0 && newCount < jobs.length && (

@@ -70,8 +70,8 @@ const SECTIONS: [string, React.ReactNode][] = [
           <code className={code}>dsj:theme</code>: light or dark mode, if you picked one.
         </li>
         <li>
-          <code className={code}>dsj:lastVisit</code>: the time of your last visit, to show which jobs are new since then.
-          While a tab is open, the same value is also kept in that tab’s session storage.
+          <code className={code}>dsj:lastVisit</code>: the times of your current and previous visit, and the date of the
+          newest job you saw on each, to show which jobs are new since then.
         </li>
       </ul>
       <p>

@@ -51,4 +51,9 @@ describe("date helpers", () => {
     expect(visitDayLabel("2026-10-22")).toBe("22 Oct"); // 7 days ago
     expect(visitDayLabel("2025-12-30")).toBe("30 Dec 2025");
   });
+
+  it("visitDayLabel falls back instead of throwing on an invalid date", () => {
+    expect(visitDayLabel("2020-13-45")).toBe("your last visit");
+    expect(visitDayLabel("garbage")).toBe("your last visit");
+  });
 });

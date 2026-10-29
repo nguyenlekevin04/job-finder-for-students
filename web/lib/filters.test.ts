@@ -70,6 +70,13 @@ describe("URL <-> filters", () => {
     expect(filtersFromParams(new URLSearchParams("since=2026-10-27T10:00")).since).toBeNull();
   });
 
+  it("rejects impossible calendar dates for ?since=", () => {
+    for (const bad of ["2020-13-45", "0000-00-00", "2026-02-30"]) {
+      expect(filtersFromParams(new URLSearchParams(`since=${bad}`)).since).toBeNull();
+    }
+    expect(filtersFromParams(new URLSearchParams("since=2028-02-29")).since).toBe("2028-02-29"); // leap day
+  });
+
   it("trims the search text", () => {
     expect(filtersToParams(f({ q: "  ml  " })).get("q")).toBe("ml");
     expect(filtersToParams(f({ q: "   " })).has("q")).toBe(false);

@@ -185,14 +185,18 @@ test("a first visit shows this week's new jobs", async ({ page }) => {
 
 test("a returning visit shows what's new since then and filters to it", async ({ page }) => {
   // e2e/build.mjs sets the first job's firstSeen to today; the others are months old.
-  const threeDaysAgo = new Date(Date.now() - 3 * 86_400_000).toISOString();
+  // The stored record says the last visit was three days ago and the newest job then was
+  // from that day, so this load rolls it forward and shows the job from today as new.
+  const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+  const day = at.slice(0, 10);
+  const record = JSON.stringify({ seen: null, seenAt: at, next: day, nextAt: at });
   await page.addInitScript(
     ([key, value]) => {
       if (sessionStorage.getItem("e2e-seeded")) return; // seed once, not on reload
       localStorage.setItem(key, value);
       sessionStorage.setItem("e2e-seeded", "1");
     },
-    ["dsj:lastVisit", threeDaysAgo],
+    ["dsj:lastVisit", record],
   );
   await openBoard(page);
   await expect(page.getByText("Welcome back")).toBeVisible();
@@ -203,10 +207,21 @@ test("a returning visit shows what's new since then and filters to it", async ({
   await expect(page.getByRole("button", { name: "Show all →" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Clear 1 filter" })).toBeVisible();
 
-  // A reload keeps the same view: the mark is pinned for the tab.
+  // A reload within 30 minutes is the same visit: the record isn't rolled again.
   await page.reload();
   await expect(page.getByText("Welcome back")).toBeVisible();
   await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
+});
+
+test("an impossible ?since= date is ignored instead of crashing the board", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/?since=2020-13-45");
+  await expect(count(page)).toHaveText(new RegExp(`^${TOTAL} jobs`));
+  expect(errors).toEqual([]);
 });
 
 test("the footer links to the imprint and privacy pages", async ({ page }) => {

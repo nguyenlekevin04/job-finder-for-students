@@ -10,7 +10,7 @@ export function SiteHeader() {
   const { count } = useBookmarks();
   const onSaved = pathname.replace(/\/$/, "").endsWith("/saved");
   // The board is the home page only; legal pages mark neither link as current.
-  const onBoard = pathname.replace(/\/$/, "") === (process.env.NEXT_PUBLIC_BASE_PATH ?? "");
+  const onBoard = pathname === "/";
 
   return (
     <header className="mx-auto w-full max-w-7xl px-4 sm:px-8 lg:px-10">

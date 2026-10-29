@@ -52,10 +52,12 @@ export function localDay(at: string | Date): string {
 }
 
 /** The day of the last visit, for "Since …" and "Nothing new since …":
- *  "earlier today", "yesterday", a weekday for 2–6 days ago, else "21 Oct". */
+ *  "earlier today", "yesterday", a weekday for 2–6 days ago, else "21 Oct".
+ *  An invalid date gives "your last visit" instead of throwing. */
 export function visitDayLabel(isoDay: string, now = new Date()): string {
-  const days = daysBetween(isoDay, now);
   const date = new Date(`${isoDay.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return "your last visit";
+  const days = daysBetween(isoDay, now);
   if (days <= 0) return "earlier today";
   if (days === 1) return "yesterday";
   if (days < 7) return weekdayFmt.format(date);

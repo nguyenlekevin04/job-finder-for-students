@@ -29,7 +29,12 @@ export const DEFAULT_FILTERS: Filters = {
 };
 
 const list = (v: string | null) => (v ? v.split(",").filter(Boolean) : []);
-const day = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+/** A real calendar date "YYYY-MM-DD", else null (so "2026-02-30" can't reach date formatting). */
+function day(v: string | null): string | null {
+  if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(v) ? v : null;
+}
 
 // URL <-> filters, so a filtered view can be bookmarked or shared.
 export function filtersFromParams(p: URLSearchParams): Filters {

@@ -186,10 +186,12 @@ function ShareButton({ job }: { job: Job }) {
       const text = `${job.title} at ${job.company}`;
       try {
         await navigator.share({ title: text, text, url });
-      } catch {
-        // AbortError: the sheet was closed. Anything else: the sheet shows its own error.
+        return;
+      } catch (e) {
+        // AbortError: the user closed the sheet. Anything else (e.g. NotAllowedError):
+        // sharing failed, so fall back to copying the link.
+        if (e instanceof DOMException && e.name === "AbortError") return;
       }
-      return;
     }
     try {
       await navigator.clipboard.writeText(url);
