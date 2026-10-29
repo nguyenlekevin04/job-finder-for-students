@@ -32,22 +32,27 @@ def test_duplicates_are_merged_with_all_links():
     assert job["postedAt"] == "2026-10-01"
 
 
-def test_history_keeps_first_seen_and_drops_old(tmp_path):
+def test_json_store_round_trip_drops_removed(tmp_path):
     out = tmp_path / "jobs.json"
-    out.write_text(json.dumps({"jobs": [
-        {"id": "still-here", "firstSeen": "2026-09-01", "lastSeen": "2026-10-27"},
-        {"id": "recently-gone", "firstSeen": "2026-09-01", "lastSeen": "2026-10-25", "postedAt": None},
-        {"id": "long-gone", "firstSeen": "2026-08-01", "lastSeen": "2026-10-01", "postedAt": None},
-    ]}))
-    current = {"still-here": {"id": "still-here", "postedAt": None},
-               "brand-new": {"id": "brand-new", "postedAt": None}}
-    merged = {j["id"]: j for j in JsonFileStore(out).merge(current, "2026-10-28")}
+    store = JsonFileStore(out)
+    jobs = [{"id": "a", "firstSeen": "2026-09-01", "lastSeen": "2026-10-28", "postedAt": None},
+            {"id": "b", "firstSeen": "2026-10-28", "lastSeen": "2026-10-28", "postedAt": "2026-10-20"}]
+    assert store.save(jobs, {"b"}, {"A": {"ok": True, "count": 1}}, "2026-10-28T05:00:00+00:00") == 1
+    assert set(store.previous()) == {"a"}
+    assert json.loads(out.read_text())["sources"] == {"A": {"ok": True, "count": 1}}
 
-    assert merged["still-here"]["firstSeen"] == "2026-09-01"
-    assert merged["still-here"]["lastSeen"] == "2026-10-28"
-    assert merged["brand-new"]["firstSeen"] == "2026-10-28"
-    assert "recently-gone" in merged
-    assert "long-gone" not in merged
+
+def test_checker_turns_errors_into_unknown(monkeypatch):
+    class Broken:
+        NAME = "B"
+
+        @staticmethod
+        def check(url):
+            raise TimeoutError("slow")
+    monkeypatch.setattr(main.time, "sleep", lambda s: None)
+    check = main.make_checker([Broken])
+    assert check("B", "https://x") == "unknown"
+    assert check("No such source", "https://x") == "unknown"
 
 
 def test_require_db_refuses_json_fallback(monkeypatch):
@@ -122,3 +127,10 @@ def test_production_flag_lets_the_scheduled_run_through(monkeypatch):
     monkeypatch.setattr(main, "run_sources", lambda: ([], {"A": {"ok": False, "count": 0, "error": "x"}}))
     assert main.main(["--require-db"]) == 1  # got past the guard; all sources "failed", so nothing is written
 
+
+
+def test_accepted_removals_from_env(monkeypatch):
+    monkeypatch.setenv("ACCEPT_REMOVALS", " HZDR, Bosch ,,")
+    assert main.accepted_removals() == {"HZDR", "Bosch"}
+    monkeypatch.setenv("ACCEPT_REMOVALS", "")
+    assert main.accepted_removals() == set()

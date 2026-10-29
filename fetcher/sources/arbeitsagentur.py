@@ -4,13 +4,16 @@ Docs: https://jobsuche.api.bund.dev
 """
 from __future__ import annotations
 
+import base64
 import time
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
-from fetcher.net import get_json, to_day
+from fetcher.net import get_json, status_code, to_day
 from fetcher.models import Job
 
 NAME = "Arbeitsagentur"
+# Search results are capped (100 per query), so a missing posting may still be open.
+FEED = "partial"
 
 API = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs"
 HEADERS = {"X-API-Key": "jobboerse-jobsuche"}
@@ -67,3 +70,16 @@ def fetch() -> list[Job]:
             by_ref.setdefault(job.source_id, job)
         time.sleep(0.3)
     return list(by_ref.values())
+
+
+DETAIL = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobdetails/"
+
+
+def state_from_status(code: int | None) -> str:
+    """The detail API answers 200 for a live posting and 404 once it is gone."""
+    return {200: "open", 404: "closed", 410: "closed"}.get(code, "unknown")
+
+
+def check(url: str) -> str:
+    ref = unquote(url.rstrip("/").rsplit("/", 1)[-1])
+    return state_from_status(status_code(DETAIL + base64.b64encode(ref.encode()).decode(), headers=HEADERS))

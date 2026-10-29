@@ -4,7 +4,23 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 
 ## Now
 
-_Empty: sprint 1 is being released._
+**Sprint 2 goal: only show jobs that are still open.**
+
+1. **Closed jobs leave the board by the next daily update** (M): As a student checking the board between lectures, I want every job I see to still accept applications, so that I don't waste my few free minutes on dead postings.
+   - Acceptance (fetcher, each daily run):
+     - Every listed job's own posting page is checked once per run (~1 request per job, free).
+     - A job is **closed** when its page returns 404/410, redirects away from the posting (to a search, list or home page), or shows a "no longer available" / "nicht mehr verfügbar" message. A closed job is removed in that run, even if its source feed still lists it.
+     - A job missing from a source that **succeeded** this run is removed unless its page check confirms it is open. This replaces the 7-day grace period.
+     - A **failed source** removes nothing on feed absence; its jobs stay unless their own page check says closed.
+     - An **inconclusive** check (timeout, 5xx, 403/429, captcha, unknown page) keeps the job if its feed still lists it. If the feed also dropped it, it stays for at most 2 runs, then goes.
+     - Guard: if one run would remove more than half of a source's jobs, no removals for that source happen, and the health alarm fires (exit 3).
+     - The run log and `fetch_runs` show per source how many jobs were checked, open, closed or inconclusive.
+     - Offline tests with saved fixtures cover each case: 404, 410, redirect, "no longer available" text, open page, timeout, failed source, and the half-removal guard.
+   - Acceptance (site):
+     - A saved job that is no longer on the board shows **"No longer available"** on the Saved page. "Apply now" is replaced by a plain link labelled "View original posting". The job stays saved until the student removes it.
+     - A shared link `?job=<id>` to a removed job shows "This job is no longer available" and the board below, not an empty panel.
+   - Out of scope: deadlines (0 of 40 jobs have one), checks more than once a day or live in the browser, a "report closed job" button, changes to job IDs.
+   - Open question for the tech lead: per-source rules for "closed" pages (Arbeitsagentur, Arbeitnow, Adzuna redirects, Workday, Eightfold). Size may grow if a source needs special handling.
 
 ## Next
 
@@ -20,17 +36,15 @@ _Empty: sprint 1 is being released._
 5. **Custom domain** (S, **shareholder decision: ~€10/year**): As a student, I want a short, trustworthy address, so that I remember it and can share it with classmates.
    - Acceptance: the domain serves production, the vercel.app address redirects to it, and saved jobs and the theme carry over.
 
-## Fixes (from the sprint 1 release review)
+## Fixes (from the release reviews)
 
 Non-blocking findings; the tech lead decides the order. Most are small.
 
-1. **Predictive-maintenance jobs are dropped** (should-fix, S): the hands-on title rule removes ML roles like "Masterarbeit Predictive Maintenance". Exclude "predictive maintenance" / "vorausschauende Wartung" from `HANDS_ON_TITLE` and add test cases.
-2. **Vercel can skip a needed build** (should-fix, S): `ignoreCommand` in `web/vercel.json` only compares the last commit. Compare against `VERCEL_GIT_PREVIOUS_SHA` and build when it's missing.
-3. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
-4. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
-5. **Small items** (nice-to-have, S):
+1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
+2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
+3. **Employer feeds can be cut off silently** (should-fix, S): Infineon, GlobalFoundries, Bosch, Fraunhofer and Amazon stop at a page cap (150–500 postings; today's counts are 6–60). If a site grows past it, the missing postings count as closed. Make `fetch()` fail when it hits the cap, so the source counts as failed and nothing is removed.
+4. **Small items** (nice-to-have, S):
    - the Saved page title lacks "[STAGING]" on staging
-   - the production guard should compare the database URL in lowercase
    - an outdated comment in `web/.env.example`
    - the clear-search button drops keyboard focus
    - the manual "Run workflow" button defaults to production; switch the default to staging

@@ -23,6 +23,7 @@ from fetcher.classify import FIELD_LABELS, classify  # noqa: E402
 from fetcher.sources import (  # noqa: E402
     adzuna, amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, hzdr, infineon, tu_dresden,
 )
+from fetcher.availability import UNKNOWN, decide  # noqa: E402
 from fetcher.store import JsonFileStore, get_store  # noqa: E402
 
 OUTPUT = ROOT / "web" / "public" / "jobs.json"  # local fallback when Supabase isn't configured
@@ -171,6 +172,30 @@ def build_jobs(raw: list) -> dict[str, dict]:
     return jobs
 
 
+def make_checker(sources=SOURCES):
+    """(source name, url) -> open/closed/unknown, using each partial-feed source's check()."""
+    checks = {s.NAME: s.check for s in sources if hasattr(s, "check")}
+
+    def check(source: str, url: str) -> str:
+        fn = checks.get(source)
+        if not fn:
+            return UNKNOWN
+        try:
+            state = fn(url)
+        except Exception as err:  # a broken check must never remove a job
+            print(f"  ! {source} check failed for {redact(url)}: {safe_error(err)}")
+            return UNKNOWN
+        time.sleep(0.2)  # be gentle: one request per posting
+        return state
+
+    return check
+
+
+def accepted_removals() -> set[str]:
+    """Sources whose large removal the owner approved for this run (ACCEPT_REMOVALS="HZDR,Bosch")."""
+    return {n.strip() for n in os.environ.get("ACCEPT_REMOVALS", "").split(",") if n.strip()}
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     load_env()
@@ -191,11 +216,29 @@ def main(argv: list[str] | None = None) -> int:
         print(f"All sources failed – leaving {store.name} untouched.")
         return 1
 
-    generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    total = store.save(current, status, generated_at, today)
-    print(f"\nKept {len(current)} of {len(raw)} postings today; {total} jobs now in {store.name}")
+    result = decide(
+        previous=store.previous(),
+        current=current,
+        source_ok={name: s["ok"] for name, s in status.items()},
+        partial={s.NAME for s in SOURCES if getattr(s, "FEED", "complete") == "partial"},
+        check=make_checker(),
+        today=today,
+        # Postings listed today that didn't become a job (e.g. not classified). A URL that moved
+        # to another job (title edited, new id) isn't here, so its old job closes at once.
+        raw_urls={r.url for r in raw} - {l["url"] for j in current.values() for l in j["links"]},
+        accept=accepted_removals(),
+    )
+    for name, counts in result.stats.items():
+        if name in status:
+            status[name]["links"] = counts  # open / closed / unknown, stored in fetch_runs
+        print(f"  {name}: {counts['open']} open, {counts['closed']} closed, {counts['unknown']} unconfirmed")
 
-    problems = health_problems(status)
+    generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    total = store.save(result.jobs, result.removed, status, generated_at)
+    print(f"\nKept {len(current)} of {len(raw)} postings today; removed {len(result.removed)} closed; "
+          f"{total} jobs now in {store.name}")
+
+    problems = health_problems(status) + result.problems
     if problems:
         for p in problems:
             print(f"::error title=Job source problem::{p}")  # shows up as an annotation in GitHub Actions

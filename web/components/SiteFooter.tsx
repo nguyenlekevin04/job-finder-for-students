@@ -12,7 +12,7 @@ const SOURCE_LINKS: Record<string, string> = {
 };
 
 const STEPS = [
-  ["Collected every morning", "Job boards, Fraunhofer, HZDR and TU Dresden are checked once a day. A job disappears a week after its last listing."],
+  ["Collected every morning", "Job boards, employers, Fraunhofer, HZDR and TU Dresden are checked once a day. Jobs that have closed are removed the same morning."],
   ["Filtered for students", "Only Werkstudent roles, internships and thesis topics in AI, data, software and embedded systems make the cut."],
   ["Saved in your browser", "Bookmarks stay on this device. There's no account and nothing is tracked."],
 ];

@@ -115,7 +115,8 @@ Free Supabase projects pause after a week without activity; the daily fetch keep
 - **Field**: AI/ML, Data, Software, Embedded/Hardware, Other CS. A title match is enough; the description alone needs at least 3 different tech terms, and can't rescue a clearly non-tech title (marketing, design, sales…).
 - **English-friendly**: the text is mostly English, or it names English as the working language.
 - **Duplicates**: same title and company (ignoring "(m/w/d)", "GmbH" and so on) are merged into one job with several "via" links.
-- **History**: each job keeps the date it was first seen ("New" badge for 3 days). A job that disappears stays for up to 7 days.
+- **History**: each job keeps the date it was first seen ("New" badge for 7 days).
+- **Only open jobs** (`fetcher/availability.py`): employer and institute feeds list every open posting, so a posting they stop listing is removed that run. The aggregators (Arbeitsagentur, Arbeitnow) only return top results, so their postings are checked one by one (detail API / page status). A source that fails removes nothing; a job nobody can confirm stays at most 2 days; a run that would remove more than half of a source's jobs removes none of them and raises the alarm.
 
 ## Add a source
 
