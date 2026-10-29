@@ -11,6 +11,7 @@ export interface Filters {
   english: boolean;
   remote: boolean; // include remote jobs
   fresh: boolean; // only jobs first seen in the last 7 days
+  since: string | null; // "YYYY-MM-DD": only jobs first seen after this day ("new since your last visit")
   sort: Sort;
   job: string | null; // the expanded job; not a filter, but shared through the URL
 }
@@ -22,11 +23,18 @@ export const DEFAULT_FILTERS: Filters = {
   english: false,
   remote: true,
   fresh: false,
+  since: null,
   sort: "newest",
   job: null,
 };
 
 const list = (v: string | null) => (v ? v.split(",").filter(Boolean) : []);
+/** A real calendar date "YYYY-MM-DD", else null (so "2026-02-30" can't reach date formatting). */
+function day(v: string | null): string | null {
+  if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(v) ? v : null;
+}
 
 // URL <-> filters, so a filtered view can be bookmarked or shared.
 export function filtersFromParams(p: URLSearchParams): Filters {
@@ -37,6 +45,7 @@ export function filtersFromParams(p: URLSearchParams): Filters {
     english: p.get("en") === "1",
     remote: p.get("remote") !== "0",
     fresh: p.get("new") === "1",
+    since: day(p.get("since")),
     sort: p.get("sort") === "company" ? "company" : "newest",
     job: p.get("job") || null,
   };
@@ -50,13 +59,14 @@ export function filtersToParams(f: Filters): URLSearchParams {
   if (f.english) p.set("en", "1");
   if (!f.remote) p.set("remote", "0");
   if (f.fresh) p.set("new", "1");
+  if (f.since) p.set("since", f.since);
   if (f.sort !== "newest") p.set("sort", f.sort);
   if (f.job) p.set("job", f.job);
   return p;
 }
 
 export function activeFilterCount(f: Filters): number {
-  return f.types.length + f.fields.length + (f.english ? 1 : 0) + (f.remote ? 0 : 1) + (f.fresh ? 1 : 0);
+  return f.types.length + f.fields.length + (f.english ? 1 : 0) + (f.remote ? 0 : 1) + (f.fresh ? 1 : 0) + (f.since ? 1 : 0);
 }
 
 export function jobDate(job: Job): string {
@@ -90,7 +100,8 @@ export function applyFilters(jobs: Job[], f: Filters, index: Fuse<Job> | null): 
       (!f.fields.length || j.fields.some((x) => f.fields.includes(x))) &&
       (!f.english || j.englishFriendly) &&
       (f.remote || !j.remote) &&
-      (!f.fresh || isNew(j.firstSeen))
+      (!f.fresh || isNew(j.firstSeen)) &&
+      (!f.since || j.firstSeen > f.since)
   );
   return [...result].sort((a, b) =>
     f.sort === "company"

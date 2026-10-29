@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { daysUntil, formatDate, isNew, NEW_DAYS, relativeDay, relativeTime } from "./format";
+import { daysUntil, formatDate, isNew, localDay, NEW_DAYS, relativeDay, relativeTime, visitDayLabel } from "./format";
 
 describe("date helpers", () => {
   beforeEach(() => {
@@ -36,5 +36,24 @@ describe("date helpers", () => {
     expect(relativeTime(new Date(Date.now() - 5 * 60_000).toISOString())).toBe("5 minutes ago");
     expect(relativeTime(new Date(Date.now() - 3 * 3_600_000).toISOString())).toBe("3 hours ago");
     expect(relativeTime(new Date(Date.now() - 3 * 86_400_000).toISOString())).toBe("3 days ago");
+  });
+
+  it("localDay uses the local calendar date", () => {
+    expect(localDay(new Date(2026, 9, 27, 23, 59))).toBe("2026-10-27");
+    expect(localDay(new Date(2026, 0, 3, 0, 1).toISOString())).toBe("2026-01-03");
+  });
+
+  it("visitDayLabel names the last visit naturally", () => {
+    expect(visitDayLabel("2026-10-29")).toBe("earlier today");
+    expect(visitDayLabel("2026-10-28")).toBe("yesterday");
+    expect(visitDayLabel("2026-10-27")).toBe("Tuesday");
+    expect(visitDayLabel("2026-10-23")).toBe("Friday"); // 6 days ago
+    expect(visitDayLabel("2026-10-22")).toBe("22 Oct"); // 7 days ago
+    expect(visitDayLabel("2025-12-30")).toBe("30 Dec 2025");
+  });
+
+  it("visitDayLabel falls back instead of throwing on an invalid date", () => {
+    expect(visitDayLabel("2020-13-45")).toBe("your last visit");
+    expect(visitDayLabel("garbage")).toBe("your last visit");
   });
 });

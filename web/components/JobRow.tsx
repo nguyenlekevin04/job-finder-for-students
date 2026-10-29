@@ -3,6 +3,7 @@
 import { jobDate } from "@/lib/filters";
 import { daysUntil, formatDate, isNew, relativeDay } from "@/lib/format";
 import { FIELD_LABELS, TYPE_LABELS, type Job } from "@/lib/types";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowUpRightIcon, StarIcon } from "./Icons";
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   onToggleSave: (job: Job) => void;
   closed?: boolean; // on the Saved page: no longer on the board, so no longer open
   showNew?: boolean; // false when every job is new, so the label would mean nothing
+  newSince?: string | null; // "YYYY-MM-DD": "New" means first seen after this day instead of this week
 }
 
 export function jobPlace(job: Job): string {
@@ -20,8 +22,8 @@ export function jobPlace(job: Job): string {
   return job.location && !/remote/i.test(job.location) ? `Remote · ${job.location}` : "Remote";
 }
 
-export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showNew = true }: Props) {
-  const fresh = showNew && !closed && isNew(job.firstSeen);
+export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showNew = true, newSince }: Props) {
+  const fresh = showNew && !closed && (newSince ? job.firstSeen > newSince : isNew(job.firstSeen));
   const primary = job.links[0];
   const deadlineDays = job.deadline ? daysUntil(job.deadline) : null;
   const panelId = `job-${job.id}`;
@@ -126,9 +128,10 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
                 >
                   Apply now <ArrowUpRightIcon width={15} height={15} />
                 </a>
-                <button type="button" onClick={() => onToggleSave(job)} aria-pressed={saved} className="focus-ring link-u rounded">
+                <button type="button" onClick={() => onToggleSave(job)} aria-pressed={saved} className="focus-ring hit link-u rounded">
                   {saved ? "Remove from saved" : "Save for later"}
                 </button>
+                <ShareButton job={job} />
               </>
             )}
           </div>
@@ -153,5 +156,59 @@ export function JobRowSkeleton() {
       <div className="h-6 w-2/3 rounded bg-line" />
       <div className="mt-2.5 h-4 w-1/3 rounded bg-line/70" />
     </div>
+  );
+}
+
+const noSubscribe = () => () => {};
+// Native share sheet only on touch devices; desktop share dialogs are clumsy, a copied link is better there.
+const canNativeShare = () => typeof navigator.share === "function" && matchMedia("(pointer: coarse)").matches;
+
+/** Link to one job on the board: only ?job=, no filters, no tracking. */
+export function jobUrl(id: string): string {
+  return `${location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/?job=${encodeURIComponent(id)}`;
+}
+
+function ShareButton({ job }: { job: Job }) {
+  const native = useSyncExternalStore(noSubscribe, canNativeShare, () => false);
+  const [message, setMessage] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const show = (text: string, ms: number) => {
+    clearTimeout(timer.current);
+    setMessage(text);
+    timer.current = setTimeout(() => setMessage(null), ms);
+  };
+
+  const share = async () => {
+    const url = jobUrl(job.id);
+    if (native) {
+      const text = `${job.title} at ${job.company}`;
+      try {
+        await navigator.share({ title: text, text, url });
+        return;
+      } catch (e) {
+        // AbortError: the user closed the sheet. Anything else (e.g. NotAllowedError):
+        // sharing failed, so fall back to copying the link.
+        if (e instanceof DOMException && e.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      show("Link copied", 2000);
+    } catch {
+      show("Couldn't copy, use the address bar", 4000);
+    }
+  };
+
+  return (
+    <>
+      <button type="button" onClick={share} className="focus-ring hit link-u rounded">
+        {message ?? (native ? "Share" : "Copy link")}
+      </button>
+      <span role="status" className="sr-only">
+        {message}
+      </span>
+    </>
   );
 }
