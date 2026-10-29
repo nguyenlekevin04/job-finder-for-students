@@ -20,6 +20,10 @@ def job(title, tags="", description=""):
     ("Werkstudent*in IT Support (m/w/d)", "werkstudent", "other"),
     ("Working Student Frontend Developer (f/m/d)", "werkstudent", "software"),
     ("Werkstudent Frontend-Entwicklung", "werkstudent", "software"),
+    # Engineering roles at chip fabs stay (real titles from 2026-10-29):
+    ("Werkstudent/Praktikum - 3D-Druck und Microcontroller-Programmierung (w/m/div)", "werkstudent", "software"),
+    ("Werkstudent Software für die Instandhaltungsplanung", "werkstudent", "software"),
+    ("Werkstudent IT Consulting & Cloud Integration - SAP CI Umfeld", "werkstudent", "software"),
 ])
 def test_keeps_student_tech_jobs(title, expected_type, expected_field):
     tags = classify(job(title))
@@ -30,6 +34,11 @@ def test_keeps_student_tech_jobs(title, expected_type, expected_field):
 
 @pytest.mark.parametrize("title", [
     "Werkstudent - Frontend Academy (w/m/div)",        # chip-fab "frontend", not web UI
+    # Hands-on maintenance / repair / technician roles (real titles from 2026-10-29):
+    "Praktikum Entwicklung eines TPM-Standards für die Instandhaltung im Halbleiterwerk",
+    "Werkstudent*in im Bereich Global Repair Shop",
+    "Werkstudent (m/w/d) im Kalibrierlabor",
+    "Werkstudent Technische Ausrüstung - Elektro-/Energietechnik (m/w/d)",
     "Werkstudent Marketing (m/w/d)",                   # not tech
     "Senior Software Engineer (m/w/d)",                # not a student job
     "Software Engineer (m/w/d)",                       # no student type
@@ -94,4 +103,19 @@ def test_office_and_design_tools_are_not_tech_evidence():
     desc = ("Du bearbeitest Foto- und Videomaterial mit Software-Tools wie PowerPoint, Adobe Creative Cloud "
             "und Camtasia. Du studierst Mediendesign, Psychologie, (Wirtschafts-)Informatik oder Ähnliches.")
     assert classify(job("Werkstudent - Frontend Academy (w/m/div)", description=desc)) is None
+
+
+def test_consulting_title_cannot_be_rescued_by_description():
+    desc = "Python machine learning data analysis cloud software for climate risk models."
+    assert classify(job("Working Student in Consulting | Climate Risk and Decarbonisation", description=desc)) is None
+
+
+@pytest.mark.parametrize("title, description", [
+    ("Werkstudent*in im Bereich Tape-Out Engineering",
+     "Du unterstützt beim Chip-Design und automatisierst Abläufe mit Python-Skripten und Datenbanken."),
+    ("Working Student - Digital Functional Verification (f/m/div)",
+     "Verification of semiconductor IP: write testbenches, automate regressions in Python on Linux, analyse coverage."),
+])
+def test_chip_fab_engineering_roles_stay(title, description):
+    assert classify(job(title, description=description)) is not None
 

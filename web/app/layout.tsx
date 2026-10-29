@@ -3,14 +3,20 @@ import { Instrument_Serif, Schibsted_Grotesk } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { moveScript } from "@/lib/legacyHost";
 
 const grotesk = Schibsted_Grotesk({ variable: "--font-grotesk", subsets: ["latin"] });
 const serif = Instrument_Serif({ variable: "--font-instrument-serif", subsets: ["latin"], weight: "400", style: "italic" });
 
+// "staging" on Vercel preview deployments (staging branch and PRs); unset in production and locally.
+const isStaging = process.env.NEXT_PUBLIC_DEPLOY_ENV === "staging";
+
 export const metadata: Metadata = {
-  title: "dresden/jobs · Student tech jobs in Dresden",
+  title: `${isStaging ? "[STAGING] " : ""}dresden/jobs · Student tech jobs in Dresden`,
   description:
     "Werkstudent, internship and thesis positions in AI, ML and Computer Science around Dresden – collected daily from several job sources.",
+  // Keep the staging site out of search results so students only ever find production.
+  ...(isStaging && { robots: { index: false, follow: false } }),
 };
 
 export const viewport: Viewport = {
@@ -31,9 +37,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${grotesk.variable} ${serif.variable} h-full antialiased`}
     >
       <head>
+        {/* Must run before the theme script, so a theme carried over from the old address applies. */}
+        <script dangerouslySetInnerHTML={{ __html: moveScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="isolate flex min-h-full flex-col font-sans">
+        {isStaging && (
+          <div role="note" className="bg-orange px-4 py-1.5 text-center text-[13px] font-semibold text-[#1f1d1a]">
+            STAGING · test site with test data. The real site is dresden-jobs.vercel.app
+          </div>
+        )}
         <SiteHeader />
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-20 sm:px-8 lg:px-10">{children}</main>
         <SiteFooter />

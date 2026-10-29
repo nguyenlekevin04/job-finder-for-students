@@ -4,20 +4,29 @@ on:
   schedule:
     - cron: "0 5 * * *" # daily, 06:00 Berlin in winter / 07:00 in summer
   workflow_dispatch: # "Run workflow" button in the Actions tab
-  push:
-    branches: [main]
-    paths: ["fetcher/**", ".github/workflows/**"]
+    inputs:
+      target:
+        description: Which database to update
+        type: choice
+        options: [production, staging]
+        default: production
 
 permissions:
   contents: read
 
-concurrency:
-  group: update-jobs
-  cancel-in-progress: false
-
 jobs:
   fetch:
+    # The schedule updates both databases (it also keeps the free staging project
+    # from pausing); the button updates the one you pick.
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.target)) || fromJSON('["production","staging"]') }}
+    name: Fetch (${{ matrix.target }})
     runs-on: ubuntu-latest
+    concurrency:
+      group: update-jobs-${{ matrix.target }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
@@ -33,13 +42,23 @@ jobs:
       - name: Test fetcher
         run: python -m pytest fetcher/tests -q
 
-      # Pushes only run the tests; the daily schedule and the manual button
-      # fetch jobs and write them to Supabase.
-      - name: Fetch jobs into Supabase
-        if: github.event_name != 'push'
+      # Separate secret names per database, and no fallback between them: a missing
+      # staging secret must fail the run, never write staging data to production.
+      - name: Fetch jobs into the production database
+        if: matrix.target == 'production'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ALLOW_PRODUCTION_WRITE: "1"
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+        run: python fetcher/main.py --require-db
+
+      - name: Fetch jobs into the staging database
+        if: matrix.target == 'staging'
+        env:
+          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
           ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
           ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
         run: python fetcher/main.py --require-db
