@@ -1,5 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { daysUntil, formatDate, isNew, localDay, NEW_DAYS, relativeDay, relativeTime, visitDayLabel } from "./format";
+import { daysUntil, formatDate, isNew, jobTerms, localDay, NEW_DAYS, relativeDay, relativeTime, visitDayLabel } from "./format";
+
+describe("jobTerms", () => {
+  it("formats every hours shape", () => {
+    expect(jobTerms({ hoursMin: 20, hoursMax: 20 }).hours).toBe("20 h/week");
+    expect(jobTerms({ hoursMin: 15, hoursMax: 20 }).hours).toBe("15–20 h/week");
+    expect(jobTerms({ hoursMax: 20 }).hours).toBe("up to 20 h/week");
+    expect(jobTerms({ hoursMin: null, hoursMax: 20 }).hours).toBe("up to 20 h/week");
+    expect(jobTerms({ hoursMin: 20 }).hours).toBe("from 20 h/week");
+  });
+
+  it("formats pay in English without a trailing .00", () => {
+    expect(jobTerms({ payAmount: 15, payUnit: "hour" }).pay).toBe("€15/h");
+    expect(jobTerms({ payAmount: 15.5, payUnit: "hour" }).pay).toBe("€15.50/h");
+    expect(jobTerms({ payAmount: 1200, payUnit: "month" }).pay).toBe("€1,200/month");
+  });
+
+  it("joins the present parts into one line", () => {
+    expect(jobTerms({ hoursMin: 15, hoursMax: 20, payAmount: 15, payUnit: "hour" }).line).toBe("15–20 h/week · €15/h");
+    expect(jobTerms({ hoursMax: 20 }).line).toBe("up to 20 h/week");
+    expect(jobTerms({ payAmount: 1200, payUnit: "month" }).line).toBe("€1,200/month");
+  });
+
+  it("shows nothing for missing or incomplete data", () => {
+    expect(jobTerms({})).toEqual({});
+    expect(jobTerms({ hoursMin: null, hoursMax: null, payAmount: null, payUnit: null })).toEqual({});
+    expect(jobTerms({ payAmount: 15 })).toEqual({}); // no unit: don't guess
+    expect(jobTerms({ payUnit: "hour" })).toEqual({});
+  });
+});
 
 describe("date helpers", () => {
   beforeEach(() => {

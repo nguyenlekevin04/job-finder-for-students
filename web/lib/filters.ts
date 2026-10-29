@@ -11,6 +11,7 @@ export interface Filters {
   english: boolean;
   remote: boolean; // include remote jobs
   fresh: boolean; // only jobs first seen in the last 7 days
+  hours: boolean; // only jobs that state at most HOURS_LIMIT h/week
   since: string | null; // "YYYY-MM-DD": only jobs first seen after this day ("new since your last visit")
   sort: Sort;
   job: string | null; // the expanded job; not a filter, but shared through the URL
@@ -23,10 +24,19 @@ export const DEFAULT_FILTERS: Filters = {
   english: false,
   remote: true,
   fresh: false,
+  hours: false,
   since: null,
   sort: "newest",
   job: null,
 };
+
+/** The "Up to 20 h/week" filter: the most a student may work during the semester. */
+export const HOURS_LIMIT = 20;
+
+/** Known to be at most HOURS_LIMIT h/week. Only hoursMin, or a range above it, doesn't count. */
+export function withinHours(job: Job): boolean {
+  return typeof job.hoursMax === "number" && job.hoursMax <= HOURS_LIMIT;
+}
 
 const list = (v: string | null) => (v ? v.split(",").filter(Boolean) : []);
 /** A real calendar date "YYYY-MM-DD", else null (so "2026-02-30" can't reach date formatting). */
@@ -45,6 +55,7 @@ export function filtersFromParams(p: URLSearchParams): Filters {
     english: p.get("en") === "1",
     remote: p.get("remote") !== "0",
     fresh: p.get("new") === "1",
+    hours: p.get("hours") === String(HOURS_LIMIT),
     since: day(p.get("since")),
     sort: p.get("sort") === "company" ? "company" : "newest",
     job: p.get("job") || null,
@@ -59,6 +70,7 @@ export function filtersToParams(f: Filters): URLSearchParams {
   if (f.english) p.set("en", "1");
   if (!f.remote) p.set("remote", "0");
   if (f.fresh) p.set("new", "1");
+  if (f.hours) p.set("hours", String(HOURS_LIMIT));
   if (f.since) p.set("since", f.since);
   if (f.sort !== "newest") p.set("sort", f.sort);
   if (f.job) p.set("job", f.job);
@@ -66,7 +78,15 @@ export function filtersToParams(f: Filters): URLSearchParams {
 }
 
 export function activeFilterCount(f: Filters): number {
-  return f.types.length + f.fields.length + (f.english ? 1 : 0) + (f.remote ? 0 : 1) + (f.fresh ? 1 : 0) + (f.since ? 1 : 0);
+  return (
+    f.types.length +
+    f.fields.length +
+    (f.english ? 1 : 0) +
+    (f.remote ? 0 : 1) +
+    (f.fresh ? 1 : 0) +
+    (f.hours ? 1 : 0) +
+    (f.since ? 1 : 0)
+  );
 }
 
 export function jobDate(job: Job): string {
@@ -101,6 +121,7 @@ export function applyFilters(jobs: Job[], f: Filters, index: Fuse<Job> | null): 
       (!f.english || j.englishFriendly) &&
       (f.remote || !j.remote) &&
       (!f.fresh || isNew(j.firstSeen)) &&
+      (!f.hours || withinHours(j)) &&
       (!f.since || j.firstSeen > f.since)
   );
   return [...result].sort((a, b) =>

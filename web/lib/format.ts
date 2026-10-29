@@ -1,3 +1,5 @@
+import type { Job } from "./types";
+
 const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
@@ -62,4 +64,30 @@ export function visitDayLabel(isoDay: string, now = new Date()): string {
   if (days === 1) return "yesterday";
   if (days < 7) return weekdayFmt.format(date);
   return date.getUTCFullYear() === now.getFullYear() ? dayMonthFmt.format(date) : dateFmt.format(date);
+}
+
+const known = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
+const wholeFmt = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
+const centsFmt = new Intl.NumberFormat("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+export interface JobTerms {
+  hours?: string; // "20 h/week", "15–20 h/week", "up to 20 h/week", "from 20 h/week"
+  pay?: string; // "€15/h", "€15.50/h", "€1,200/month"
+  line?: string; // the present parts joined with " · "
+}
+
+/** Hours and pay as the posting states them. A missing value shows nothing, never a guess. */
+export function jobTerms(job: Pick<Job, "hoursMin" | "hoursMax" | "payAmount" | "payUnit">): JobTerms {
+  const terms: JobTerms = {};
+  const { hoursMin: min, hoursMax: max, payAmount: amount, payUnit: unit } = job;
+  if (known(min) && known(max)) terms.hours = min === max ? `${min} h/week` : `${min}–${max} h/week`;
+  else if (known(max)) terms.hours = `up to ${max} h/week`;
+  else if (known(min)) terms.hours = `from ${min} h/week`;
+  if (known(amount) && amount > 0 && (unit === "hour" || unit === "month")) {
+    const value = Number.isInteger(amount) ? wholeFmt.format(amount) : centsFmt.format(amount);
+    terms.pay = `€${value}/${unit === "hour" ? "h" : "month"}`;
+  }
+  const parts = [terms.hours, terms.pay].filter(Boolean);
+  if (parts.length) terms.line = parts.join(" · ");
+  return terms;
 }

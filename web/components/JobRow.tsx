@@ -1,7 +1,7 @@
 "use client";
 
 import { jobDate } from "@/lib/filters";
-import { daysUntil, formatDate, isNew, relativeDay } from "@/lib/format";
+import { daysUntil, formatDate, isNew, jobTerms, relativeDay } from "@/lib/format";
 import { FIELD_LABELS, TYPE_LABELS, type Job } from "@/lib/types";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowUpRightIcon, StarIcon } from "./Icons";
@@ -28,6 +28,7 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
   const deadlineDays = job.deadline ? daysUntil(job.deadline) : null;
   const panelId = `job-${job.id}`;
   const typeLabel = closed ? "Closed" : job.types.map((t) => TYPE_LABELS[t]).join(" / ");
+  const terms = jobTerms(job);
 
   return (
     <li id={`row-${job.id}`} className="scroll-mt-4 border-t-[1.5px] border-rule">
@@ -49,9 +50,13 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
           <span className="mt-1.5 block text-[14.5px] text-muted">
             <b className="font-semibold text-ink">{job.company}</b> · {jobPlace(job)} · {relativeDay(jobDate(job))}
           </span>
+          {terms.line && (
+            <span className="mt-1 hidden text-[13px] font-semibold text-muted tabular-nums sm:block">{terms.line}</span>
+          )}
           <span className={`mt-1.5 block text-[13px] font-semibold sm:hidden ${fresh ? "text-orange-text" : "text-muted"}`}>
             {fresh && "New · "}
             {typeLabel}
+            {terms.line && <span className="text-muted tabular-nums"> · {terms.line}</span>}
           </span>
         </span>
         <span className="flex items-start gap-3.5 pt-1">
@@ -82,6 +87,8 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
             <p className="mb-4 border-l-2 border-rule pl-3 text-sm text-muted">This job is no longer available.</p>
           )}
           <dl className="grid grid-cols-2 gap-x-7 gap-y-3 text-sm sm:flex sm:flex-wrap">
+            {terms.hours && <Fact label="Hours">{terms.hours}</Fact>}
+            {terms.pay && <Fact label="Pay">{terms.pay}</Fact>}
             <Fact label="Field">{job.fields.map((f) => FIELD_LABELS[f]).join(", ")}</Fact>
             <Fact label="Language">{job.englishFriendly ? "English OK" : "German"}</Fact>
             <Fact label={job.postedAt ? "Posted" : "Found"}>{formatDate(jobDate(job))}</Fact>

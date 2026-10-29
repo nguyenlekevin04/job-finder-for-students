@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Filters, Sort } from "@/lib/filters";
+import { HOURS_LIMIT, withinHours, type Filters, type Sort } from "@/lib/filters";
 import { ALL_FIELDS, ALL_TYPES, FIELD_LABELS, TYPE_LABELS, type Job } from "@/lib/types";
 
 interface Props {
@@ -47,7 +47,7 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount }: 
   // filter is never hidden and the panel doesn't jump. "Fresh" is left out: the ticket
   // in the list already shows that state.
   const [more, setMore] = useState(false);
-  const moreActive = filters.fields.length > 0 || filters.english || !filters.remote;
+  const moreActive = filters.fields.length > 0 || filters.english || !filters.remote || filters.hours;
   if (moreActive && !more) setMore(true);
   const count = (pred: (j: Job) => boolean) => jobs.filter(pred).length;
 
@@ -83,6 +83,9 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount }: 
         </Group>
 
         <Group title="Options">
+          <Option on={filters.hours} onClick={() => onChange({ hours: !filters.hours })} count={count(withinHours)}>
+            Up to {HOURS_LIMIT} h/week
+          </Option>
           <Option on={filters.remote} onClick={() => onChange({ remote: !filters.remote })}>
             Include remote
           </Option>
@@ -93,6 +96,7 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount }: 
             Fresh this week
           </Option>
         </Group>
+        {filters.hours && <p className="mt-2 text-xs text-muted">Only jobs that state their hours.</p>}
       </div>
 
       <div className="mt-5 flex gap-5 text-sm">

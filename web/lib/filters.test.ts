@@ -47,12 +47,13 @@ describe("URL <-> filters", () => {
       english: true,
       remote: false,
       fresh: true,
+      hours: true,
       since: "2026-10-27",
       sort: "company",
       job: "abc123",
     });
     const qs = filtersToParams(all).toString();
-    expect(qs).toBe("q=python&type=thesis%2Cinternship&field=ai&en=1&remote=0&new=1&since=2026-10-27&sort=company&job=abc123");
+    expect(qs).toBe("q=python&type=thesis%2Cinternship&field=ai&en=1&remote=0&new=1&hours=20&since=2026-10-27&sort=company&job=abc123");
     expect(filtersFromParams(new URLSearchParams(qs))).toEqual(all);
   });
 
@@ -77,6 +78,13 @@ describe("URL <-> filters", () => {
     expect(filtersFromParams(new URLSearchParams("since=2028-02-29")).since).toBe("2028-02-29"); // leap day
   });
 
+  it("only turns the hours filter on for ?hours=20", () => {
+    expect(filtersFromParams(new URLSearchParams("hours=20")).hours).toBe(true);
+    for (const bad of ["hours=1", "hours=25", "hours=", "hours=yes"]) {
+      expect(filtersFromParams(new URLSearchParams(bad)).hours).toBe(false);
+    }
+  });
+
   it("trims the search text", () => {
     expect(filtersToParams(f({ q: "  ml  " })).get("q")).toBe("ml");
     expect(filtersToParams(f({ q: "   " })).has("q")).toBe(false);
@@ -88,6 +96,7 @@ describe("activeFilterCount", () => {
     expect(activeFilterCount(f({ q: "x", sort: "company", job: "abc" }))).toBe(0);
     expect(activeFilterCount(f({ types: ["thesis"], fields: ["ai", "data"], english: true, remote: false, fresh: true }))).toBe(6);
     expect(activeFilterCount(f({ since: "2026-10-27" }))).toBe(1);
+    expect(activeFilterCount(f({ hours: true }))).toBe(1);
   });
 });
 
@@ -129,6 +138,20 @@ describe("applyFilters", () => {
     ];
     expect(ids(applyFilters(seen, f({ since: "2026-10-27" }), null))).toEqual(["new"]);
     expect(applyFilters(seen, f({ since: "2026-10-29" }), null)).toEqual([]);
+  });
+
+  it("'hours' keeps only jobs that state at most 20 h/week", () => {
+    const stated = [
+      job({ id: "exact", hoursMin: 20, hoursMax: 20 }),
+      job({ id: "range", hoursMin: 15, hoursMax: 20 }),
+      job({ id: "upto", hoursMax: 12 }),
+      job({ id: "wide", hoursMin: 15, hoursMax: 25 }),
+      job({ id: "from", hoursMin: 10 }),
+      job({ id: "nulls", hoursMin: null, hoursMax: null }),
+      job({ id: "unknown" }),
+    ];
+    expect(ids(applyFilters(stated, f({ hours: true }), null)).sort()).toEqual(["exact", "range", "upto"]);
+    expect(applyFilters(stated, f(), null)).toHaveLength(stated.length);
   });
 
   it("never hides jobs because one is open", () => {
