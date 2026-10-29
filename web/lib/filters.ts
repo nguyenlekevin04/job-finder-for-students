@@ -94,7 +94,7 @@ export function applyFilters(jobs: Job[], f: Filters, index: Fuse<Job> | null): 
       (!f.fields.length || j.fields.some((x) => f.fields.includes(x))) &&
       (!f.english || j.englishFriendly) &&
       (f.remote || !j.remote) &&
-      (!f.fresh || isNew(j.firstSeen, 7)) &&
+      (!f.fresh || isNew(j.firstSeen)) &&
       (!f.sources.length || j.links.some((l) => f.sources.includes(l.source))),
   );
   return [...result].sort((a, b) =>

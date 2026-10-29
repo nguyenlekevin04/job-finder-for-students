@@ -17,8 +17,11 @@ export function relativeDay(isoDay: string): string {
   return dateFmt.format(new Date(isoDay));
 }
 
-export function isNew(firstSeen: string, withinDays = 3): boolean {
-  return daysBetween(firstSeen) <= withinDays;
+/** How long a job counts as "New": today is day 1, so 7 calendar days. */
+export const NEW_DAYS = 7;
+
+export function isNew(firstSeen: string, withinDays = NEW_DAYS): boolean {
+  return daysBetween(firstSeen) < withinDays;
 }
 
 export function daysUntil(isoDay: string): number {

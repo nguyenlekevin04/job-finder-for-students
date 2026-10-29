@@ -25,7 +25,7 @@ export function SiteFooter() {
     <footer id="about" className="mx-auto w-full max-w-7xl scroll-mt-6 px-4 sm:px-8 lg:px-10">
       <div className="border-t-[1.5px] border-rule py-12">
         <h2 className="text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
-          How it <span className="font-serif text-[1.1em] tracking-[-0.02em] text-orange-text">works</span>
+          How it <span className="font-serif text-[1.1em] font-normal tracking-[-0.02em] text-orange-text">works</span>
         </h2>
         <ol className="mt-8 grid gap-8 sm:grid-cols-3">
           {STEPS.map(([title, text], i) => (

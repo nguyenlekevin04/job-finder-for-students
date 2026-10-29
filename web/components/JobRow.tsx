@@ -33,7 +33,7 @@ export function JobRow({ job, index, open, onToggle, saved, onToggleSave, stale 
         type="button"
         onClick={() => onToggle(job.id)}
         aria-expanded={open}
-        aria-controls={panelId}
+        aria-controls={open ? panelId : undefined}
         className="focus-ring group grid w-full grid-cols-[2.25rem_minmax(0,1fr)_auto] gap-x-2 py-[18px] text-left sm:grid-cols-[2.75rem_minmax(0,1fr)_auto]"
       >
         <span className="pt-1.5 text-[13px] text-muted tabular-nums">{String(index + 1).padStart(2, "0")}</span>

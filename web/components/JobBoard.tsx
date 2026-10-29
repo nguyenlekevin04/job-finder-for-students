@@ -65,7 +65,7 @@ export function JobBoard() {
     () => [...new Set(jobs.flatMap((j) => j.links.map((l) => l.source)))].sort(),
     [jobs],
   );
-  const newCount = useMemo(() => jobs.filter((j) => isNew(j.firstSeen, 7)).length, [jobs]);
+  const newCount = useMemo(() => jobs.filter((j) => isNew(j.firstSeen)).length, [jobs]);
   const active = activeFilterCount(filters);
 
   // A shared link with ?job= scrolls to that job once the data is in.
@@ -92,7 +92,8 @@ export function JobBoard() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-10 pt-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-14 lg:pt-12">
       {/* Intro, search and filters */}
-      <section className="lg:sticky lg:top-6 lg:self-start">
+      {/* max-h + scroll so short screens can reach every filter; px/pb keep focus rings inside the scroll box */}
+      <section className="lg:sticky lg:top-6 lg:-mx-1.5 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto lg:px-1.5 lg:pb-1.5 lg:[scrollbar-color:var(--c-line)_transparent] lg:[scrollbar-width:thin]">
         <p className="flex items-center gap-2 text-[13px] font-medium text-muted">
           {data ? (
             <>
