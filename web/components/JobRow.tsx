@@ -83,7 +83,8 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
             <Fact label="Field">{job.fields.map((f) => FIELD_LABELS[f]).join(", ")}</Fact>
             <Fact label="Language">{job.englishFriendly ? "English OK" : "German"}</Fact>
             <Fact label={job.postedAt ? "Posted" : "Found"}>{formatDate(jobDate(job))}</Fact>
-            {deadlineDays !== null && deadlineDays >= 0 && (
+            {/* A closed job's deadline means nothing any more. */}
+            {!closed && deadlineDays !== null && deadlineDays >= 0 && (
               <Fact label="Apply by">
                 <span className={deadlineDays <= 7 ? "font-semibold text-orange-text" : ""}>{formatDate(job.deadline!)}</span>
               </Fact>
@@ -111,7 +112,7 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
                 >
                   {saved ? "Remove from saved" : "Save for later"}
                 </button>
-                <a href={primary.url} target="_blank" rel="noreferrer" className="focus-ring link-u inline-flex items-center gap-1 rounded">
+                <a href={primary.url} target="_blank" rel="noreferrer" className="focus-ring hit link-u inline-flex items-center gap-1 rounded">
                   View original posting <ArrowUpRightIcon width={14} height={14} />
                 </a>
               </>

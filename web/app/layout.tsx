@@ -11,8 +11,15 @@ const serif = Instrument_Serif({ variable: "--font-instrument-serif", subsets: [
 // "staging" on Vercel preview deployments (staging branch and PRs); unset in production and locally.
 const isStaging = process.env.NEXT_PUBLIC_DEPLOY_ENV === "staging";
 
+const titlePrefix = isStaging ? "[STAGING] " : "";
+
 export const metadata: Metadata = {
-  title: `${isStaging ? "[STAGING] " : ""}dresden/jobs · Student tech jobs in Dresden`,
+  // The template applies to child segments (/saved/); the home page shares this
+  // segment, so it gets `default`. Both carry the staging prefix.
+  title: {
+    default: `${titlePrefix}dresden/jobs · Student tech jobs in Dresden`,
+    template: `${titlePrefix}%s · dresden/jobs`,
+  },
   description:
     "Werkstudent, internship and thesis positions in AI, ML and Computer Science around Dresden – collected daily from several job sources.",
   // Keep the staging site out of search results so students only ever find production.
