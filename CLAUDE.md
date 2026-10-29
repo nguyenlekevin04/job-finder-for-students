@@ -68,3 +68,14 @@ Root `.env` (read by a minimal loader in `main.py`; real env vars win) holds `SU
 - **Design tokens**: colors are CSS variables in `app/globals.css` (`--c-*`, overridden under `.dark`) exposed as Tailwind colors (`bg-canvas`, `text-ink`, `text-muted`, `border-rule`, `bg-btn`, `text-orange-text`, …). Use those instead of raw palette classes. `orange` is decoration only (it fails text contrast); use `orange-text` for orange text. Fonts: Schibsted Grotesk (`font-sans`) and Instrument Serif italic (`font-serif`, accent words only).
 - The open job on the board is `Filters.job` (`?job=` in the URL); it isn't a filter, so `applyFilters` and `activeFilterCount` ignore it.
 - The footer links to arbeitnow.com because Arbeitnow's API terms ask for a backlink — keep it.
+
+## Team (project agents in `.claude/agents/`)
+
+The user calls these by name; start them only when asked. The main session is the **tech lead**: it briefs the agents, checks their output against the code, makes the code changes, and commits.
+
+- **Review team**: `code-reviewer` (read-only; bugs, security and code quality in existing code, never missing features) and `review-fixer` (applies confirmed findings).
+- **Iris**: UI/UX designer (`iris`). Looks at the real page (desktop and phone, light and dark) and returns prioritized design changes. Doesn't edit code.
+- **Otto**: product owner (`otto`). Writes user stories with acceptance criteria and prioritizes. May only edit `docs/backlog.md`.
+
+New agent files only load as agent types after a session restart. Until then, run them as general-purpose agents told to follow their file.
+
