@@ -25,7 +25,7 @@ export function isNew(firstSeen: string, withinDays = NEW_DAYS): boolean {
 }
 
 export function daysUntil(isoDay: string): number {
-  return -daysBetween(isoDay);
+  return 0 - daysBetween(isoDay); // not -x: that gives -0 for today
 }
 
 export function formatDate(isoDay: string): string {
