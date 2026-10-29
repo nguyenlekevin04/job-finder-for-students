@@ -13,8 +13,10 @@ import re
 import sys
 import time
 import traceback
+from collections import Counter
 from datetime import date, datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -39,6 +41,23 @@ SOURCES = [
     tu_dresden, fraunhofer, hzdr, infineon, globalfoundries, bosch, amazon,
     arbeitsagentur, arbeitnow,
 ]
+
+# Hosts each source's posting links may point to (the host or a subdomain of it), taken
+# from the URL each module builds. Links become "Apply now" buttons, so a link outside its
+# source's host (or a source missing here) is rejected and its posting skipped.
+LINK_HOSTS = {
+    "TU Dresden": ("tu-dresden.de",),
+    "Fraunhofer": ("jobs.fraunhofer.de",),
+    "HZDR": ("hzdr.de",),
+    "Infineon": ("jobs.infineon.com",),
+    # Workday and SmartRecruiters domains are shared by all their customers: allow only these.
+    "GlobalFoundries": ("globalfoundries.wd1.myworkdayjobs.com",),
+    "Bosch": ("jobs.smartrecruiters.com",),
+    "Amazon": ("amazon.jobs",),
+    "Arbeitsagentur": ("arbeitsagentur.de",),
+    # Arbeitnow links to its country sites too (seen live: .fr, .ch, .nl, .co.uk).
+    "Arbeitnow": ("arbeitnow.com", "arbeitnow.de", "arbeitnow.fr", "arbeitnow.ch", "arbeitnow.nl", "arbeitnow.co.uk"),
+}
 
 
 def load_env(path: Path = ROOT / ".env") -> None:
@@ -97,6 +116,25 @@ def safe_error(err: Exception) -> str:
     return redact(str(err))[:200]
 
 
+def safe_link(source: str, url: str) -> bool:
+    """True if url is https:// on a host allowed for this source (see LINK_HOSTS)."""
+    allowed = LINK_HOSTS.get(source)
+    if not allowed or not isinstance(url, str):
+        return False
+    # Browsers read a backslash as "/" and ignore tabs/newlines, so such URLs can open another host
+    # than urlsplit sees. Postings never need them; neither do they need user:pass@.
+    if "\\" in url or any(ord(c) <= 32 for c in url):
+        return False
+    try:
+        parts = urlsplit(url)
+        host = parts.hostname or ""
+    except ValueError:
+        return False
+    if parts.scheme != "https" or "@" in parts.netloc:
+        return False
+    return any(host == h or host.endswith("." + h) for h in allowed)
+
+
 def health_problems(status: dict, sources: list = SOURCES) -> list[str]:
     """Sources that look broken: they failed, or found nothing although they normally do.
 
@@ -139,7 +177,11 @@ def run_sources() -> tuple[list, dict]:
 def build_jobs(raw: list) -> dict[str, dict]:
     """Classify and merge duplicates. Returns id -> job dict."""
     jobs: dict[str, dict] = {}
+    rejected: Counter[str] = Counter()
     for r in raw:
+        if not safe_link(r.source, r.url):
+            rejected[r.source] += 1
+            continue
         r.title = re.sub(r"\s+", " ", strip_company_prefix(r.title, r.company)).strip()
         tags = classify(r)
         if not tags:
@@ -147,14 +189,17 @@ def build_jobs(raw: list) -> dict[str, dict]:
         jid = job_id(r.title, r.company)
         link = {"source": r.source, "url": r.url}
         if jid in jobs:
+            # raw arrives in SOURCES order, so the first posting is the most trusted one: a later
+            # copy (e.g. an aggregator's) only fills what it left empty and can't replace its text.
             j = jobs[jid]
             if all(l["url"] != r.url for l in j["links"]):
                 j["links"].append(link)
-            if r.posted_at and (not j["postedAt"] or r.posted_at < j["postedAt"]):
+            if not j["postedAt"]:
                 j["postedAt"] = r.posted_at
-            if len(tags["snippet"]) > len(j["snippet"]):
+            if not j["snippet"]:
                 j["snippet"] = tags["snippet"]
-            j["englishFriendly"] = j["englishFriendly"] or tags["englishFriendly"]
+            if j["englishFriendly"] is None:
+                j["englishFriendly"] = tags["englishFriendly"]
             j["fields"] = sorted(set(j["fields"]) | set(tags["fields"]), key=list(FIELD_LABELS).index)
             continue
         jobs[jid] = {
@@ -169,6 +214,8 @@ def build_jobs(raw: list) -> dict[str, dict]:
             "links": [link],
             "snippet": tags["snippet"],
         }
+    for source, n in rejected.items():
+        print(f"  ! {source}: skipped {n} postings with a link outside its allowed hosts")
     return jobs
 
 

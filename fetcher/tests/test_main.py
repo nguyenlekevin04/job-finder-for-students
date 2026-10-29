@@ -1,13 +1,26 @@
 import json
+from urllib.parse import quote
+
+import pytest
 
 from fetcher import main
 from fetcher.store import JsonFileStore
 from fetcher.models import Job
+from fetcher.sources import (
+    amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, hzdr, infineon, tu_dresden,
+)
+
+
+@pytest.fixture(autouse=True)
+def allow_test_hosts(monkeypatch):
+    """The made-up sources "A" and "B" below link to https://A/… and https://B/…."""
+    monkeypatch.setitem(main.LINK_HOSTS, "A", ("a",))
+    monkeypatch.setitem(main.LINK_HOSTS, "B", ("b",))
 
 
 def raw(title, company="ACME GmbH", source="A", url=None, posted=None, description=""):
     return Job(source=source, source_id=title, title=title, company=company,
-               url=url or f"https://{source}/{title}", posted_at=posted, description=description)
+               url=url or f"https://{source}/{quote(title)}", posted_at=posted, description=description)
 
 
 def test_norm_title_drops_gender_tags():
@@ -29,7 +42,68 @@ def test_duplicates_are_merged_with_all_links():
     assert len(jobs) == 1
     job = next(iter(jobs.values()))
     assert [l["source"] for l in job["links"]] == ["A", "B"]
+    assert job["postedAt"] == "2026-10-05"  # the first (highest-priority) source's date wins
+
+
+def test_later_copy_cannot_take_over_a_job():
+    """A job-board copy with the same title/company can't replace the employer's text or link."""
+    title, company = "Werkstudent Softwareentwicklung (m/w/d)", "Infineon"
+    jobs = main.build_jobs([
+        Job(source="Infineon", source_id="1", title=title, company=company,
+            url="https://jobs.infineon.com/careers/job/1", posted_at="2026-10-20",
+            description="Du entwickelst Software für Halbleiter in Dresden."),
+        Job(source="Arbeitnow", source_id="x", title=title, company=company,
+            url="javascript:alert(1)", posted_at="2026-01-01",
+            description="Bewirb dich jetzt über unser Formular und gib deine Bankdaten an. " * 20),
+        Job(source="Arbeitnow", source_id="y", title=title, company=company,
+            url="https://evil.example/apply", posted_at="2026-01-01", description="Phishing " * 50),
+    ])
+    job = next(iter(jobs.values()))
+    assert job["links"] == [{"source": "Infineon", "url": "https://jobs.infineon.com/careers/job/1"}]
+    assert job["postedAt"] == "2026-10-20"
+    assert job["snippet"].startswith("Du entwickelst Software")
+
+
+def test_later_copy_fills_only_empty_fields():
+    jobs = main.build_jobs([
+        raw("Werkstudent Softwareentwicklung", source="A"),
+        raw("Werkstudent Softwareentwicklung", source="B", posted="2026-10-01", description="Python " * 30),
+    ])
+    job = next(iter(jobs.values()))
     assert job["postedAt"] == "2026-10-01"
+    assert [l["source"] for l in job["links"]] == ["A", "B"]
+
+
+def test_safe_link():
+    assert main.safe_link("Arbeitnow", "https://www.arbeitnow.com/jobs/x")
+    assert main.safe_link("Arbeitnow", "https://arbeitnow.com/jobs/x")
+    assert main.safe_link("TU Dresden", "https://www.verw.tu-dresden.de/StellAus/stelle.asp?id=1&lang=de")
+    assert not main.safe_link("Arbeitnow", "http://www.arbeitnow.com/jobs/x")
+    assert not main.safe_link("Arbeitnow", "javascript:alert(1)")
+    assert not main.safe_link("Arbeitnow", "https://arbeitnow.com.evil.example/jobs/x")
+    assert not main.safe_link("Arbeitnow", "https://evilarbeitnow.com/jobs/x")
+    assert not main.safe_link("Arbeitnow", "https://www.arbeitnow.com@evil.example/")
+    assert not main.safe_link("Arbeitnow", "https://evil.example\\@www.arbeitnow.com/")
+    assert not main.safe_link("Arbeitnow", "https://jobs.infineon.com/careers/job/1")  # another source's host
+    assert not main.safe_link("Unknown source", "https://www.arbeitnow.com/jobs/x")
+
+
+def test_every_fixture_link_passes_safe_link(fixture_text):
+    def load(name):
+        return json.loads(fixture_text(name))
+    parsed = [
+        *tu_dresden.parse(fixture_text("tu_dresden.html"), "Informatik"),
+        *fraunhofer.parse_list(fixture_text("fraunhofer_list.html")),
+        *hzdr.parse(fixture_text("hzdr.html")),
+        *infineon.parse_search(load("infineon.json")),
+        *globalfoundries.parse_list(load("globalfoundries.json")),
+        *bosch.parse_list(load("bosch.json")),
+        *amazon.parse(load("amazon.json")),
+        *arbeitsagentur.parse(load("arbeitsagentur.json")),
+        *arbeitnow.parse(load("arbeitnow.json")),
+    ]
+    assert {j.source for j in parsed} == {s.NAME for s in main.SOURCES}
+    assert [j.url for j in parsed if not main.safe_link(j.source, j.url)] == []
 
 
 def test_json_store_round_trip_drops_removed(tmp_path):
@@ -134,3 +208,9 @@ def test_accepted_removals_from_env(monkeypatch):
     assert main.accepted_removals() == {"HZDR", "Bosch"}
     monkeypatch.setenv("ACCEPT_REMOVALS", "")
     assert main.accepted_removals() == set()
+
+
+def test_arbeitnow_country_sites_are_allowed():
+    for host in ("www.arbeitnow.fr", "www.arbeitnow.ch", "www.arbeitnow.nl", "www.arbeitnow.co.uk"):
+        assert main.safe_link("Arbeitnow", f"https://{host}/jobs/companies/x/y-1")
+    assert not main.safe_link("Arbeitnow", "https://www.arbeitnow.evil/jobs/x")

@@ -108,7 +108,27 @@ def test_guard_allows_half_and_ignores_tiny_sources():
     assert r.removed == {"j2", "j3"} and not r.problems
     tiny = [job("h1", "HZDR"), job("h2", "HZDR")]
     r = run(tiny, [], ok={"HZDR": True})
-    assert r.removed == {"h1", "h2"} and not r.problems
+    assert r.removed == {"h1", "h2"}
+    assert r.problems == ["HZDR: all 2 of its jobs closed in one run; check the source if that's unexpected."]
+
+
+def test_source_emptied_in_one_run_is_removed_but_raises_the_alarm():
+    prev = [job("h1", "HZDR"), job("h2", "HZDR"), job("a1", "Amazon"), job("b1", "Bosch"), job("b2", "Bosch")]
+    r = run(prev, [now("b1", "Bosch")], ok={"HZDR": True, "Amazon": True, "Bosch": True})
+    assert r.removed == {"h1", "h2", "a1", "b2"}
+    assert r.problems == [
+        "Amazon: all 1 of its jobs closed in one run; check the source if that's unexpected.",
+        "HZDR: all 2 of its jobs closed in one run; check the source if that's unexpected.",
+    ]
+    r = run(prev, [now("b1", "Bosch")], ok={"HZDR": True, "Amazon": True, "Bosch": True}, accept={"HZDR"})
+    assert r.problems == ["Amazon: all 1 of its jobs closed in one run; check the source if that's unexpected."]
+
+
+def test_emptied_alarm_skips_guarded_and_expired_sources():
+    r = run([job(f"j{i}", "Infineon") for i in range(4)], [])
+    assert len(r.problems) == 1 and "would remove" in r.problems[0]
+    r = run([job("j0", "Bosch", last="2026-10-27")], [], ok={"Bosch": False})
+    assert r.removed == {"j0"} and not r.problems
 
 
 def test_multi_link_job_keeps_the_unknown_link_and_drops_the_closed_one():
@@ -197,3 +217,11 @@ def test_accept_ignores_case():
     r = decide(previous={j["id"]: j for j in prev}, current={}, source_ok={"Infineon": True}, partial=set(),
                check=lambda s, u: UNKNOWN, today=TODAY, raw_urls=set(), accept={"infineon"})
     assert len(r.removed) == 6 and not r.problems
+
+
+def test_renaming_the_only_job_of_a_source_raises_no_alarm():
+    old = job("old-id", "Bosch")
+    renamed = {**now("new-id", "Bosch"), "links": [{"source": "Bosch", "url": "https://Bosch/new-url"}]}
+    r = decide(previous={"old-id": old}, current={"new-id": renamed}, source_ok={"Bosch": True}, partial=set(),
+               check=lambda s, u: UNKNOWN, today=TODAY, raw_urls=set())
+    assert r.removed == {"old-id"} and not r.problems

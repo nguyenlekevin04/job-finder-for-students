@@ -43,7 +43,8 @@ Non-blocking findings; the tech lead decides the order. Most are small.
 1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
 2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
 3. **Employer feeds can be cut off silently** (should-fix, S): Infineon, GlobalFoundries, Bosch, Fraunhofer and Amazon stop at a page cap (150–500 postings; today's counts are 6–60). If a site grows past it, the missing postings count as closed. Make `fetch()` fail when it hits the cap, so the source counts as failed and nothing is removed.
-4. **Small items** (nice-to-have, S):
+4. **Supply chain hardening** (security, S): pin GitHub Actions to commit SHAs and restrict allowed actions; add `pip-audit` to CI; a full `script-src` CSP with hashes for the two inline scripts (`docs/security.md`, attack #1).
+5. **Small items** (nice-to-have, S):
    - the Saved page title lacks "[STAGING]" on staging
    - an outdated comment in `web/.env.example`
    - the clear-search button drops keyboard focus

@@ -21,7 +21,8 @@ A guard stops a broken source or checker from emptying the board: when a source'
 closed links would remove at least ``GUARD_MIN_REMOVALS`` and more than ``GUARD_SHARE``
 of its jobs in one run, those jobs are kept and the alarm is raised. Removals after the
 grace period are never blocked. Sources in ``accept`` (owner-approved for this run,
-``ACCEPT_REMOVALS`` in main.py) skip the guard.
+``ACCEPT_REMOVALS`` in main.py) skip the guard. A source whose own closed links remove
+all of its jobs (too few for the guard) is still removed, but raises the alarm too.
 """
 from __future__ import annotations
 
@@ -126,6 +127,19 @@ def decide(
                 restored.add(jid)
                 candidates[jid] = {**previous[jid]}
                 verdicts[jid] = UNKNOWN
+
+    # A source whose own closed links removed every one of its jobs (too few for the guard)
+    # is let through, but is worth a look: it may be broken rather than empty.
+    for src in sorted({l["source"] for j in previous.values() for l in j.get("links", [])}):
+        if src.lower() in accepted:
+            continue
+        had = [jid for jid, j in previous.items() if any(l["source"] == src for l in j.get("links", []))]
+        still_listed = any(verdicts[jid] != CLOSED and any(l["source"] == src for l in j["links"])
+                           for jid, j in candidates.items())
+        if not still_listed and all(jid in removed and jid not in expired and (src, CLOSED) in link_states[jid]
+                                    for jid in had):
+            problems.append(f"{src}: all {len(had)} of its jobs closed in one run; "
+                            "check the source if that's unexpected.")
 
     # Per-source link counts of the final outcome: restored jobs' closed links count as unknown.
     stats: dict[str, dict[str, int]] = {}
