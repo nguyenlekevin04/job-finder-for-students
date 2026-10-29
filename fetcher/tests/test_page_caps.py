@@ -174,3 +174,12 @@ def test_amazon_fetch_complete_feed(monkeypatch, fixture_text):
     data = json.loads(fixture_text("amazon.json"))
     monkeypatch.setattr(amazon, "get_json", lambda url, params: data)
     assert amazon.fetch() == amazon.parse(data)
+
+
+def test_globalfoundries_without_total_ends_on_a_short_page():
+    from fetcher.sources import globalfoundries as gf
+    full = {"jobPostings": [{}] * gf.PAGE}
+    short = {"jobPostings": [{}] * 3}
+    assert not gf.is_last_page(full, 0, 0)
+    assert gf.is_last_page(short, 1, 0)
+    assert gf.is_last_page({"jobPostings": []}, 2, 0)

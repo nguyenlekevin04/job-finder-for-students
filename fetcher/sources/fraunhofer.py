@@ -58,7 +58,8 @@ def is_last_page(page: list[Job]) -> bool:
 
 def fetch() -> list[Job]:
     jobs: list[Job] = []
-    for start in range(0, MAX_ROWS, PAGE_SIZE):
+    # One extra probe page, so a list of exactly MAX_ROWS postings still ends on a short page.
+    for start in range(0, MAX_ROWS + PAGE_SIZE, PAGE_SIZE):
         html = get_text(f"{BASE}/search/", params={"q": "", "locationsearch": "Dresden", "startrow": start})
         page = parse_list(html)
         jobs.extend(page)

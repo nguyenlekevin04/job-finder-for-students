@@ -70,7 +70,10 @@ def is_last_page(data: dict, page: int, total: int) -> bool:
     Workday reports `total` only on the first page (later pages say 0), so the
     caller passes the first page's total.
     """
-    return not data.get("jobPostings") or (page + 1) * PAGE >= total
+    postings = data.get("jobPostings") or []
+    if not total:  # no total reported: only a short or empty page ends the feed
+        return len(postings) < PAGE
+    return not postings or (page + 1) * PAGE >= total
 
 
 def fetch() -> list[Job]:
