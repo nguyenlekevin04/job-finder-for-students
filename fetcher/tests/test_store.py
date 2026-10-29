@@ -102,7 +102,8 @@ def test_errors_are_raised():
 def test_row_mapping_covers_every_column():
     row = to_row({**job("a"), "firstSeen": "2026-10-28", "lastSeen": "2026-10-28"})
     assert set(row) == {"id", "title", "company", "location", "remote", "type", "types", "fields",
-                        "english_friendly", "posted_at", "deadline", "first_seen", "last_seen", "links", "snippet"}
+                        "english_friendly", "posted_at", "deadline", "first_seen", "last_seen", "links", "snippet",
+                        "hours_min", "hours_max", "pay_amount", "pay_unit"}
 
 
 def test_get_store_picks_backend(monkeypatch, tmp_path):

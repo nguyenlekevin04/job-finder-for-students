@@ -18,6 +18,7 @@ const JOB_SELECT = [
   "id", "title", "company", "location", "remote", "type", "types", "fields",
   "englishFriendly:english_friendly", "postedAt:posted_at", "deadline",
   "firstSeen:first_seen", "lastSeen:last_seen", "links", "snippet",
+  "hoursMin:hours_min", "hoursMax:hours_max", "payAmount:pay_amount", "payUnit:pay_unit",
 ].join(",");
 
 async function getJson<T>(url: string, headers?: Record<string, string>): Promise<T> {

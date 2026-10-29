@@ -22,6 +22,12 @@ create table if not exists public.jobs (
   snippet          text not null default ''
 );
 
+-- Hours per week and pay, only when the posting states them (fetcher/terms.py).
+alter table public.jobs add column if not exists hours_min  smallint;
+alter table public.jobs add column if not exists hours_max  smallint;
+alter table public.jobs add column if not exists pay_amount numeric(8,2);
+alter table public.jobs add column if not exists pay_unit   text check (pay_unit in ('hour', 'month'));
+
 create index if not exists jobs_last_seen_idx on public.jobs (last_seen);
 
 -- One row per daily run: when it ran and how each source did.
