@@ -11,6 +11,7 @@ NAME = "Amazon"
 
 API = "https://www.amazon.jobs/en/search.json"
 SITE = "https://www.amazon.jobs"
+RESULT_LIMIT = 100
 
 # The Dresden office is small, so a day with no openings is normal (no alarm).
 MAY_BE_EMPTY = True
@@ -43,5 +44,15 @@ def parse(data: dict) -> list[Job]:
     return jobs
 
 
+def check_complete(data: dict) -> None:
+    """Raise when the search found more postings (`hits`) than it returned (the result limit)."""
+    hits = data.get("hits") or 0
+    if hits > len(data.get("jobs") or []):
+        # a cut-off list would make the missing postings count as closed
+        raise RuntimeError(f"{NAME}: more than {RESULT_LIMIT} postings ({hits} hits); raise RESULT_LIMIT")
+
+
 def fetch() -> list[Job]:
-    return parse(get_json(API, params={"normalized_city_name[]": "Dresden", "result_limit": 100, "base_query": ""}))
+    data = get_json(API, params={"normalized_city_name[]": "Dresden", "result_limit": RESULT_LIMIT, "base_query": ""})
+    check_complete(data)
+    return parse(data)

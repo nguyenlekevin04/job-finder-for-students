@@ -13,6 +13,9 @@ export function SavedJobs() {
   const { saved, toggle, count } = useBookmarks();
   const { state } = useJobsFile();
   const [open, setOpen] = useState<string | null>(null);
+  // Jobs removed during this visit stay in the list as "Save for later", so the
+  // same button undoes a mis-tap and keeps focus. Gone on the next visit.
+  const [removed, setRemoved] = useState<Record<string, Job>>({});
   const current = useMemo(
     () => (state.status === "ready" ? new Map(state.data.jobs.map((j) => [j.id, j])) : null),
     [state],
@@ -21,12 +24,23 @@ export function SavedJobs() {
   // Prefer today's version of a job (fresh dates/links). A saved job missing from today's
   // data has closed (the daily fetch removes closed jobs), so it keeps the saved copy.
   const list = useMemo(() => {
-    const jobs: { job: Job; closed: boolean }[] = Object.values(saved).map((s) => {
+    const jobs: { job: Job; closed: boolean; isSaved: boolean }[] = Object.values({ ...removed, ...saved }).map((s) => {
       const live = current?.get(s.id);
-      return { job: live ?? s, closed: current ? !live : false };
+      return { job: live ?? s, closed: current ? !live : false, isSaved: s.id in saved };
     });
     return jobs.sort((a, b) => Number(a.closed) - Number(b.closed) || jobDate(b.job).localeCompare(jobDate(a.job)));
-  }, [saved, current]);
+  }, [saved, removed, current]);
+
+  const toggleSave = (job: Job) => {
+    const wasSaved = job.id in saved;
+    setRemoved((r) => {
+      const next = { ...r };
+      if (wasSaved) next[job.id] = saved[job.id];
+      else delete next[job.id];
+      return next;
+    });
+    toggle(job);
+  };
 
   return (
     <div className="max-w-4xl pt-10 lg:pt-12">
@@ -42,7 +56,7 @@ export function SavedJobs() {
       <div className="mt-10">
         {state.status === "loading" && count > 0 ? (
           <LoadingList count={Math.min(count, 4)} />
-        ) : count === 0 ? (
+        ) : list.length === 0 ? (
           <EmptyState title="Nothing saved yet">
             <p>Open any job and choose “Save for later” to keep it here.</p>
             <Link
@@ -54,14 +68,14 @@ export function SavedJobs() {
           </EmptyState>
         ) : (
           <ol className="border-b-[1.5px] border-rule">
-            {list.map(({ job, closed }) => (
+            {list.map(({ job, closed, isSaved }) => (
               <JobRow
                 key={job.id}
                 job={job}
                 open={open === job.id}
                 onToggle={(id) => setOpen((o) => (o === id ? null : id))}
-                saved
-                onToggleSave={toggle}
+                saved={isSaved}
+                onToggleSave={toggleSave}
                 closed={closed}
               />
             ))}

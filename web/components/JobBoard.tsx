@@ -74,6 +74,8 @@ export function JobBoard() {
 
   // "/" jumps to the search field, like the hint says.
   const searchRef = useRef<HTMLInputElement>(null);
+  // Focus target after dismissing the "no longer available" notice, which unmounts.
+  const countRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
@@ -110,7 +112,10 @@ export function JobBoard() {
           {filters.q ? (
             <button
               type="button"
-              onClick={() => update({ q: "" })}
+              onClick={() => {
+                update({ q: "" });
+                searchRef.current?.focus(); // the button unmounts; keep keyboard users in the field
+              }}
               aria-label="Clear search"
               className="focus-ring grid size-6 place-items-center rounded text-muted hover:text-ink"
             >
@@ -144,13 +149,20 @@ export function JobBoard() {
             {filters.job && !jobs.some((j) => j.id === filters.job) && (
               <p role="status" className="mb-4 flex flex-wrap items-baseline gap-x-3 border-l-2 border-rule pl-3 text-sm text-muted">
                 This job is no longer available.
-                <button type="button" onClick={() => update({ job: null })} className="focus-ring link-u rounded text-ink">
+                <button
+                  type="button"
+                  onClick={() => {
+                    update({ job: null });
+                    countRef.current?.focus();
+                  }}
+                  className="focus-ring hit link-u rounded text-ink"
+                >
                   Dismiss
                 </button>
               </p>
             )}
             <div className="flex items-center justify-between gap-4 pb-2.5 text-[13px] text-muted">
-              <span>
+              <span ref={countRef} tabIndex={-1} data-testid="results-count" className="focus-ring rounded">
                 {results.length === jobs.length ? `${jobs.length} jobs` : `${results.length} of ${jobs.length} jobs`}
                 {data.generatedAt ? ` · updated ${relativeTime(data.generatedAt)}` : " · first update pending"}
               </span>
