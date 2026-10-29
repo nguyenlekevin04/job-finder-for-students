@@ -7,7 +7,6 @@
 :root {
   color-scheme: light;
   --c-canvas: #f8f5ee;
-  --c-surface: #fffdf8;
   --c-ink: #1f1d1a;
   --c-muted: #6f6a62;
   --c-line: #e3ddd1;
@@ -24,7 +23,6 @@
 :root.dark {
   color-scheme: dark;
   --c-canvas: #252523;
-  --c-surface: #2d2d2a;
   --c-ink: #edeae3;
   --c-muted: #a29e96;
   --c-line: #3a3935;
@@ -43,7 +41,6 @@
   --font-sans: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
   --color-canvas: var(--c-canvas);
-  --color-surface: var(--c-surface);
   --color-ink: var(--c-ink);
   --color-muted: var(--c-muted);
   --color-line: var(--c-line);

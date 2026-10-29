@@ -75,7 +75,19 @@ describe("URL <-> filters", () => {
     for (const bad of ["2020-13-45", "0000-00-00", "2026-02-30"]) {
       expect(filtersFromParams(new URLSearchParams(`since=${bad}`)).since).toBeNull();
     }
-    expect(filtersFromParams(new URLSearchParams("since=2028-02-29")).since).toBe("2028-02-29"); // leap day
+    expect(filtersFromParams(new URLSearchParams("since=2024-02-29")).since).toBe("2024-02-29"); // leap day
+  });
+
+  it("rejects a ?since= date in the future", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 29, 12)); // local noon, 29 Oct 2026
+    try {
+      expect(filtersFromParams(new URLSearchParams("since=2026-10-29")).since).toBe("2026-10-29"); // today
+      expect(filtersFromParams(new URLSearchParams("since=2026-10-30")).since).toBeNull();
+      expect(filtersFromParams(new URLSearchParams("since=2028-02-29")).since).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("only turns the hours filter on for ?hours=20", () => {

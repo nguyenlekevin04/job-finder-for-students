@@ -17,7 +17,7 @@ interface Props {
   newSince?: string | null; // "YYYY-MM-DD": "New" means first seen after this day instead of this week
 }
 
-export function jobPlace(job: Job): string {
+function jobPlace(job: Job): string {
   if (!job.remote) return job.location;
   return job.location && !/remote/i.test(job.location) ? `Remote · ${job.location}` : "Remote";
 }
@@ -171,19 +171,20 @@ const noSubscribe = () => () => {};
 const canNativeShare = () => typeof navigator.share === "function" && matchMedia("(pointer: coarse)").matches;
 
 /** Link to one job on the board: only ?job=, no filters, no tracking. */
-export function jobUrl(id: string): string {
+function jobUrl(id: string): string {
   return `${location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/?job=${encodeURIComponent(id)}`;
 }
 
 function ShareButton({ job }: { job: Job }) {
   const native = useSyncExternalStore(noSubscribe, canNativeShare, () => false);
-  const [message, setMessage] = useState<string | null>(null);
+  // label: the short text on the button; status: the full message for screen readers.
+  const [message, setMessage] = useState<{ label: string; status: string } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  const show = (text: string, ms: number) => {
+  const show = (label: string, status: string, ms: number) => {
     clearTimeout(timer.current);
-    setMessage(text);
+    setMessage({ label, status });
     timer.current = setTimeout(() => setMessage(null), ms);
   };
 
@@ -202,19 +203,19 @@ function ShareButton({ job }: { job: Job }) {
     }
     try {
       await navigator.clipboard.writeText(url);
-      show("Link copied", 2000);
+      show("Link copied", "Link copied", 2000);
     } catch {
-      show("Couldn't copy, use the address bar", 4000);
+      show("Copy failed", "Couldn't copy, use the address bar", 4000);
     }
   };
 
   return (
     <>
       <button type="button" onClick={share} className="focus-ring hit link-u rounded">
-        {message ?? (native ? "Share" : "Copy link")}
+        {message?.label ?? (native ? "Share" : "Copy link")}
       </button>
       <span role="status" className="sr-only">
-        {message}
+        {message?.status}
       </span>
     </>
   );

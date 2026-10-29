@@ -118,4 +118,4 @@ Free Supabase projects pause after a week without activity; the daily fetch keep
 
 ## Add a source
 
-Create `fetcher/sources/<name>.py` with `NAME = "..."` and a `fetch() -> list[Job]` function (see `hzdr.py` or `amazon.py` for small examples), then add it to `SOURCES` in `fetcher/main.py`. Set `MAY_BE_EMPTY = True` if zero postings on some days is normal. Save a sample response in `fetcher/tests/fixtures/` and add a parser test.
+Create `fetcher/sources/<name>.py` with `NAME = "..."` and a `fetch() -> list[Job]` function (see `hzdr.py` or `amazon.py` for small examples), then add it to `SOURCES` in `fetcher/main.py`. Add the host of its job links to `LINK_HOSTS` in `fetcher/main.py`; otherwise every posting is skipped and the source health alarm fires. Set `FEED = "partial"` if the feed is capped or search-ranked (it doesn't list every open posting), so a posting missing from one run isn't treated as closed. Set `MAY_BE_EMPTY = True` if zero postings on some days is normal. Save a sample response in `fetcher/tests/fixtures/` and add a parser test.

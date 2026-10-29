@@ -8,7 +8,7 @@ type State =
   | { status: "error"; message: string }
   | { status: "ready"; data: JobsFile };
 
-// Set at build time (Render env vars / web/.env.local). Without them the site
+// Set at build time (Vercel env vars / web/.env.local). Without them the site
 // falls back to the local web/public/jobs.json written by the fetcher.
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

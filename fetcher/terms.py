@@ -15,8 +15,6 @@ import re
 HOURS_RANGE = (1, 40)
 PAY_RANGE = {"hour": (5, 60), "month": (200, 4000)}
 
-EMPTY = {"hoursMin": None, "hoursMax": None, "payAmount": None, "payUnit": None}
-
 
 def _clean(text: str) -> str:
     text = re.sub(r"[   ]", " ", text or "")

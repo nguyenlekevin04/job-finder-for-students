@@ -145,7 +145,14 @@ export function JobBoard() {
         </div>
 
         {data ? (
-          <FilterGroups filters={filters} jobs={jobs} onChange={update} onReset={reset} activeCount={active} />
+          <FilterGroups
+            filters={filters}
+            jobs={jobs}
+            onChange={update}
+            onReset={reset}
+            activeCount={active}
+            sinceMode={newMode === "since"}
+          />
         ) : (
           <div className="mt-6 space-y-3">
             {Array.from({ length: 3 }, (_, i) => (
@@ -162,7 +169,7 @@ export function JobBoard() {
         {data && (
           <>
             {/* Highlighting "new" only means something when some jobs aren't. */}
-            {newMode === "since" && sinceDay && (
+            {newMode === "since" && sinceDay && sinceCount < jobs.length && (
               <NewTicket
                 since={labelDay}
                 count={sinceCount}
@@ -220,7 +227,7 @@ export function JobBoard() {
                     onToggle={openJob}
                     saved={isSaved(job.id)}
                     onToggleSave={toggle}
-                    showNew={newMode === "since" || (newMode === "week" && newCount < jobs.length)}
+                    showNew={(newMode === "since" && sinceCount < jobs.length) || (newMode === "week" && newCount < jobs.length)}
                     newSince={newMode === "since" ? sinceDay : null}
                   />
                 ))}

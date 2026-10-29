@@ -16,6 +16,7 @@ export function SavedJobs() {
   // Jobs removed during this visit stay in the list as "Save for later", so the
   // same button undoes a mis-tap and keeps focus. Gone on the next visit.
   const [removed, setRemoved] = useState<Record<string, Job>>({});
+  const [announce, setAnnounce] = useState("");
   const current = useMemo(
     () => (state.status === "ready" ? new Map(state.data.jobs.map((j) => [j.id, j])) : null),
     [state],
@@ -40,6 +41,7 @@ export function SavedJobs() {
       return next;
     });
     toggle(job);
+    setAnnounce(wasSaved ? "Removed from saved" : "Saved again");
   };
 
   return (
@@ -48,9 +50,13 @@ export function SavedJobs() {
         Your <span className="font-serif text-[1.12em] font-normal tracking-[-0.02em] text-orange-text">saved</span> jobs.
       </h1>
       <p className="mt-4 max-w-md text-[17px] leading-snug text-muted">
-        {count > 0
+        {/* Removed rows stay listed this visit, so keep counting instead of showing the empty text. */}
+        {count > 0 || list.length > 0
           ? `${count} job${count === 1 ? "" : "s"} kept for later, stored in this browser only.`
           : "Jobs you save show up here. They're stored in this browser only."}
+      </p>
+      <p role="status" className="sr-only">
+        {announce}
       </p>
 
       <div className="mt-10">

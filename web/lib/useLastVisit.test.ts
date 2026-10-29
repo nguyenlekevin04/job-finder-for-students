@@ -59,24 +59,15 @@ describe("advanceVisit", () => {
 describe("parseVisitRecord", () => {
   it("reads the JSON record", () => {
     const rec: VisitRecord = { seen: null, seenAt: NOW.toISOString(), next: "2026-10-29", nextAt: NOW.toISOString() };
-    expect(parseVisitRecord(JSON.stringify(rec), NOW)).toEqual(rec);
+    expect(parseVisitRecord(JSON.stringify(rec))).toEqual(rec);
   });
 
-  it("migrates the old format (a bare ISO date-time) to a mark on that day", () => {
-    const old = "2026-10-26T08:00:00.000Z";
-    const day = localDay(old);
-    expect(parseVisitRecord(old, NOW)).toEqual({ seen: day, seenAt: old, next: day, nextAt: old });
-    // ... and the first load rolls it forward without losing the mark.
-    const rolled = advanceVisit(parseVisitRecord(old, NOW), "2026-10-29", NOW);
-    expect(rolled).toMatchObject({ seen: day, seenAt: old, next: "2026-10-29" });
-  });
-
-  it("ignores garbage, broken records and future old-format values", () => {
-    expect(parseVisitRecord(null, NOW)).toBeNull();
-    expect(parseVisitRecord("not a date", NOW)).toBeNull();
-    expect(parseVisitRecord("2099-01-01T00:00:00.000Z", NOW)).toBeNull();
-    expect(parseVisitRecord("{broken", NOW)).toBeNull();
-    expect(parseVisitRecord(JSON.stringify({ seen: "yesterday", seenAt: "x", next: null, nextAt: "x" }), NOW)).toBeNull();
+  it("ignores garbage, broken records and the old bare-date format", () => {
+    expect(parseVisitRecord(null)).toBeNull();
+    expect(parseVisitRecord("not a date")).toBeNull();
+    expect(parseVisitRecord("2026-10-26T08:00:00.000Z")).toBeNull();
+    expect(parseVisitRecord("{broken")).toBeNull();
+    expect(parseVisitRecord(JSON.stringify({ seen: "yesterday", seenAt: "x", next: null, nextAt: "x" }))).toBeNull();
   });
 });
 
@@ -118,9 +109,10 @@ describe("readLastVisit", () => {
   });
 
   it("a reload within 30 minutes keeps the mark", () => {
-    local.setItem(LAST_VISIT_KEY, "2026-10-26T08:00:00.000Z"); // old format
+    const prev: VisitRecord = { seen: "2026-10-20", seenAt: "2026-10-20T08:00:00.000Z", next: "2026-10-26", nextAt: "2026-10-26T08:00:00.000Z" };
+    local.setItem(LAST_VISIT_KEY, JSON.stringify(prev));
     const mark = readLastVisit("2026-10-29");
-    expect(mark).toEqual({ seen: localDay("2026-10-26T08:00:00.000Z"), seenAt: "2026-10-26T08:00:00.000Z" });
+    expect(mark).toEqual({ seen: "2026-10-26", seenAt: "2026-10-26T08:00:00.000Z" });
     resetLastVisitCache(); // reload
     vi.setSystemTime(minutes(5));
     expect(readLastVisit("2026-10-29")).toEqual(mark);
