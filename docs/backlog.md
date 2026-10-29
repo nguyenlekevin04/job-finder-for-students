@@ -4,7 +4,23 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 
 ## Now
 
-_Empty: sprint 1 is being released._
+**Sprint 2 goal: only show jobs that are still open.**
+
+1. **Closed jobs leave the board by the next daily update** (M): As a student checking the board between lectures, I want every job I see to still accept applications, so that I don't waste my few free minutes on dead postings.
+   - Acceptance (fetcher, each daily run):
+     - Every listed job's own posting page is checked once per run (~1 request per job, free).
+     - A job is **closed** when its page returns 404/410, redirects away from the posting (to a search, list or home page), or shows a "no longer available" / "nicht mehr verfügbar" message. A closed job is removed in that run, even if its source feed still lists it.
+     - A job missing from a source that **succeeded** this run is removed unless its page check confirms it is open. This replaces the 7-day grace period.
+     - A **failed source** removes nothing on feed absence; its jobs stay unless their own page check says closed.
+     - An **inconclusive** check (timeout, 5xx, 403/429, captcha, unknown page) keeps the job if its feed still lists it. If the feed also dropped it, it stays for at most 2 runs, then goes.
+     - Guard: if one run would remove more than half of a source's jobs, no removals for that source happen, and the health alarm fires (exit 3).
+     - The run log and `fetch_runs` show per source how many jobs were checked, open, closed or inconclusive.
+     - Offline tests with saved fixtures cover each case: 404, 410, redirect, "no longer available" text, open page, timeout, failed source, and the half-removal guard.
+   - Acceptance (site):
+     - A saved job that is no longer on the board shows **"No longer available"** on the Saved page. "Apply now" is replaced by a plain link labelled "View original posting". The job stays saved until the student removes it.
+     - A shared link `?job=<id>` to a removed job shows "This job is no longer available" and the board below, not an empty panel.
+   - Out of scope: deadlines (0 of 40 jobs have one), checks more than once a day or live in the browser, a "report closed job" button, changes to job IDs.
+   - Open question for the tech lead: per-source rules for "closed" pages (Arbeitsagentur, Arbeitnow, Adzuna redirects, Workday, Eightfold). Size may grow if a source needs special handling.
 
 ## Next
 

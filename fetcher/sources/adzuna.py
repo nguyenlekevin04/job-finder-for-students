@@ -13,6 +13,8 @@ from fetcher.net import clean_text, get_json, to_day
 from fetcher.models import Job
 
 NAME = "Adzuna"
+# A search API with no reliable per-posting check: missing postings stay unconfirmed.
+FEED = "partial"
 
 API = "https://api.adzuna.com/v1/api/jobs/de/search/1"
 

@@ -8,13 +8,11 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import requests
 
-KEEP_MISSING_DAYS = 7  # keep a job this long after it stops appearing
 BATCH = 500
 
 # jobs.json / web field name -> database column
@@ -35,18 +33,6 @@ COLUMNS = {
     "links": "links",
     "snippet": "snippet",
 }
-
-
-def cutoff_day(today: str) -> str:
-    return (date.fromisoformat(today) - timedelta(days=KEEP_MISSING_DAYS)).isoformat()
-
-
-def stamp_history(current: dict[str, dict], first_seen: dict[str, str], today: str) -> list[dict]:
-    """Give each current job its firstSeen (kept from before) and lastSeen = today."""
-    for jid, job in current.items():
-        job["firstSeen"] = first_seen.get(jid, today)
-        job["lastSeen"] = today
-    return list(current.values())
 
 
 def to_row(job: dict) -> dict:
@@ -72,24 +58,24 @@ class SupabaseStore:
             raise RuntimeError(f"Supabase {res.request.method} {res.url} -> {res.status_code}: {res.text[:300]}")
         return res
 
-    def first_seen(self) -> dict[str, str]:
-        # Supabase caps each response (1000 rows by default), so page through.
-        seen: dict[str, str] = {}
-        offset, page = 0, 1000
+    def previous(self) -> dict[str, dict]:
+        """Every stored job, keyed by id, with the same field names as jobs.json."""
+        select = ",".join(key if key == col else f"{key}:{col}" for key, col in COLUMNS.items())
+        jobs: dict[str, dict] = {}
+        offset, page = 0, 1000  # Supabase caps each response (1000 rows by default)
         while True:
             res = self._check(self.session.get(
                 f"{self.base}/jobs",
-                params={"select": "id,first_seen", "order": "id", "limit": str(page), "offset": str(offset)},
+                params={"select": select, "order": "id", "limit": str(page), "offset": str(offset)},
                 timeout=30,
             ))
             rows = res.json()
-            seen.update({r["id"]: r["first_seen"] for r in rows})
+            jobs.update({r["id"]: r for r in rows})
             if len(rows) < page:
-                return seen
+                return jobs
             offset += page
 
-    def save(self, current: dict[str, dict], status: dict, generated_at: str, today: str) -> int:
-        jobs = stamp_history(current, self.first_seen(), today)
+    def save(self, jobs: list[dict], removed: set[str], status: dict, generated_at: str) -> int:
         rows = [to_row(j) for j in jobs]
         for i in range(0, len(rows), BATCH):
             self._check(self.session.post(
@@ -99,11 +85,13 @@ class SupabaseStore:
                 data=json.dumps(rows[i:i + BATCH], ensure_ascii=False).encode(),
                 timeout=60,
             ))
-        # Jobs missing for too long are removed; recently missing ones stay.
-        self._check(self.session.delete(
-            f"{self.base}/jobs", params={"last_seen": f"lt.{cutoff_day(today)}"},
-            headers={"Prefer": "return=minimal"}, timeout=30,
-        ))
+        # Closed jobs (see availability.py) are deleted by id.
+        gone = sorted(removed)
+        for i in range(0, len(gone), 100):
+            self._check(self.session.delete(
+                f"{self.base}/jobs", params={"id": f"in.({','.join(gone[i:i + 100])})"},
+                headers={"Prefer": "return=minimal"}, timeout=30,
+            ))
         total = int(self._check(self.session.get(
             f"{self.base}/jobs", params={"select": "id"},
             headers={"Prefer": "count=exact", "Range": "0-0"}, timeout=30,
@@ -124,7 +112,7 @@ class JsonFileStore:
     def __init__(self, path: Path):
         self.path = path
 
-    def _previous(self) -> dict[str, dict]:
+    def previous(self) -> dict[str, dict]:
         if not self.path.exists():
             return {}
         try:
@@ -133,16 +121,9 @@ class JsonFileStore:
             print("! previous jobs.json unreadable, starting fresh")
             return {}
 
-    def merge(self, current: dict[str, dict], today: str) -> list[dict]:
-        previous = self._previous()
-        jobs = stamp_history(current, {jid: p["firstSeen"] for jid, p in previous.items()}, today)
-        cutoff = cutoff_day(today)
-        jobs += [p for jid, p in previous.items() if jid not in current and p.get("lastSeen", today) >= cutoff]
-        jobs.sort(key=lambda j: (j.get("postedAt") or j["firstSeen"], j["firstSeen"]), reverse=True)
-        return jobs
-
-    def save(self, current: dict[str, dict], status: dict, generated_at: str, today: str) -> int:
-        jobs = self.merge(current, today)
+    def save(self, jobs: list[dict], removed: set[str], status: dict, generated_at: str) -> int:
+        jobs = sorted((j for j in jobs if j["id"] not in removed),
+                      key=lambda j: (j.get("postedAt") or j["firstSeen"], j["firstSeen"]), reverse=True)
         payload = {"generatedAt": generated_at, "sources": status, "count": len(jobs), "jobs": jobs}
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(payload, ensure_ascii=False, indent=1))
