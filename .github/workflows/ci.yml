@@ -43,6 +43,8 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run lint
+      # LayoutProps/PageProps are generated types; create them without a full build.
+      - run: npx next typegen
       - run: npx tsc --noEmit
       - run: npm test
       # Without Supabase env vars the build reads jobs.json; that's fine for checking it compiles.

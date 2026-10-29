@@ -37,7 +37,7 @@ cd web
 npm run dev        # dev server on :3000
 npm run build      # static export to web/out/
 npm run lint       # eslint
-npx tsc --noEmit   # type-check
+npx tsc --noEmit   # type-check (on a fresh checkout run `npx next typegen` first, as CI does)
 npm test           # vitest unit tests (lib/*.test.ts)
 ```
 
