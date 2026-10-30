@@ -41,7 +41,8 @@ export function SavedJobs() {
       return next;
     });
     toggle(job);
-    setAnnounce(wasSaved ? "Removed from saved" : "Saved again");
+    // Include the title, so two removals in a row are both announced.
+    setAnnounce(wasSaved ? `Removed ${job.title} from saved` : `Saved ${job.title} again`);
   };
 
   return (

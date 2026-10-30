@@ -166,12 +166,12 @@ test("save a job, find it on /saved/, remove it and undo", async ({ page }) => {
   await expect(row(page, job.title)).toBeVisible();
   await expect(page.getByText("0 jobs kept for later, stored in this browser only.")).toBeVisible();
   await expect(page.getByText("Jobs you save show up here.", { exact: false })).toHaveCount(0);
-  await expect(page.getByRole("status").filter({ hasText: "Removed from saved" })).toBeAttached();
+  await expect(page.getByRole("status").filter({ hasText: /Removed .+ from saved/ })).toBeAttached();
 
   await undo.click();
   await expect(page.getByRole("button", { name: "Remove from saved" })).toBeFocused();
   await expect(savedLink(page)).toContainText("1");
-  await expect(page.getByRole("status").filter({ hasText: "Saved again" })).toBeAttached();
+  await expect(page.getByRole("status").filter({ hasText: /Saved .+ again/ })).toBeAttached();
 
   await page.getByRole("button", { name: "Remove from saved" }).click();
   await page.reload();
@@ -305,7 +305,7 @@ test("a returning visit shows what's new since then and filters to it", async ({
   await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
 });
 
-test("when every job is new since the last visit, nothing is highlighted", async ({ page }) => {
+test("when every job is new since the last visit, the board falls back to the 7-day view", async ({ page }) => {
   // The newest job on the last visit is older than every job in the fixture.
   const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
   const record = JSON.stringify({ seen: "2000-01-01", seenAt: at, next: "2000-01-01", nextAt: at });
@@ -313,9 +313,11 @@ test("when every job is new since the last visit, nothing is highlighted", async
   await page.setViewportSize({ width: 375, height: 812 }); // the per-row "New ·" label is in the phone line
   await openBoard(page);
   await expect(count(page)).toHaveText(new RegExp(`^${TOTAL} jobs`));
+  // No "since" view that would highlight everything; the normal 7-day ticket instead,
+  // which in this fixture has exactly one job first seen today.
   await expect(page.getByText("Welcome back")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Show only new →" })).toHaveCount(0);
-  await expect(page.locator('li[id^="row-"]').filter({ hasText: "New · " })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Show only new →" })).toBeVisible();
+  await expect(page.locator('li[id^="row-"]').filter({ hasText: "New · " })).toHaveCount(1);
 });
 
 test("an impossible ?since= date is ignored instead of crashing the board", async ({ page }) => {
