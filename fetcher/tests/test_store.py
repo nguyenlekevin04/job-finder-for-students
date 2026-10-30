@@ -120,3 +120,38 @@ def test_base_url_accepts_rest_suffix():
                 "https://x.supabase.co/rest/v1/", " https://x.supabase.co/rest/v1// ",
                 "https://x.supabase.co/rest/v1/jobs?select=id"]:
         assert SupabaseStore(url, "sb_secret_x", session=FakeSession()).base == "https://x.supabase.co/rest/v1"
+
+
+def test_closed_reads_tombstones_and_tolerates_a_missing_table():
+    class Tomb(FakeSession):
+        def request(self, method, url, **kw):
+            if url.endswith("/closed_jobs") and method == "GET":
+                return FakeResponse(method, url, body=[{"id": "a", "closed_on": "2026-10-20"}])
+            return super().request(method, url, **kw)
+
+    class Missing(FakeSession):
+        def request(self, method, url, **kw):
+            return FakeResponse(method, url, status=404, body={"code": "PGRST205"})
+
+    assert SupabaseStore("https://x.supabase.co", "sb_secret_x", session=Tomb()).closed() == {"a": "2026-10-20"}
+    assert SupabaseStore("https://x.supabase.co", "sb_secret_x", session=Missing()).closed() is None
+
+
+def test_save_closed_adds_drops_and_prunes():
+    session = FakeSession()
+    SupabaseStore("https://x.supabase.co", "sb_secret_x", session=session).save_closed(
+        {"new": "2026-10-30"}, {"back", "new"}, "2026-10-30")
+    post = next(c for c in session.calls if c["method"] == "POST")
+    assert post["url"].endswith("/closed_jobs") and post["body"] == [{"id": "new", "closed_on": "2026-10-30"}]
+    deletes = [c["params"] for c in session.calls if c["method"] == "DELETE"]
+    assert {"id": "in.(back)"} in deletes and {"closed_on": "lt.2026-09-30"} in deletes
+
+
+def test_json_store_keeps_tombstones(tmp_path):
+    store = JsonFileStore(tmp_path / "jobs.json")
+    store.save([], set(), {}, "t")
+    store.save_closed({"a": "2026-10-30", "old": "2026-09-01"}, set(), "2026-10-30")
+    store.save([], set(), {}, "t2")  # the next run keeps them
+    assert store.closed() == {"a": "2026-10-30", "old": "2026-09-01"}
+    store.save_closed({}, {"a"}, "2026-10-30")
+    assert store.closed() == {}  # "a" reopened, "old" expired

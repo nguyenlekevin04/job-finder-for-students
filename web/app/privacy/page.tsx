@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { ANALYTICS_ON } from "@/lib/analytics";
 import { LEGAL_PLACEHOLDERS, OPERATOR } from "@/lib/legal";
 
 // TODO before launch: check this text with a privacy policy generator (e.g. eRecht24)
 // and fill in the real data in web/lib/legal.ts. Keep the list of browser storage keys
 // in sync with the code (useBookmarks, ThemeToggle, useLastVisit). Also confirm the
-// provider details: Vercel's and Supabase's addresses, the Supabase project's region,
+// provider details: Vercel's, Supabase's and Umami's addresses, the Supabase project's region,
 // and the legal basis for transfers outside the EU (Data Privacy Framework / SCCs).
 
 export const metadata: Metadata = {
@@ -82,12 +83,35 @@ const SECTIONS: [string, React.ReactNode][] = [
       </p>
     </>,
   ],
+  ...(ANALYTICS_ON
+    ? ([
+        [
+          "Usage statistics",
+          <>
+            <p>
+              To learn which parts of the board help students, we count visits with Umami (Umami Software, Inc., USA), a
+              cookieless analytics service. It counts which pages are opened, the referring site, the browser and operating
+              system, device type, screen size, language and approximate location (country, region, city), which filters are turned on (for example “Werkstudent” or “Up to 20 h/week”, never what you
+              type into search) and clicks on “Apply now” with the job board the link goes to.
+            </p>
+            <p>
+              Umami sets no cookies and stores nothing in your browser. It doesn’t store your IP address; it only uses it,
+              together with your browser details and a value that changes every day, to count a visit once. That way we see
+              totals, never a profile of you, and you can’t be followed across sites or days. If your browser sends “Do Not
+              Track”, you aren’t counted at all.
+            </p>
+            <p>Legal basis: Art. 6 (1) (f) GDPR, our legitimate interest in improving the site with anonymous totals.</p>
+          </>,
+        ],
+      ] as [string, React.ReactNode][])
+    : []),
   [
-    "No cookies, no tracking",
+    ANALYTICS_ON ? "No cookies, no profiles" : "No cookies, no tracking",
     <>
       <p>
-        This site sets no cookies and uses no analytics, tracking pixels, advertising or social media plugins. Links to job
-        postings open the employer’s or job board’s site, where their own privacy policy applies.
+        This site sets no cookies and uses no {ANALYTICS_ON ? "other analytics, " : "analytics, "}tracking pixels,
+        advertising or social media plugins. Links to job postings open the employer’s or job board’s site, where their
+        own privacy policy applies.
       </p>
     </>,
   ],
@@ -122,7 +146,8 @@ export default function PrivacyPage() {
       <h1 className="text-[44px] leading-[0.96] font-semibold tracking-[-0.05em] sm:text-[56px]">
         Your <span className="font-serif text-[1.12em] font-normal tracking-[-0.02em] text-orange-text">privacy</span>.
       </h1>
-      <p className="mt-4 max-w-md text-[17px] leading-snug text-muted">No account, no cookies, no tracking. Here’s what does happen.</p>
+      <p className="mt-4 max-w-md text-[17px] leading-snug text-muted">{ANALYTICS_ON ? "No account, no cookies, no profiles of you." : "No account, no cookies, no tracking."} Here’s
+        what does happen.</p>
       {LEGAL_PLACEHOLDERS && (
         <p role="note" className="mt-6 border-l-2 border-rule pl-3 text-sm text-muted">
           Draft: the contact details below are placeholders and will be filled in before launch.
@@ -137,7 +162,7 @@ export default function PrivacyPage() {
             <div className="mt-2 space-y-3 text-[16px] leading-relaxed text-ink">{body}</div>
           </section>
         ))}
-        <p className="mt-8 text-xs text-muted">Last updated 29 Oct 2026</p>
+        <p className="mt-8 text-xs text-muted">Last updated 30 Oct 2026</p>
       </div>
     </div>
   );

@@ -27,6 +27,8 @@ jobs:
           cache-dependency-path: fetcher/requirements.lock
       - run: pip install --require-hashes -r fetcher/requirements.lock
       - run: python -m pytest fetcher/tests -q
+      # Known vulnerabilities in the locked Python dependencies (PyPI advisory database).
+      - run: pip install pip-audit==2.9.0 && pip-audit -r fetcher/requirements.lock --require-hashes --disable-pip
 
   web:
     name: Website checks

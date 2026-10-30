@@ -4,6 +4,8 @@ Werkstudent, internship and thesis positions in **AI, ML, Computer Science and r
 
 **Live:** https://dresden-jobs.vercel.app
 
+How it's built: [docs/architecture.md](docs/architecture.md).
+
 - **Fetcher** (`fetcher/`, Python): pulls postings, keeps only student tech jobs, removes duplicates, and saves them to **Supabase** (or to `web/public/jobs.json` when no Supabase keys are set).
 - **Database** (Supabase Postgres, `supabase/schema.sql`): `jobs` and `fetch_runs` tables. Visitors can only read.
 - **Website** (`web/`, Next.js + Tailwind + Fuse.js): a static site hosted on **Vercel** that loads jobs from Supabase and does search, filters and bookmarks in the browser.

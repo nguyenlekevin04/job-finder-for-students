@@ -321,6 +321,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"All sources failed – leaving {store.name} untouched.")
         return 1
 
+    closed = store.closed()  # None while the closed_jobs table is missing
     result = decide(
         previous=drop_unsafe_links(store.previous()),
         current=current,
@@ -332,16 +333,23 @@ def main(argv: list[str] | None = None) -> int:
         # to another job (title edited, new id) isn't here, so its old job closes at once.
         raw_urls={r.url for r in raw if safe_link(r.source, r.url)} - {l["url"] for j in current.values() for l in j["links"]},
         accept=accepted_removals(),
+        closed=closed or {},
     )
     for name, counts in result.stats.items():
         if name in status:
-            status[name]["links"] = counts  # open / closed / unknown, stored in fetch_runs
-        print(f"  {name}: {counts['open']} open, {counts['closed']} closed, {counts['unknown']} unconfirmed")
+            status[name]["links"] = counts  # open / closed / unknown / moved, stored in fetch_runs
+        print(f"  {name}: {counts['open']} open, {counts['closed']} closed, {counts['unknown']} unconfirmed, "
+              f"{counts['moved']} moved")
 
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     total = store.save(result.jobs, result.removed, status, generated_at)
+    if closed is not None:
+        store.save_closed(result.closed_add, result.closed_drop, today)
     print(f"\nKept {len(current)} of {len(raw)} postings today; removed {len(result.removed)} closed; "
           f"{total} jobs now in {store.name}")
+    if result.closed_add or result.rejected:
+        print(f"Employer closures: {len(result.closed_add)} remembered; "
+              f"{len(result.rejected)} job-board copies of closed jobs skipped")
 
     problems = health_problems(status) + result.problems
     if problems:

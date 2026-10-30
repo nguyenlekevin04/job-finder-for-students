@@ -4,36 +4,30 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 
 ## Now
 
-_Empty: sprint 3 is being released._
+**Sprint 4 (lean): usage analytics and fixes.**
 
-**Release gate (shareholder):** the production release waits until `NEXT_PUBLIC_OPERATOR_STREET` and `_CITY` are set in Vercel production and the site is redeployed, so the imprint and privacy pages show no "Draft" note. Don't hide the legal pages instead.
+- **Privacy-friendly usage analytics** (Next #1): built and merged into staging. The Umami Cloud account exists and `NEXT_PUBLIC_UMAMI_WEBSITE_ID` is set in Vercel Production (2026-10-30), so counting starts with the next production release. Counts page views, filter use and "Apply now" clicks; the privacy page gets a "Usage statistics" section once it's on.
+- **Moved links** (Fixes 0b): done, see below.
+- **Employer closure memory** (Fixes 0): done, needs the `closed_jobs` table in each database before it's active.
+- **Supply chain:** `pip-audit` in CI (rest of Fixes 3 already done or still open, see below).
 
 ## Next
 
-1. **Privacy-friendly usage analytics** (S): As a student, I want the team to know which filters and jobs people use, so that the board improves where it matters, without being tracked.
-   - Acceptance: cookieless and free, no personal data and no consent banner needed. It counts visits, filter use, and "Apply now" clicks. The privacy note on the site says what is counted.
-2. **More cities** (L): As a student in Leipzig or Chemnitz, I want the same board for my city, so that I find local student jobs as easily.
+1. **More cities** (L): As a student in Leipzig or Chemnitz, I want the same board for my city, so that I find local student jobs as easily.
    - Acceptance: choose a city with the location filter in the URL. Dresden stays the default. Classifier accuracy stays at or above 90% for every city.
    - Blocked by: serving the job list from the CDN first (docs/capacity.md: do it before a second city).
-3. **AI feature** (M, open): As a student, I want help judging fit quickly (for example a plain-English summary of hours, language and deadline), so that I can skip reading long German postings.
+2. **AI feature** (M, open): As a student, I want help judging fit quickly (for example a plain-English summary of hours, language and deadline), so that I can skip reading long German postings.
    - Open question: which outcome exactly? It must run at no cost, e.g. once a day in the fetcher. No per-visit calls to a paid API.
-4. **Custom domain** (S, **shareholder decision: ~€10/year**): As a student, I want a short, trustworthy address, so that I remember it and can share it with classmates.
+3. **Custom domain** (S, **shareholder decision: ~€10/year**): As a student, I want a short, trustworthy address, so that I remember it and can share it with classmates.
    - Acceptance: the domain serves production, the vercel.app address redirects to it, and saved jobs and the theme carry over.
 
 ## Fixes (from the release reviews)
 
 Non-blocking findings; the tech lead decides the order. Most are small.
 
-0. **Employer closure isn't remembered** (security, M; attack #2 re-check): when an employer closes a job, an exact-title copy on a job board can reappear the next day as its own job ("New", the copy's link and pay). Store tombstones (`closed_jobs(id, closed_on)`, schema change) and reject partial-only jobs with those ids for 30 days.
-
 1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
 2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
-3. **Supply chain hardening** (security, S): pin GitHub Actions to commit SHAs and restrict allowed actions; add `pip-audit` to CI; a full `script-src` CSP with hashes for the two inline scripts; a lock file with hashes (`pip-compile --generate-hashes`) for transitive Python dependencies (`docs/security.md`, attack #1).
-4. **Small items** (nice-to-have, S):
-   - the Saved page title lacks "[STAGING]" on staging
-   - an outdated comment in `web/.env.example`
-   - the clear-search button drops keyboard focus
-   - the manual "Run workflow" button defaults to production; switch the default to staging
+3. **Supply chain hardening** (security, S): left from attack #1 (`docs/security.md`): restrict allowed actions in the repository settings (shareholder, one click), and a full `script-src` CSP with hashes for the two inline scripts plus `https://cloud.umami.is`.
 
 ## Later
 
@@ -51,6 +45,30 @@ Non-blocking findings; the tech lead decides the order. Most are small.
     - **Data access:** new tables (e.g. `bookmarks`) only with RLS `user_id = auth.uid()`. The existing tables stay read-only for the public.
     - **Law:** privacy policy and imprint, data export and deletion (GDPR). Session cookies are strictly necessary, so no consent banner (TTDSG §25(2)). No tracking cookies.
     - **Before release:** `/hackerattack login` (Kevin) covers session theft, fixation, CSRF, IDOR on bookmarks, open redirects in the login flow, and rate limits on magic links.
+
+## Monetization (to validate)
+
+Nothing here gets built until step 0 shows demand. Guiding rule: students never pay, are never tracked, and every paid placement is labelled. **Taking any money is a shareholder decision**: register a Gewerbe, register with the Finanzamt (Kleinunternehmer §19 UStG up to €25k/year), write B2B terms (AGB), and leave Vercel Hobby, which is non-commercial only (Vercel Pro is $20/month; the tech lead may look at a host that allows commercial use for free). A non-EU student needs the Ausländerbehörde to allow self-employment first.
+
+0. **Validate demand by hand** (S, no code): As the shareholder, I want 5 to 8 Dresden employers (small and mid-size tech firms, startups, institute groups that post student roles) to tell me whether they would pay for a featured student job, so that we build only what someone buys.
+   - Acceptance: a one-page offer (what "featured" means, a price of €39 to €49 for 30 days, our audience numbers) goes out by email or in person. The result is written down: who said yes at which price, and why the others said no. **Go** = at least 2 written "yes, we'd buy" at ≥ €39. **No-go** = fewer, and we stop here.
+   - Needs: about 4 weeks of visitor numbers from the privacy-friendly analytics (built in sprint 4; counting starts with the sprint 4 release), or the offer has nothing to sell.
+   - Benchmarks: TU Dresden's Stellenticket charges about €50 per student ad; stellenwerk €79 / €149 per 30 days.
+1. **Featured job, sold by hand** (S, after Go): As an employer, I want my student job pinned at the top for 30 days, so that more of the right students see it. As a student, I want sponsored jobs clearly marked, so that I still trust the order of the board.
+   - Acceptance: at most 2 featured jobs at a time, each with a visible "Sponsored" label (the "Anzeige" rule, §6 DDG / §5a UWG). It must be a real student role that passes our classifier (no HiWi, no full-time roles). It ends by itself after 30 days. The "Show only new" and filter results stay honest: a featured job appears only if it matches the active filters. Payment by a Stripe Payment Link with an invoice; no payment code on our site. The privacy page and a short "How ranking works" note say that paid placement exists.
+2. **Paid post for employers we don't collect** (M): As a small Dresden employer that isn't in our sources, I want to get my student job onto the board, so that local students find it.
+   - Acceptance: the employer sends the posting by email; the operator checks it (real company, student role, closing date, non-discriminatory wording per AGG) and adds it by hand. It shows as "Sponsored", has a link that passes `safe_link`, and leaves the board at its deadline or after 30 days. No employer accounts, no self-serve form.
+3. **One board sponsor** (S): As a local employer, I want a "Supported by …" line, so that students see us as student-friendly. The board stays free.
+   - Acceptance: one sponsor at a time, a text logo or line in the footer, no tracking pixel, labelled as sponsorship. Price to test: €100 to €250 for a semester.
+4. **Free support and grants** (S, no revenue risk): ask dresden|exists (TU Dresden founder support) and the student councils (Fachschaftsräte) to share the board, and check whether a public-interest open-source grant would cover hosting. This adds students, which is what makes items 1 to 3 sellable.
+
+**Not doing:** display ads (AdSense etc.: they need a cookie banner under §25 TDDDG and break "no tracking", and earn a few euros a month at our size); a paid tier or paid alerts for students; selling or sharing usage data; employer branding pages (they need far more traffic first; TU Dresden sells profiles for €975+ with the university's name behind it). **Later, only on request:** affiliate links for international students (blocked account, health insurance), each labelled.
+
+## Done (sprint 4)
+
+- **Moved links aren't closures:** a link that now belongs to another of today's jobs (renamed title, copy merged into its employer posting) is `moved`. It still removes its old job, but no longer trips the guard or counts as closed in `fetch_runs` (new `moved` count).
+- **Employer closures are remembered** (security, attack #2 re-check): a job its employer closed can't come back for 30 days through a job-board copy with the same title (`closed_jobs` table).
+- `pip-audit` checks the hashed Python lock in CI. Already done earlier and now off the list: SHA-pinned actions, the hashed lock, the four small items (Saved title on staging, `.env.example`, clear-search focus, "Update jobs" defaults to staging).
 
 ## Done (sprint 3: launch to students)
 
