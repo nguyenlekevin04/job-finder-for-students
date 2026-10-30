@@ -53,6 +53,24 @@ Non-blocking findings; the tech lead decides the order. Most are small.
     - **Law:** privacy policy and imprint, data export and deletion (GDPR). Session cookies are strictly necessary, so no consent banner (TTDSG §25(2)). No tracking cookies.
     - **Before release:** `/hackerattack login` (Kevin) covers session theft, fixation, CSRF, IDOR on bookmarks, open redirects in the login flow, and rate limits on magic links.
 
+## Monetization (to validate)
+
+Nothing here gets built until step 0 shows demand. Guiding rule: students never pay, are never tracked, and every paid placement is labelled. **Taking any money is a shareholder decision**: register a Gewerbe, register with the Finanzamt (Kleinunternehmer §19 UStG up to €25k/year), write B2B terms (AGB), and leave Vercel Hobby, which is non-commercial only (Vercel Pro is $20/month; the tech lead may look at a host that allows commercial use for free). A non-EU student needs the Ausländerbehörde to allow self-employment first.
+
+0. **Validate demand by hand** (S, no code): As the shareholder, I want 5 to 8 Dresden employers (small and mid-size tech firms, startups, institute groups that post student roles) to tell me whether they would pay for a featured student job, so that we build only what someone buys.
+   - Acceptance: a one-page offer (what "featured" means, a price of €39 to €49 for 30 days, our audience numbers) goes out by email or in person. The result is written down: who said yes at which price, and why the others said no. **Go** = at least 2 written "yes, we'd buy" at ≥ €39. **No-go** = fewer, and we stop here.
+   - Needs: about 4 weeks of visitor numbers from the privacy-friendly analytics (Next #1), or the offer has nothing to sell.
+   - Benchmarks: TU Dresden's Stellenticket charges about €50 per student ad; stellenwerk €79 / €149 per 30 days.
+1. **Featured job, sold by hand** (S, after Go): As an employer, I want my student job pinned at the top for 30 days, so that more of the right students see it. As a student, I want sponsored jobs clearly marked, so that I still trust the order of the board.
+   - Acceptance: at most 2 featured jobs at a time, each with a visible "Sponsored" label (the "Anzeige" rule, §6 DDG / §5a UWG). It must be a real student role that passes our classifier (no HiWi, no full-time roles). It ends by itself after 30 days. The "Show only new" and filter results stay honest: a featured job appears only if it matches the active filters. Payment by a Stripe Payment Link with an invoice; no payment code on our site. The privacy page and a short "How ranking works" note say that paid placement exists.
+2. **Paid post for employers we don't collect** (M): As a small Dresden employer that isn't in our sources, I want to get my student job onto the board, so that local students find it.
+   - Acceptance: the employer sends the posting by email; the operator checks it (real company, student role, closing date, non-discriminatory wording per AGG) and adds it by hand. It shows as "Sponsored", has a link that passes `safe_link`, and leaves the board at its deadline or after 30 days. No employer accounts, no self-serve form.
+3. **One board sponsor** (S): As a local employer, I want a "Supported by …" line, so that students see us as student-friendly. The board stays free.
+   - Acceptance: one sponsor at a time, a text logo or line in the footer, no tracking pixel, labelled as sponsorship. Price to test: €100 to €250 for a semester.
+4. **Free support and grants** (S, no revenue risk): ask dresden|exists (TU Dresden founder support) and the student councils (Fachschaftsräte) to share the board, and check whether a public-interest open-source grant would cover hosting. This adds students, which is what makes items 1 to 3 sellable.
+
+**Not doing:** display ads (AdSense etc.: they need a cookie banner under §25 TDDDG and break "no tracking", and earn a few euros a month at our size); a paid tier or paid alerts for students; selling or sharing usage data; employer branding pages (they need far more traffic first; TU Dresden sells profiles for €975+ with the university's name behind it). **Later, only on request:** affiliate links for international students (blocked account, health insurance), each labelled.
+
 ## Done (sprint 3: launch to students)
 
 - **Imprint and privacy pages** (`/imprint/`, `/privacy/`), linked from the footer. Privacy covers Vercel logs, Supabase requests, the three localStorage keys, no cookies and no tracking. Accepted on staging; **production only once the postal address is filled** (see the release gate under Now).
