@@ -106,7 +106,7 @@ const SECTIONS: [string, React.ReactNode][] = [
       ] as [string, React.ReactNode][])
     : []),
   [
-    "No cookies, no tracking",
+    ANALYTICS_ON ? "No cookies, no profiles" : "No cookies, no tracking",
     <>
       <p>
         This site sets no cookies and uses no {ANALYTICS_ON ? "other analytics, " : "analytics, "}tracking pixels,
@@ -146,7 +146,8 @@ export default function PrivacyPage() {
       <h1 className="text-[44px] leading-[0.96] font-semibold tracking-[-0.05em] sm:text-[56px]">
         Your <span className="font-serif text-[1.12em] font-normal tracking-[-0.02em] text-orange-text">privacy</span>.
       </h1>
-      <p className="mt-4 max-w-md text-[17px] leading-snug text-muted">No account, no cookies, no tracking. Here’s what does happen.</p>
+      <p className="mt-4 max-w-md text-[17px] leading-snug text-muted">{ANALYTICS_ON ? "No account, no cookies, no profiles of you." : "No account, no cookies, no tracking."} Here’s
+        what does happen.</p>
       {LEGAL_PLACEHOLDERS && (
         <p role="note" className="mt-6 border-l-2 border-rule pl-3 text-sm text-muted">
           Draft: the contact details below are placeholders and will be filled in before launch.
