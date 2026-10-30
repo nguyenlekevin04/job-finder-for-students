@@ -389,3 +389,11 @@ def test_is_globalfoundries():
     assert main.is_globalfoundries("GlobalFoundries")
     assert main.is_globalfoundries(GF_COMPANY_BA)
     assert not main.is_globalfoundries("GlobalFoundriesX GmbH")
+
+
+def test_cut_off_copy_merges_although_the_full_title_is_also_on_the_arbeitsagentur():
+    # Staging data: the Arbeitsagentur lists GlobalFoundries' full title AND a cut-off copy.
+    full = "Werkstudent*in im Bereich Machine Learning & Virtual Metrology"
+    jobs = main.build_jobs([gf(full), ba(full), ba(full[:49])])
+    (job,) = jobs.values()
+    assert [l["source"] for l in job["links"]] == ["GlobalFoundries", "Arbeitsagentur", "Arbeitsagentur"]

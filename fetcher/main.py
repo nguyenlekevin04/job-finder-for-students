@@ -123,16 +123,18 @@ def truncated_twin(jobs: dict[str, dict], title: str, company: str, source: str)
     GmbH & Co. KG" with titles cut off ("... Machine Learning & Virt"), so job_id() differs from
     the employer's own posting. A match needs the same company, one normalized title equal to
     or a prefix of the other, the shorter one at least TWIN_MIN_TITLE characters, and exactly
-    one such job. Only postings from TWIN_SOURCE match. A job that already has a link from the
-    same source is never a twin: one feed doesn't list a posting twice, so "... Process Control" and "... Process Control and Yield"
-    from the GlobalFoundries feed are two jobs. Job ids stay as they are.
+    one such job. Only postings from TWIN_SOURCE match, and only into jobs that started from
+    another source, so two real roles with prefix titles stay two jobs. Job ids stay as they are.
     """
     if source != TWIN_SOURCE or not is_globalfoundries(company):
         return None
     t = norm_title(title)
     matches = []
     for jid, j in jobs.items():
-        if not is_globalfoundries(j["company"]) or any(l["source"] == source for l in j["links"]):
+        # Skip jobs that started from this same source: two Arbeitsagentur postings are two jobs.
+        # A GlobalFoundries-feed job may already carry an Arbeitsagentur link (the full title is
+        # listed there too), and its cut-off copy must still merge into it.
+        if not is_globalfoundries(j["company"]) or j["links"][0]["source"] == source:
             continue
         other = norm_title(j["title"])
         short, long = sorted((t, other), key=len)
