@@ -397,3 +397,9 @@ def test_cut_off_copy_merges_although_the_full_title_is_also_on_the_arbeitsagent
     jobs = main.build_jobs([gf(full), ba(full), ba(full[:49])])
     (job,) = jobs.values()
     assert [l["source"] for l in job["links"]] == ["GlobalFoundries", "Arbeitsagentur", "Arbeitsagentur"]
+
+
+def test_longer_arbeitsagentur_title_is_a_different_role():
+    short = "Working Student Machine Learning for Process Control"
+    jobs = main.build_jobs([gf(short), ba(short), ba(short + " and Yield")])
+    assert len(jobs) == 2

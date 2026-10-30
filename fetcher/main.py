@@ -137,8 +137,8 @@ def truncated_twin(jobs: dict[str, dict], title: str, company: str, source: str)
         if not is_globalfoundries(j["company"]) or j["links"][0]["source"] == source:
             continue
         other = norm_title(j["title"])
-        short, long = sorted((t, other), key=len)
-        if len(short) >= TWIN_MIN_TITLE and long.startswith(short):
+        # The Arbeitsagentur only cuts titles off, never adds words: its title must be the prefix.
+        if len(t) >= TWIN_MIN_TITLE and other.startswith(t):
             matches.append(jid)
     return matches[0] if len(matches) == 1 else None
 
