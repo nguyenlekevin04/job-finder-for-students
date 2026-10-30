@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@/lib/analytics";
 import { jobDate } from "@/lib/filters";
 import { daysUntil, formatDate, isNew, jobTerms, relativeDay } from "@/lib/format";
 import { FIELD_LABELS, TYPE_LABELS, type Job } from "@/lib/types";
@@ -131,6 +132,7 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
                   href={primary.url}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={() => track("apply", { source: primary.source })}
                   className="focus-ring inline-flex items-center gap-2 rounded-[10px] bg-btn px-4 py-2.5 text-[15px] font-semibold tracking-[-0.02em] text-btn-ink transition hover:opacity-90"
                 >
                   Apply now <ArrowUpRightIcon width={15} height={15} />

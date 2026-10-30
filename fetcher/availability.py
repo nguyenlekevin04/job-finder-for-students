@@ -13,7 +13,11 @@ Every link of a job gets a state, then the job gets a verdict:
 - A posting the source still lists but that didn't make it into today's jobs (its
   detail page timed out, or it was reclassified) is unknown too, not closed.
 
-Verdict: any open link keeps the job (lastSeen = today). All links closed removes it.
+A link that now belongs to another of today's jobs (a renamed title, a cut-off copy merged
+into its employer posting) is moved: it removes its old job like a closed link, but it isn't a
+closure, so it neither counts toward the guard nor as closed in the stats.
+
+Verdict: any open link keeps the job (lastSeen = today). All links closed or moved removes it.
 Complete-feed links are ordered before aggregator links, and when a job's first link comes
 from a complete feed and is closed, its aggregator links don't count: the employer decides.
 Otherwise the job is unconfirmed and stays for ``UNCONFIRMED_DAYS`` after it was last
@@ -32,7 +36,8 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Callable
 
-OPEN, CLOSED, UNKNOWN = "open", "closed", "unknown"
+OPEN, CLOSED, UNKNOWN, MOVED = "open", "closed", "unknown", "moved"
+GONE = (CLOSED, MOVED)  # link states that no longer keep a job open
 UNCONFIRMED_DAYS = 2  # keep a job this long after its last confirmation when no source can tell
 GUARD_SHARE = 0.5  # never remove more than this share of one source's jobs in one run
 GUARD_MIN_JOBS = 3  # below this many jobs a source is too small for the share rule
@@ -78,7 +83,7 @@ def decide(
             state = check(src, link["url"]) if src in partial else OPEN
             return CLOSED if state == CLOSED else OPEN
         if owner.get(link["url"], jid) != jid:
-            return CLOSED  # moved to another job today
+            return MOVED  # belongs to another job today
         if link["url"] in raw_urls:
             return UNKNOWN  # still listed, just not in today's jobs (e.g. detail page timed out)
         if not source_ok.get(src, False):
@@ -103,11 +108,11 @@ def decide(
 
         # The employer is authoritative: when the job's first link comes from a complete feed and
         # that feed says closed, aggregator copies can't keep the job open.
-        employer_closed = bool(links) and links[0]["source"] not in partial and states[0] == CLOSED
+        employer_closed = bool(links) and links[0]["source"] not in partial and states[0] in GONE
         judged = [s for l, s in zip(links, states) if not (employer_closed and l["source"] in partial)]
         if OPEN in judged:
             verdict = OPEN
-        elif all(s == CLOSED for s in judged):
+        elif all(s in GONE for s in judged):
             verdict = CLOSED
         else:
             last = (before or {}).get("lastSeen") or today
@@ -115,7 +120,7 @@ def decide(
             if verdict == CLOSED:
                 expired.add(jid)
         if verdict != CLOSED:
-            job["links"] = [l for l, s in zip(links, states) if s != CLOSED]
+            job["links"] = [l for l, s in zip(links, states) if s not in GONE]
 
         job["firstSeen"] = (before or {}).get("firstSeen") or today
         job["lastSeen"] = today if verdict == OPEN else (before or {}).get("lastSeen") or today
@@ -162,7 +167,7 @@ def decide(
         for src, state in pairs:
             if jid in restored and state == CLOSED:
                 state = UNKNOWN
-            stats.setdefault(src, {OPEN: 0, CLOSED: 0, UNKNOWN: 0})[state] += 1
+            stats.setdefault(src, {OPEN: 0, CLOSED: 0, UNKNOWN: 0, MOVED: 0})[state] += 1
 
     # Closed jobs that were never stored (listed today, but their check says closed) are simply dropped.
     jobs = [j for jid, j in candidates.items() if verdicts[jid] != CLOSED]

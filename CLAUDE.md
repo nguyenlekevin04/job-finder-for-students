@@ -79,6 +79,7 @@ Root `.env` (read by a minimal loader in `main.py`; real env vars win) holds `SU
 - **Dark mode**: Tailwind v4 `@custom-variant dark` on the `.dark` class; an inline script in `app/layout.tsx` sets it before paint (`suppressHydrationWarning` on `<html>`), and `ThemeToggle` stores the choice under `dsj:theme`.
 - **Design tokens**: colors are CSS variables in `app/globals.css` (`--c-*`, overridden under `.dark`) exposed as Tailwind colors (`bg-canvas`, `text-ink`, `text-muted`, `border-rule`, `bg-btn`, `text-orange-text`, …). Use those instead of raw palette classes. `orange` is decoration only (it fails text contrast); use `orange-text` for orange text. Fonts: Schibsted Grotesk (`font-sans`) and Instrument Serif italic (`font-serif`, accent words only).
 - The open job on the board is `Filters.job` (`?job=` in the URL); it isn't a filter, so `applyFilters` and `activeFilterCount` ignore it.
+- **Analytics** (`lib/analytics.ts`): Umami Cloud, cookieless, on only when `NEXT_PUBLIC_UMAMI_WEBSITE_ID` is set (Vercel Production only). Send events through `track()`, never free text, search terms or job ids; filter events come from the tested `filterEvents()`. A new event or counted value must also go into the "Usage statistics" section of the privacy page.
 - The footer links to arbeitnow.com because Arbeitnow's API terms ask for a backlink — keep it.
 
 ## Team (project agents in `.claude/agents/`)

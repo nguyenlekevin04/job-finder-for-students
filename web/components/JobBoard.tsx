@@ -11,6 +11,7 @@ import {
   makeIndex,
   type Filters,
 } from "@/lib/filters";
+import { filterEvents, track } from "@/lib/analytics";
 import { isNew, localDay, relativeTime, visitDayLabel } from "@/lib/format";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useJobsFile } from "@/lib/useJobs";
@@ -52,6 +53,16 @@ export function JobBoard() {
     }, 250);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
+  // Count which filters people turn on, once the choice settles (not every keystroke).
+  const counted = useRef(filters);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      for (const data of filterEvents(counted.current, filters)) track("filter", data);
+      counted.current = filters;
+    }, 1000);
+    return () => clearTimeout(t);
   }, [filters]);
 
   const update = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
