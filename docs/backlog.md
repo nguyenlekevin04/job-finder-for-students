@@ -4,12 +4,9 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 
 ## Now
 
-**Sprint 4 (lean): usage analytics and fixes.**
+_Empty: sprint 4 was released on 2026-10-30._
 
-- **Privacy-friendly usage analytics** (Next #1): built and merged into staging. The Umami Cloud account exists and `NEXT_PUBLIC_UMAMI_WEBSITE_ID` is set in Vercel Production (2026-10-30), so counting starts with the next production release. Counts page views, filter use and "Apply now" clicks; the privacy page gets a "Usage statistics" section once it's on.
-- **Moved links** (Fixes 0b): done, see below.
-- **Employer closure memory** (Fixes 0): done, needs the `closed_jobs` table in each database before it's active.
-- **Supply chain:** `pip-audit` in CI (rest of Fixes 3 already done or still open, see below).
+**Open step (shareholder):** the `closed_jobs` table still has to be created in the **staging** project (URL contains `dszz`). Production has it. Until then staging runs without the closure memory and logs a warning.
 
 ## Next
 
@@ -27,7 +24,9 @@ Non-blocking findings; the tech lead decides the order. Most are small.
 
 1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
 2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
-3. **Supply chain hardening** (security, S): left from attack #1 (`docs/security.md`): restrict allowed actions in the repository settings (shareholder, one click), and a full `script-src` CSP with hashes for the two inline scripts plus `https://cloud.umami.is`.
+3. **Third-party script and CSP** (security, M; Kevin, sprint 4 check): Umami's script runs on our page, so a compromised cloud.umami.is could rewrite the "Apply now" links. Serve a pinned copy of the tracker from our own site (`data-host-url` pointing to Umami), then add `script-src 'self'` with build-time hashes (Next's inline scripts too) and a `connect-src` for Supabase and Umami. Also restrict allowed actions in the repository settings (shareholder, one click).
+4. **Page through tombstones** (quality, S; release QA): `SupabaseStore.closed()` reads `closed_jobs` in one request; above PostgREST's row cap (1,000) the list would be cut off. Page it like `previous()`.
+5. **Check the Umami volume after a week** (S): the free plan is capped by monthly events; filter events fire on every change.
 
 ## Later
 
@@ -64,9 +63,10 @@ Nothing here gets built until step 0 shows demand. Guiding rule: students never 
 
 **Not doing:** display ads (AdSense etc.: they need a cookie banner under §25 TDDDG and break "no tracking", and earn a few euros a month at our size); a paid tier or paid alerts for students; selling or sharing usage data; employer branding pages (they need far more traffic first; TU Dresden sells profiles for €975+ with the university's name behind it). **Later, only on request:** affiliate links for international students (blocked account, health insurance), each labelled.
 
-## Done (sprint 4)
+## Done (sprint 4, released 2026-10-30)
 
 - **Moved links aren't closures:** a link that now belongs to another of today's jobs (renamed title, copy merged into its employer posting) is `moved`. It still removes its old job, but no longer trips the guard or counts as closed in `fetch_runs` (new `moved` count).
+- **Usage counts** (Umami Cloud, cookieless): page views without query strings, filters turned on (never search text) and "Apply now" clicks by source; Do Not Track respected. Live in production; the privacy page has a "Usage statistics" section.
 - **Employer closures are remembered** (security, attack #2 re-check): a job its employer closed can't come back for 30 days through a job-board copy with the same title (`closed_jobs` table).
 - `pip-audit` checks the hashed Python lock in CI. Already done earlier and now off the list: SHA-pinned actions, the hashed lock, the four small items (Saved title on staging, `.env.example`, clear-search focus, "Update jobs" defaults to staging).
 
