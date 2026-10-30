@@ -3,6 +3,7 @@ import { Instrument_Serif, Schibsted_Grotesk } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { ANALYTICS_ON, UMAMI_SCRIPT, UMAMI_WEBSITE_ID } from "@/lib/analytics";
 import { moveScript } from "@/lib/legacyHost";
 
 const grotesk = Schibsted_Grotesk({ variable: "--font-grotesk", subsets: ["latin"] });
@@ -47,6 +48,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Must run before the theme script, so a theme carried over from the old address applies. */}
         <script dangerouslySetInnerHTML={{ __html: moveScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* Cookieless page counts. Query strings stay out (they can hold search terms), and
+            browsers that send Do Not Track aren't counted. Events come from lib/analytics.ts. */}
+        {ANALYTICS_ON && (
+          <script
+            defer
+            src={UMAMI_SCRIPT}
+            data-website-id={UMAMI_WEBSITE_ID}
+            data-exclude-search="true"
+            data-exclude-hash="true"
+            data-do-not-track="true"
+          />
+        )}
       </head>
       <body className="isolate flex min-h-full flex-col font-sans">
         {isStaging && (

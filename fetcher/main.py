@@ -335,8 +335,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     for name, counts in result.stats.items():
         if name in status:
-            status[name]["links"] = counts  # open / closed / unknown, stored in fetch_runs
-        print(f"  {name}: {counts['open']} open, {counts['closed']} closed, {counts['unknown']} unconfirmed")
+            status[name]["links"] = counts  # open / closed / unknown / moved, stored in fetch_runs
+        print(f"  {name}: {counts['open']} open, {counts['closed']} closed, {counts['unknown']} unconfirmed, "
+              f"{counts['moved']} moved")
 
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     total = store.save(result.jobs, result.removed, status, generated_at)

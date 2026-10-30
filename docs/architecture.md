@@ -58,7 +58,7 @@ Three properties define the design:
 ```mermaid
 flowchart TD
   A["run_sources()<br/>each source isolated; failures recorded"] --> B["build_jobs()<br/>safe_link · classify · terms · dedupe/merge"]
-  B --> C["decide()<br/>availability.py: open / closed / unknown"]
+  B --> C["decide()<br/>availability.py: open / closed / unknown / moved"]
   C --> D["store.save(jobs, removed)"]
   D --> E["health_problems() → exit 3 alarm"]
   P["store.previous()"] --> C
@@ -94,6 +94,7 @@ flowchart LR
 - **State lives in the URL** (`lib/filters.ts`): `q` (search), `type`, `field`, `en` (English-friendly), `remote=0` (exclude remote), `new` (fresh this week), `hours`, `since`, `sort` and the open job (`job`). Component state is the source of truth and is mirrored to the URL after 250 ms.
 - **State in the browser only** (no accounts, no cookies): bookmarks (`dsj:bookmarks:v1`, whole job objects so closed jobs still show), theme (`dsj:theme`), last visit (`dsj:lastVisit`: newest job seen and visit times; a new visit starts after 30 minutes without a page load).
 - **Design system:** CSS variables in `app/globals.css` exposed as Tailwind tokens; dark mode via a `.dark` class set before paint.
+- **Usage counts** (`lib/analytics.ts`): Umami Cloud, cookieless, loaded only when `NEXT_PUBLIC_UMAMI_WEBSITE_ID` is set at build time (Vercel Production only, so staging, PRs and local builds send nothing). Page views without query strings or hashes, Do Not Track respected. Events: `filter` (which filter was turned on, via `filterEvents()`; a search counts as `search`, never its text) and `apply` (the link's source). No job ids or free text are ever sent.
 - **Legal pages:** operator name, address and email come from Vercel environment variables (`NEXT_PUBLIC_OPERATOR_*`), never from the repo. The pages are noindex.
 
 ## 3. Data model (`supabase/schema.sql`)
@@ -130,7 +131,7 @@ Every link of every job gets a state, then every job a verdict.
 | Not listed, aggregator | its check: Arbeitsagentur detail API, Arbeitnow page status; both map 200 to open and 404/410 to closed, anything else to unknown |
 | Not listed, complete feed that worked | closed |
 
-**Verdict:** any open link keeps the job (`last_seen` = today). The employer is authoritative: if a job's first link is from a complete feed and closed, the job closes even if an aggregator still lists a copy. All links closed removes the job. Otherwise the job is unconfirmed and stays for 2 days after it was last confirmed open.
+**Verdict:** any open link keeps the job (`last_seen` = today). The employer is authoritative: if a job's first link is from a complete feed and closed, the job closes even if an aggregator still lists a copy. All links closed removes the job. A link that now belongs to another of today's jobs (a renamed title, a copy merged into its employer posting) is **moved**: it removes its old job like a closed link, but isn't counted as a closure by the guard or in `fetch_runs` link stats (`open` / `closed` / `unknown` / `moved`). Otherwise the job is unconfirmed and stays for 2 days after it was last confirmed open.
 
 **Guard:** if a source's own closed links would remove at least 3 and more than half of its jobs in one run, those jobs stay and the alarm fires. A real mass closure is approved once by running "Update jobs" with `accept_removals=<Source>`. A source losing all its jobs in one run also raises the alarm.
 
@@ -161,8 +162,8 @@ Every link of every job gets a state, then every job a verdict.
 - **No secrets in the browser.** The site only holds the publishable key; RLS limits it to reading.
 - **Third-party data is untrusted.** Links pass `safe_link`; text is rendered by React (no HTML injection); the highest-priority source wins merges, so an aggregator copy can't change an employer's text, dates, hours, pay or "Apply now" link (it can only add a link and field tags).
 - **Headers** (`web/vercel.json`): `Content-Security-Policy` with `frame-ancestors 'none'`, `base-uri`, `object-src`, `form-action`; `X-Frame-Options: DENY`; `nosniff`; strict referrer policy. HSTS comes from Vercel.
-- **Supply chain:** SHA-pinned actions, hashed Python lock, `npm audit` clean, PRs from forks get no secrets.
-- **Privacy:** no accounts, no cookies, no tracking. Browser storage stays on the device. The privacy page lists every key.
+- **Supply chain:** SHA-pinned actions, hashed Python lock checked by `pip-audit` in CI, `npm audit` clean, PRs from forks get no secrets.
+- **Privacy:** no accounts, no cookies, no cross-site tracking. Browser storage stays on the device; the privacy page lists every key. The only third-party script is Umami (production only), which counts anonymous totals; the privacy page shows its section only when it's on.
 - **Red team:** Kevin attacks once per sprint before the release; results in `docs/security.md`.
 
 ## 7. Key decisions
@@ -176,6 +177,7 @@ Every link of every job gets a state, then every job a verdict.
 | Only open jobs, with a guard | Stale jobs waste students' time; a broken source must never wipe the board | — |
 | No accounts | Browser bookmarks cover the need; accounts add GDPR, security and support cost | Students ask for cross-device sync (preconditions in `docs/backlog.md`) |
 | Vercel over Render | Free previews per branch/PR and 100 GB bandwidth vs 5 GB | Commercial use (Hobby is non-commercial) |
+| Umami Cloud for usage counts | Cookieless and free (Hobby, ~100k events/month), counts custom events; Vercel Analytics counts events only on Pro, GoatCounter is free only for non-commercial use | Above the free limit, or once the site is commercial (Umami's paid plan or self-hosting) |
 | Two Supabase projects | Staging data can never touch production | — |
 
 ## 8. Known limits
