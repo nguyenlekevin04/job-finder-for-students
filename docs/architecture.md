@@ -113,9 +113,11 @@ flowchart LR
 | `snippet` | up to 700 characters of the description |
 | `hours_min`, `hours_max`, `pay_amount`, `pay_unit` | only when the posting states them |
 
-**`fetch_runs`**: one row per daily run with the job count and per-source status (`ok`, `count`, `error`, `skipped`, `rejected`, `links: {open, closed, unknown}`). It is public, so errors pass through `redact()`, which strips URL query strings.
+**`fetch_runs`**: one row per daily run with the job count and per-source status (`ok`, `count`, `error`, `skipped`, `rejected`, `links: {open, closed, unknown, moved}`). It is public, so errors pass through `redact()`, which strips URL query strings.
 
-**Access:** row-level security on both tables. `anon` and `authenticated` may only `select`; insert, update and delete are revoked. The fetcher uses the service-role key, which bypasses RLS.
+**`closed_jobs`**: tombstones `(id, closed_on)` of jobs their employer closed. For 30 days a job with that id that only aggregators list is rejected; a complete feed listing it again clears it. Not readable by the public (RLS on, no policy). If the table is missing, the fetcher warns and runs without it.
+
+**Access:** row-level security on every table. `anon` and `authenticated` may only `select`; insert, update and delete are revoked. The fetcher uses the service-role key, which bypasses RLS.
 
 ## 4. Availability: showing only open jobs (`fetcher/availability.py`)
 
@@ -131,7 +133,7 @@ Every link of every job gets a state, then every job a verdict.
 | Not listed, aggregator | its check: Arbeitsagentur detail API, Arbeitnow page status; both map 200 to open and 404/410 to closed, anything else to unknown |
 | Not listed, complete feed that worked | closed |
 
-**Verdict:** any open link keeps the job (`last_seen` = today). The employer is authoritative: if a job's first link is from a complete feed and closed, the job closes even if an aggregator still lists a copy. All links closed removes the job. A link that now belongs to another of today's jobs (a renamed title, a copy merged into its employer posting) is **moved**: it removes its old job like a closed link, but isn't counted as a closure by the guard or in `fetch_runs` link stats (`open` / `closed` / `unknown` / `moved`). Otherwise the job is unconfirmed and stays for 2 days after it was last confirmed open.
+**Verdict:** any open link keeps the job (`last_seen` = today). The employer is authoritative: if a job's first link is from a complete feed and closed, the job closes even if an aggregator still lists a copy. All links closed removes the job. A link that now belongs to another of today's jobs (a renamed title, a copy merged into its employer posting) is **moved**: it removes its old job like a closed link, but isn't counted as a closure by the guard or in `fetch_runs` link stats (`open` / `closed` / `unknown` / `moved`). Otherwise the job is unconfirmed and stays for 2 days after it was last confirmed open. An employer closure is remembered for 30 days (`closed_jobs`), so a job-board copy with the same title can't come back as "New".
 
 **Guard:** if a source's own closed links would remove at least 3 and more than half of its jobs in one run, those jobs stay and the alarm fires. A real mass closure is approved once by running "Update jobs" with `accept_removals=<Source>`. A source losing all its jobs in one run also raises the alarm.
 

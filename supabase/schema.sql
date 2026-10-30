@@ -41,6 +41,16 @@ create table if not exists public.fetch_runs (
 
 create index if not exists fetch_runs_generated_at_idx on public.fetch_runs (generated_at desc);
 
+-- Employer closures (fetcher/availability.py): for 30 days a job-board copy of a job its
+-- employer closed is rejected. Fetcher only: no public read, no public writes.
+create table if not exists public.closed_jobs (
+  id        text primary key,  -- the closed job's id
+  closed_on date not null
+);
+alter table public.closed_jobs enable row level security;
+revoke all on public.closed_jobs from anon, authenticated;
+grant all on public.closed_jobs to service_role;
+
 -- Row level security: public read, no public writes.
 alter table public.jobs enable row level security;
 alter table public.fetch_runs enable row level security;
