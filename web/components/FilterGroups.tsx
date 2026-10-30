@@ -10,6 +10,7 @@ interface Props {
   onChange: (patch: Partial<Filters>) => void;
   onReset: () => void;
   activeCount: number;
+  sinceMode: boolean; // the board shows "new since your last visit", so "Fresh this week" would compete
 }
 
 function toggle<T>(list: T[], value: T): T[] {
@@ -41,15 +42,19 @@ function Option({ on, onClick, count, children }: { on: boolean; onClick: () => 
   );
 }
 
-export function FilterGroups({ filters, jobs, onChange, onReset, activeCount }: Props) {
+export function FilterGroups({ filters, jobs, onChange, onReset, activeCount, sinceMode }: Props) {
   // Only the type row shows until "More filters" is opened. It opens by itself when one
   // of its filters is active (e.g. from a shared link) and then stays open, so an active
-  // filter is never hidden and the panel doesn't jump. "Fresh" is left out: the ticket
-  // in the list already shows that state.
+  // filter is never hidden and the panel doesn't jump. "Fresh this week" doesn't open it:
+  // the ticket in the list already shows that state.
   const [more, setMore] = useState(false);
   const moreActive = filters.fields.length > 0 || filters.english || !filters.remote || filters.hours;
   if (moreActive && !more) setMore(true);
   const count = (pred: (j: Job) => boolean) => jobs.filter(pred).length;
+  const hoursCount = count(withinHours);
+  // Options that would match nothing (or compete with the "since" ticket) hide, unless they're on.
+  const showHours = hoursCount > 0 || filters.hours;
+  const showFresh = !sinceMode || filters.fresh;
 
   return (
     <div className="mt-2">
@@ -83,23 +88,29 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount }: 
         </Group>
 
         <Group title="Options">
-          <Option on={filters.hours} onClick={() => onChange({ hours: !filters.hours })} count={count(withinHours)}>
-            Up to {HOURS_LIMIT} h/week
-          </Option>
+          {showHours && (
+            <Option on={filters.hours} onClick={() => onChange({ hours: !filters.hours })} count={hoursCount}>
+              Up to {HOURS_LIMIT} h/week
+            </Option>
+          )}
           <Option on={filters.remote} onClick={() => onChange({ remote: !filters.remote })}>
             Include remote
           </Option>
           <Option on={filters.english} onClick={() => onChange({ english: !filters.english })}>
             English-friendly
           </Option>
-          <Option on={filters.fresh} onClick={() => onChange({ fresh: !filters.fresh })}>
-            Fresh this week
-          </Option>
+          {showFresh && (
+            <Option on={filters.fresh} onClick={() => onChange({ fresh: !filters.fresh })}>
+              Fresh this week
+            </Option>
+          )}
         </Group>
-        {/* Always present, so screen readers announce the note when the filter turns on. */}
-        <p aria-live="polite" className={filters.hours ? "mt-2 text-xs text-muted" : "sr-only"}>
-          {filters.hours ? "Only jobs that state their hours." : ""}
-        </p>
+        {/* Present with the option, so screen readers announce the note when the filter turns on. */}
+        {showHours && (
+          <p aria-live="polite" className={filters.hours ? "mt-2 text-xs text-muted" : "sr-only"}>
+            {filters.hours ? "Only jobs that state their hours." : ""}
+          </p>
+        )}
       </div>
 
       <div className="mt-5 flex gap-5 text-sm">

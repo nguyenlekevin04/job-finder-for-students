@@ -1,7 +1,6 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { localDay } from "./format";
 import type { Job } from "./types";
 
 // "New since your last visit", kept as one JSON value in localStorage.
@@ -36,15 +35,9 @@ export interface LastVisit {
 const isDay = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 const isTime = (v: unknown): v is string => typeof v === "string" && !Number.isNaN(Date.parse(v));
 
-/** Parses the stored value. Accepts the old format (a bare ISO date-time) once. */
-export function parseVisitRecord(raw: string | null, now = new Date()): VisitRecord | null {
+/** Parses the stored value; anything that isn't a valid record counts as none (first visit). */
+export function parseVisitRecord(raw: string | null): VisitRecord | null {
   if (!raw) return null;
-  if (!raw.startsWith("{")) {
-    // Old format: the time of the last visit. Keep it as the mark.
-    if (!isTime(raw) || Date.parse(raw) > now.getTime()) return null;
-    const day = localDay(raw);
-    return { seen: day, seenAt: raw, next: day, nextAt: raw };
-  }
   try {
     const r = JSON.parse(raw) as Partial<VisitRecord>;
     const dayOrNull = (v: unknown) => v === null || isDay(v);
@@ -76,7 +69,7 @@ export function readLastVisit(maxFirstSeen: string | null): LastVisit | null {
   let record: VisitRecord | null = null;
   try {
     const now = new Date();
-    const stored = parseVisitRecord(localStorage.getItem(LAST_VISIT_KEY), now);
+    const stored = parseVisitRecord(localStorage.getItem(LAST_VISIT_KEY));
     record = advanceVisit(stored, maxFirstSeen, now);
     if (record !== stored) localStorage.setItem(LAST_VISIT_KEY, JSON.stringify(record));
   } catch {

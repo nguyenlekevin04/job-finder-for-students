@@ -74,13 +74,18 @@ export function JobBoard() {
   const visitDay = lastVisit ? localDay(lastVisit.seenAt) : null;
   const labelDay = visitDay && (!filters.since || filters.since === markDay) ? visitDay : sinceDay;
   const sinceCount = useMemo(() => (sinceDay ? jobs.filter((j) => j.firstSeen > sinceDay).length : 0), [jobs, sinceDay]);
-  const newMode: "since" | "nothing" | "week" | null = filters.since || (markDay && sinceCount > 0)
+  // Back after a long gap, every job is new since the mark: "since" would highlight
+  // everything, so fall back to the 7-day view instead of showing nothing.
+  const everythingNew = jobs.length > 0 && sinceCount >= jobs.length;
+  const newMode: "since" | "nothing" | "week" | null = filters.since
     ? "since"
-    : markDay
-      ? "nothing"
-      : lastVisit === null
-        ? "week"
-        : null;
+    : markDay && sinceCount > 0
+      ? everythingNew ? "week" : "since"
+      : markDay
+        ? "nothing"
+        : lastVisit === null
+          ? "week"
+          : null;
 
   // A shared link with ?job= scrolls to that job once the data is in.
   const scrolled = useRef(false);
@@ -145,7 +150,14 @@ export function JobBoard() {
         </div>
 
         {data ? (
-          <FilterGroups filters={filters} jobs={jobs} onChange={update} onReset={reset} activeCount={active} />
+          <FilterGroups
+            filters={filters}
+            jobs={jobs}
+            onChange={update}
+            onReset={reset}
+            activeCount={active}
+            sinceMode={newMode === "since"}
+          />
         ) : (
           <div className="mt-6 space-y-3">
             {Array.from({ length: 3 }, (_, i) => (
@@ -162,7 +174,7 @@ export function JobBoard() {
         {data && (
           <>
             {/* Highlighting "new" only means something when some jobs aren't. */}
-            {newMode === "since" && sinceDay && (
+            {newMode === "since" && sinceDay && sinceCount < jobs.length && (
               <NewTicket
                 since={labelDay}
                 count={sinceCount}
@@ -220,7 +232,7 @@ export function JobBoard() {
                     onToggle={openJob}
                     saved={isSaved(job.id)}
                     onToggleSave={toggle}
-                    showNew={newMode === "since" || (newMode === "week" && newCount < jobs.length)}
+                    showNew={(newMode === "since" && sinceCount < jobs.length) || (newMode === "week" && newCount < jobs.length)}
                     newSince={newMode === "since" ? sinceDay : null}
                   />
                 ))}

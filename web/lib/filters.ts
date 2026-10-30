@@ -1,5 +1,5 @@
 import Fuse from "fuse.js";
-import { isNew } from "./format";
+import { isNew, localDay } from "./format";
 import { ALL_FIELDS, ALL_TYPES, type Field, type Job, type JobType } from "./types";
 
 export type Sort = "newest" | "company";
@@ -39,11 +39,11 @@ export function withinHours(job: Job): boolean {
 }
 
 const list = (v: string | null) => (v ? v.split(",").filter(Boolean) : []);
-/** A real calendar date "YYYY-MM-DD", else null (so "2026-02-30" can't reach date formatting). */
+/** A real calendar date "YYYY-MM-DD" not after today, else null (so "2026-02-30" can't reach date formatting). */
 function day(v: string | null): string | null {
   if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
   const d = new Date(`${v}T00:00:00Z`);
-  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(v) ? v : null;
+  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(v) && v <= localDay(new Date()) ? v : null;
 }
 
 // URL <-> filters, so a filtered view can be bookmarked or shared.

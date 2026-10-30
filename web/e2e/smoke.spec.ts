@@ -103,6 +103,21 @@ test("'Up to 20 h/week' keeps jobs stating at most 20 hours, syncs ?hours=20 and
   await expect(page).not.toHaveURL(/hours=/);
 });
 
+test("'Up to 20 h/week' is hidden while no job states its hours", async ({ page }) => {
+  // Serve the built fixture with every hours value removed.
+  await page.route("**/jobs.json", async (route) => {
+    const res = await route.fetch();
+    const data = await res.json();
+    for (const j of data.jobs) j.hoursMin = j.hoursMax = null;
+    await route.fulfill({ response: res, json: data });
+  });
+  await openBoard(page);
+  await page.getByRole("button", { name: "More filters" }).click();
+  const options = page.getByRole("group", { name: "Options" });
+  await expect(options.getByRole("button", { name: "Include remote" })).toBeVisible();
+  await expect(options.getByRole("button", { name: /^Up to 20 h\/week/ })).toHaveCount(0);
+});
+
 test("back and forward restore filters", async ({ page }) => {
   await openBoard(page);
   await typeOption(page, "Thesis").click();
@@ -149,10 +164,14 @@ test("save a job, find it on /saved/, remove it and undo", async ({ page }) => {
   await expect(undo).toBeFocused();
   await expect(savedLink(page)).toContainText("0");
   await expect(row(page, job.title)).toBeVisible();
+  await expect(page.getByText("0 jobs kept for later, stored in this browser only.")).toBeVisible();
+  await expect(page.getByText("Jobs you save show up here.", { exact: false })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: /Removed .+ from saved/ })).toBeAttached();
 
   await undo.click();
   await expect(page.getByRole("button", { name: "Remove from saved" })).toBeFocused();
   await expect(savedLink(page)).toContainText("1");
+  await expect(page.getByRole("status").filter({ hasText: /Saved .+ again/ })).toBeAttached();
 
   await page.getByRole("button", { name: "Remove from saved" }).click();
   await page.reload();
@@ -229,6 +248,21 @@ test("Copy link copies a ?job= link and confirms it", async ({ page, context, ba
   expect(copied).toBe(`${baseURL}/?job=${job.id}`);
 });
 
+test("a failed copy says so briefly and gives the full hint to screen readers", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: () => Promise.reject(new Error("denied")) },
+      configurable: true,
+    });
+  });
+  const job = fixture.jobs[2];
+  await openBoard(page);
+  await row(page, job.title).click();
+  await page.getByRole("button", { name: "Copy link" }).click();
+  await expect(page.getByRole("button", { name: "Copy failed" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Couldn't copy, use the address bar" })).toBeAttached();
+});
+
 test("a first visit shows this week's new jobs", async ({ page }) => {
   await openBoard(page);
   await expect(page.getByRole("paragraph").filter({ hasText: /^Fresh this week$/ })).toBeVisible();
@@ -256,6 +290,9 @@ test("a returning visit shows what's new since then and filters to it", async ({
   await openBoard(page);
   await expect(page.getByText("Welcome back")).toBeVisible();
   await expect(page.getByText(/^Since \w+day$/)).toBeVisible();
+  // The ticket already offers "new"; the week filter would compete with it.
+  await page.getByRole("button", { name: "More filters" }).click();
+  await expect(page.getByRole("group", { name: "Options" }).getByRole("button", { name: "Fresh this week" })).toHaveCount(0);
   await page.getByRole("button", { name: "Show only new →" }).click();
   await expect(page).toHaveURL(/[?&]since=\d{4}-\d{2}-\d{2}/);
   await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
@@ -266,6 +303,21 @@ test("a returning visit shows what's new since then and filters to it", async ({
   await page.reload();
   await expect(page.getByText("Welcome back")).toBeVisible();
   await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
+});
+
+test("when every job is new since the last visit, the board falls back to the 7-day view", async ({ page }) => {
+  // The newest job on the last visit is older than every job in the fixture.
+  const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+  const record = JSON.stringify({ seen: "2000-01-01", seenAt: at, next: "2000-01-01", nextAt: at });
+  await page.addInitScript(([key, value]) => localStorage.setItem(key, value), ["dsj:lastVisit", record]);
+  await page.setViewportSize({ width: 375, height: 812 }); // the per-row "New ·" label is in the phone line
+  await openBoard(page);
+  await expect(count(page)).toHaveText(new RegExp(`^${TOTAL} jobs`));
+  // No "since" view that would highlight everything; the normal 7-day ticket instead,
+  // which in this fixture has exactly one job first seen today.
+  await expect(page.getByText("Welcome back")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Show only new →" })).toBeVisible();
+  await expect(page.locator('li[id^="row-"]').filter({ hasText: "New · " })).toHaveCount(1);
 });
 
 test("an impossible ?since= date is ignored instead of crashing the board", async ({ page }) => {
