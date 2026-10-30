@@ -66,14 +66,14 @@ flowchart TD
 
 1. **Sources** (`fetcher/sources/*.py`). Each module exposes `NAME` and `fetch()`; parsing is split into pure `parse*()` functions tested offline against `fetcher/tests/fixtures/`. Order in `SOURCES` matters: employers and institutes first, aggregators last, because the first link of a merged job is its "Apply now" button.
    - Employer feeds (Eightfold, Workday, SmartRecruiters, amazon.jobs) list every role; full postings are fetched only for student-looking titles.
-   - Page caps raise instead of truncating, and a feed that ends before its reported total fails the source, so a cut-off list can never look like closed jobs.
+   - Employer and institute feeds raise at their page cap instead of truncating, and fail when they end more than 2 postings (`FEED_SLACK`) short of their reported total, so a cut-off list can never look like closed jobs. Aggregators (partial feeds) simply stop at their cap; their missing postings are checked one by one instead.
 2. **Links** (`safe_link`, `LINK_HOSTS`). Only `https://` URLs on each source's known host are accepted. A posting with any other link is skipped and counted; any rejection raises the alarm.
 3. **Classification** (`classify.py`). Type (Werkstudent/internship/thesis) from title and tags; field (AI/ML, data, software, embedded, other CS) from title and tags, with strict rules for description-only evidence. HiWi, Ausbildung, PhD and senior roles are excluded on purpose.
 4. **Terms** (`terms.py`). Hours per week and pay, extracted only when a posting states them; never guessed. Full-time boilerplate, office hours, breaks and overtime are ignored.
-5. **Dedupe and merge.** `job_id()` = sha1 of normalized title and company. The first (highest-priority) posting keeps snippet, dates, language, hours and pay; later copies only add their link or fill empty text fields. Arbeitsagentur's cut-off GlobalFoundries titles merge into the employer's job (`truncated_twin`).
+5. **Dedupe and merge.** `job_id()` = the first 12 hex characters of the sha1 of normalized title and company. The first (highest-priority) posting keeps title, snippet, dates, language, hours and pay; later copies add their link and their field tags, and fill an empty snippet or posting date. Arbeitsagentur's cut-off GlobalFoundries titles merge into the employer's job (`truncated_twin`).
 6. **Availability** (`availability.py`, pure). See section 4.
 7. **Save** (`store.py`). `SupabaseStore` upserts by id, deletes closed ids and writes a `fetch_runs` row. Without Supabase variables, `JsonFileStore` writes `web/public/jobs.json` for local development.
-8. **Health alarm.** A source that failed, returned nothing, had links rejected, lost all its jobs, or tripped the removal guard makes the run exit with code 3; GitHub emails the owner.
+8. **Health alarm.** A source that failed, returned nothing (unless it sets `MAY_BE_EMPTY`, today only Amazon; disabled sources are skipped), had links rejected, lost all its jobs, or tripped the removal guard makes the run exit with code 3; GitHub emails the owner.
 
 ### 2.2 Website (`web/`)
 
@@ -91,8 +91,8 @@ flowchart LR
 
 - **Static export** (`output: "export"`, `trailingSlash: true`). No server features: no route handlers, server actions, rewrites or image optimisation.
 - **Data:** `useJobs` loads the job list and the latest `fetch_runs` row once per page load and caches it module-wide. `NEXT_PUBLIC_*` values are inlined at build time, so a changed setting needs a redeploy.
-- **State lives in the URL** (`lib/filters.ts`): search, type, field, language, remote, fresh, hours, since, sort and the open job (`?job=`). Component state is the source of truth and is mirrored to the URL after 250 ms.
-- **State in the browser only** (no accounts, no cookies): bookmarks (`dsj:bookmarks:v1`, whole job objects so closed jobs still show), theme (`dsj:theme`), last visit (`dsj:lastVisit`: newest job seen and visit times, rolled forward after 30 minutes).
+- **State lives in the URL** (`lib/filters.ts`): `q` (search), `type`, `field`, `en` (English-friendly), `remote=0` (exclude remote), `new` (fresh this week), `hours`, `since`, `sort` and the open job (`job`). Component state is the source of truth and is mirrored to the URL after 250 ms.
+- **State in the browser only** (no accounts, no cookies): bookmarks (`dsj:bookmarks:v1`, whole job objects so closed jobs still show), theme (`dsj:theme`), last visit (`dsj:lastVisit`: newest job seen and visit times; a new visit starts after 30 minutes without a page load).
 - **Design system:** CSS variables in `app/globals.css` exposed as Tailwind tokens; dark mode via a `.dark` class set before paint.
 - **Legal pages:** operator name, address and email come from Vercel environment variables (`NEXT_PUBLIC_OPERATOR_*`), never from the repo. The pages are noindex.
 
@@ -102,7 +102,7 @@ flowchart LR
 
 | Column | Meaning |
 |---|---|
-| `id` | sha1 of normalized title and company; changing the normalisation changes ids (resets "New" and orphans bookmarks) |
+| `id` | first 12 hex characters of the sha1 of normalized title and company; changing the normalisation changes ids (resets "New" and orphans bookmarks) |
 | `title`, `company`, `location`, `remote` | from the first posting |
 | `type`, `types`, `fields`, `english_friendly` | classification |
 | `posted_at`, `deadline` | as stated by the source |
@@ -112,7 +112,7 @@ flowchart LR
 | `snippet` | up to 700 characters of the description |
 | `hours_min`, `hours_max`, `pay_amount`, `pay_unit` | only when the posting states them |
 
-**`fetch_runs`**: one row per daily run with the job count and per-source status (`ok`, `count`, `error`, `rejected`, `links: {open, closed, unknown}`). It is public, so errors pass through `redact()`, which strips URL query strings.
+**`fetch_runs`**: one row per daily run with the job count and per-source status (`ok`, `count`, `error`, `skipped`, `rejected`, `links: {open, closed, unknown}`). It is public, so errors pass through `redact()`, which strips URL query strings.
 
 **Access:** row-level security on both tables. `anon` and `authenticated` may only `select`; insert, update and delete are revoked. The fetcher uses the service-role key, which bypasses RLS.
 
@@ -127,7 +127,7 @@ Every link of every job gets a state, then every job a verdict.
 | Not listed, but the URL now belongs to another job | closed (moved) |
 | Not listed, but still in the raw feed (not classified today) | unknown |
 | Not listed, source failed or skipped | unknown |
-| Not listed, aggregator | its check: Arbeitsagentur detail API (200/404), Arbeitnow page status (200/410) |
+| Not listed, aggregator | its check: Arbeitsagentur detail API, Arbeitnow page status; both map 200 to open and 404/410 to closed, anything else to unknown |
 | Not listed, complete feed that worked | closed |
 
 **Verdict:** any open link keeps the job (`last_seen` = today). The employer is authoritative: if a job's first link is from a complete feed and closed, the job closes even if an aggregator still lists a copy. All links closed removes the job. Otherwise the job is unconfirmed and stays for 2 days after it was last confirmed open.
@@ -159,7 +159,7 @@ Every link of every job gets a state, then every job a verdict.
 ## 6. Security model
 
 - **No secrets in the browser.** The site only holds the publishable key; RLS limits it to reading.
-- **Third-party data is untrusted.** Links pass `safe_link`; text is rendered by React (no HTML injection); the highest-priority source wins merges, so an aggregator copy can't change an employer's job.
+- **Third-party data is untrusted.** Links pass `safe_link`; text is rendered by React (no HTML injection); the highest-priority source wins merges, so an aggregator copy can't change an employer's text, dates, hours, pay or "Apply now" link (it can only add a link and field tags).
 - **Headers** (`web/vercel.json`): `Content-Security-Policy` with `frame-ancestors 'none'`, `base-uri`, `object-src`, `form-action`; `X-Frame-Options: DENY`; `nosniff`; strict referrer policy. HSTS comes from Vercel.
 - **Supply chain:** SHA-pinned actions, hashed Python lock, `npm audit` clean, PRs from forks get no secrets.
 - **Privacy:** no accounts, no cookies, no tracking. Browser storage stays on the device. The privacy page lists every key.
