@@ -55,7 +55,10 @@ export function JobBoard() {
   }, [filters]);
 
   const update = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
-  const reset = () => setFilters((f) => ({ ...DEFAULT_FILTERS, job: f.job }));
+  const reset = () => {
+    setFilters((f) => ({ ...DEFAULT_FILTERS, job: f.job }));
+    searchRef.current?.focus(); // the Clear button disappears; keep keyboard users in place
+  };
   const openJob = (id: string) => setFilters((f) => ({ ...f, job: f.job === id ? null : id }));
 
   const data = state.status === "ready" ? state.data : null;
@@ -168,13 +171,14 @@ export function JobBoard() {
       </section>
 
       {/* Job list */}
-      <section aria-live="polite" className="min-w-0">
+      <section className="min-w-0">
         {state.status === "loading" && <LoadingList />}
         {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
         {data && (
           <>
             {/* Highlighting "new" only means something when some jobs aren't. */}
-            {newMode === "since" && sinceDay && sinceCount < jobs.length && (
+            {/* A shared ?since= link keeps its ticket even when everything is new, so the filter stays visible and clearable. */}
+            {newMode === "since" && sinceDay && (sinceCount < jobs.length || !!filters.since) && (
               <NewTicket
                 since={labelDay}
                 count={sinceCount}
@@ -207,7 +211,7 @@ export function JobBoard() {
               </p>
             )}
             <div className="flex items-center justify-between gap-4 pb-2.5 text-[13px] text-muted">
-              <span ref={countRef} tabIndex={-1} data-testid="results-count" className="focus-ring rounded">
+              <span ref={countRef} tabIndex={-1} data-testid="results-count" aria-live="polite" className="focus-ring rounded">
                 {results.length === jobs.length ? `${jobs.length} jobs` : `${results.length} of ${jobs.length} jobs`}
                 {data.generatedAt ? ` · updated ${relativeTime(data.generatedAt)}` : " · first update pending"}
               </span>
