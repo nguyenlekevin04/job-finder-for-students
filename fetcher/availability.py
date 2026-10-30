@@ -68,11 +68,17 @@ def decide(
     link_states: dict[str, list[tuple[str, str]]] = {}  # job id -> (source, state) per link
     expired: set[str] = set()  # removed only because the grace period ran out
 
-    def link_state(link: dict, listed: bool) -> str:
+    # Today's job for every listed URL. A stored job whose link now belongs to another job
+    # (a cut-off copy merged into its employer posting, or a renamed title) is a stale duplicate.
+    owner = {l["url"]: jid for jid, j in current.items() for l in j["links"]}
+
+    def link_state(link: dict, listed: bool, jid: str) -> str:
         src = link["source"]
         if listed:
             state = check(src, link["url"]) if src in partial else OPEN
             return CLOSED if state == CLOSED else OPEN
+        if owner.get(link["url"], jid) != jid:
+            return CLOSED  # moved to another job today
         if link["url"] in raw_urls:
             return UNKNOWN  # still listed, just not in today's jobs (e.g. detail page timed out)
         if not source_ok.get(src, False):
@@ -92,7 +98,7 @@ def decide(
         # Complete-feed (employer) links stay ahead of aggregator links, so an aggregator copy
         # never becomes the "Apply now" link of an employer's job.
         links.sort(key=lambda l: l["source"] in partial)
-        states = [link_state(l, l["url"] in listed_urls) for l in links]
+        states = [link_state(l, l["url"] in listed_urls, jid) for l in links]
         link_states[jid] = [(l["source"], s) for l, s in zip(links, states)]
 
         # The employer is authoritative: when the job's first link comes from a complete feed and
