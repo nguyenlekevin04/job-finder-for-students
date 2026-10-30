@@ -8,6 +8,7 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 
 - **Privacy-friendly usage analytics** (Next #1): built, off until the shareholder creates the Umami Cloud account and sets `NEXT_PUBLIC_UMAMI_WEBSITE_ID` in Vercel Production. Counts page views, filter use and "Apply now" clicks; the privacy page gets a "Usage statistics" section once it's on.
 - **Moved links** (Fixes 0b): done, see below.
+- **Employer closure memory** (Fixes 0): done, needs the `closed_jobs` table in each database before it's active.
 - **Supply chain:** `pip-audit` in CI (rest of Fixes 3 already done or still open, see below).
 
 ## Next
@@ -24,7 +25,6 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 
 Non-blocking findings; the tech lead decides the order. Most are small.
 
-0. **Employer closure isn't remembered** (security, M; attack #2 re-check): when an employer closes a job, an exact-title copy on a job board can reappear the next day as its own job ("New", the copy's link and pay). Store tombstones (`closed_jobs(id, closed_on)`, schema change) and reject partial-only jobs with those ids for 30 days.
 1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
 2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
 3. **Supply chain hardening** (security, S): left from attack #1 (`docs/security.md`): restrict allowed actions in the repository settings (shareholder, one click), and a full `script-src` CSP with hashes for the two inline scripts plus `https://cloud.umami.is`.
@@ -67,6 +67,7 @@ Nothing here gets built until step 0 shows demand. Guiding rule: students never 
 ## Done (sprint 4)
 
 - **Moved links aren't closures:** a link that now belongs to another of today's jobs (renamed title, copy merged into its employer posting) is `moved`. It still removes its old job, but no longer trips the guard or counts as closed in `fetch_runs` (new `moved` count).
+- **Employer closures are remembered** (security, attack #2 re-check): a job its employer closed can't come back for 30 days through a job-board copy with the same title (`closed_jobs` table).
 - `pip-audit` checks the hashed Python lock in CI. Already done earlier and now off the list: SHA-pinned actions, the hashed lock, the four small items (Saved title on staging, `.env.example`, clear-search focus, "Update jobs" defaults to staging).
 
 ## Done (sprint 3: launch to students)

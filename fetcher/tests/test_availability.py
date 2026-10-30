@@ -282,3 +282,55 @@ def test_a_moved_employer_link_still_closes_aggregator_copies():
     new = {**now("new", "Bosch"), "links": [old["links"][0]]}
     r = run([old], [new], partial={"Arbeitnow"}, checks={"https://Arbeitnow/old": OPEN})
     assert r.removed == {"old"} and ids(r) == {"new"}
+
+
+# --- Employer closures are remembered (tombstones) ---
+
+def test_employer_closure_leaves_a_tombstone():
+    r = run([job("a", "Bosch", "Arbeitnow"), job("b", "Bosch"), job("c", "Bosch")],
+            [now("b", "Bosch"), now("c", "Bosch")], partial={"Arbeitnow"}, checks={"https://Arbeitnow/a": OPEN})
+    assert r.removed == {"a"} and r.closed_add == {"a": TODAY}
+
+
+def test_aggregator_copy_of_a_closed_job_is_rejected():
+    copy = now("a", "Arbeitnow")
+    r = decide(previous={}, current={"a": copy}, source_ok={"Arbeitnow": True}, partial={"Arbeitnow"},
+               check=lambda s, u: OPEN, today=TODAY, raw_urls=set(), closed={"a": "2026-10-20"})
+    assert ids(r) == set() and r.rejected == {"a"} and not r.closed_drop
+    assert "Arbeitnow" not in r.stats
+
+
+def test_tombstone_expires_after_30_days():
+    r = decide(previous={}, current={"a": now("a", "Arbeitnow")}, source_ok={"Arbeitnow": True},
+               partial={"Arbeitnow"}, check=lambda s, u: OPEN, today=TODAY, raw_urls=set(),
+               closed={"a": "2026-09-29"})
+    assert ids(r) == {"a"} and not r.rejected
+
+
+def test_employer_listing_the_job_again_reopens_it():
+    r = decide(previous={}, current={"a": now("a", "Bosch")}, source_ok={"Bosch": True}, partial=set(),
+               check=lambda s, u: UNKNOWN, today=TODAY, raw_urls=set(), closed={"a": "2026-10-20"})
+    assert ids(r) == {"a"} and r.closed_drop == {"a"} and not r.rejected
+
+
+def test_aggregator_only_closures_and_moves_leave_no_tombstone():
+    # Closed on the job board only, and a renamed employer job (moved, not closed).
+    r = run([job("agg", "Arbeitnow"), job("old", "Bosch")],
+            [{**now("new", "Bosch"), "links": job("old", "Bosch")["links"]}],
+            partial={"Arbeitnow"}, checks={"https://Arbeitnow/agg": CLOSED})
+    assert r.removed == {"agg", "old"} and r.closed_add == {}
+
+
+def test_guard_kept_jobs_leave_no_tombstone():
+    prev = [job(f"j{i}", "Infineon") for i in range(4)]
+    r = run(prev, [now("j0", "Infineon")])
+    assert not r.removed and r.closed_add == {}
+
+
+def test_old_job_whose_link_moved_to_a_rejected_copy_still_closes():
+    # The board re-titled X so its URL now maps to tombstoned id T: T is rejected and X must go.
+    x = job("x", "Arbeitnow")
+    t = {**now("t", "Arbeitnow"), "links": x["links"]}
+    r = decide(previous={"x": x}, current={"t": t}, source_ok={"Arbeitnow": True}, partial={"Arbeitnow"},
+               check=lambda s, u: OPEN, today=TODAY, raw_urls=set(), closed={"t": "2026-10-20"})
+    assert r.removed == {"x"} and ids(r) == set() and r.rejected == {"t"}

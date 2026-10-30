@@ -8,12 +8,19 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import requests
 
+from fetcher.availability import TOMBSTONE_DAYS
+
 BATCH = 500
+
+
+def _cutoff(today: str) -> str:
+    return (date.fromisoformat(today) - timedelta(days=TOMBSTONE_DAYS)).isoformat()
 
 # jobs.json / web field name -> database column
 COLUMNS = {
@@ -79,6 +86,33 @@ class SupabaseStore:
                 return jobs
             offset += page
 
+    def closed(self) -> dict[str, str] | None:
+        """Tombstones of employer-closed jobs (id -> closed on), or None while the table is missing."""
+        res = self.session.get(f"{self.base}/closed_jobs", params={"select": "id,closed_on"}, timeout=30)
+        if res.status_code == 404:  # PGRST205: run supabase/schema.sql to create closed_jobs
+            print("::warning title=closed_jobs missing::Run supabase/schema.sql; employer closures aren't remembered.")
+            return None
+        return {r["id"]: r["closed_on"] for r in self._check(res).json()}
+
+    def save_closed(self, add: dict[str, str], drop: set[str], today: str) -> None:
+        """Add new tombstones, drop reopened ones and those older than TOMBSTONE_DAYS."""
+        if add:
+            self._check(self.session.post(
+                f"{self.base}/closed_jobs", params={"on_conflict": "id"},
+                headers={"Prefer": "resolution=merge-duplicates,return=minimal"},
+                data=json.dumps([{"id": k, "closed_on": v} for k, v in sorted(add.items())]).encode(), timeout=30,
+            ))
+        gone = sorted(drop - add.keys())
+        for i in range(0, len(gone), 100):
+            self._check(self.session.delete(
+                f"{self.base}/closed_jobs", params={"id": f"in.({','.join(gone[i:i + 100])})"},
+                headers={"Prefer": "return=minimal"}, timeout=30,
+            ))
+        self._check(self.session.delete(
+            f"{self.base}/closed_jobs", params={"closed_on": f"lt.{_cutoff(today)}"},
+            headers={"Prefer": "return=minimal"}, timeout=30,
+        ))
+
     def save(self, jobs: list[dict], removed: set[str], status: dict, generated_at: str) -> int:
         rows = [to_row(j) for j in jobs]
         for i in range(0, len(rows), BATCH):
@@ -125,10 +159,29 @@ class JsonFileStore:
             print("! previous jobs.json unreadable, starting fresh")
             return {}
 
+    def _read(self) -> dict:
+        try:
+            return json.loads(self.path.read_text()) if self.path.exists() else {}
+        except json.JSONDecodeError:
+            return {}
+
+    def closed(self) -> dict[str, str] | None:
+        return dict(self._read().get("closedJobs", {}))
+
+    def save_closed(self, add: dict[str, str], drop: set[str], today: str) -> None:
+        # Runs after save(), so it rewrites the file save() just wrote.
+        payload = self._read()
+        cut = _cutoff(today)
+        kept = {k: v for k, v in payload.get("closedJobs", {}).items() if k not in drop and v >= cut}
+        payload["closedJobs"] = {**kept, **add}
+        self.path.write_text(json.dumps(payload, ensure_ascii=False, indent=1))
+
     def save(self, jobs: list[dict], removed: set[str], status: dict, generated_at: str) -> int:
+        closed = self._read().get("closedJobs", {})
         jobs = sorted((j for j in jobs if j["id"] not in removed),
                       key=lambda j: (j.get("postedAt") or j["firstSeen"], j["firstSeen"]), reverse=True)
-        payload = {"generatedAt": generated_at, "sources": status, "count": len(jobs), "jobs": jobs}
+        payload = {"generatedAt": generated_at, "sources": status, "count": len(jobs), "jobs": jobs,
+                   "closedJobs": closed}
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(payload, ensure_ascii=False, indent=1))
         return len(jobs)
