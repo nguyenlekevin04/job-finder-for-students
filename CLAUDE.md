@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
+`docs/architecture.md` describes the system in depth (components, data model, availability rules, environments, security, key decisions). Keep it current when the architecture changes.
+
 A job board for student roles (Werkstudent, internship, thesis) in AI/ML/CS around Dresden plus remote-in-Germany:
 
 ```
