@@ -6,7 +6,7 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 
 **Sprint 4 (lean): usage analytics and fixes.**
 
-- **Privacy-friendly usage analytics** (Next #1): built, off until the shareholder creates the Umami Cloud account and sets `NEXT_PUBLIC_UMAMI_WEBSITE_ID` in Vercel Production. Counts page views, filter use and "Apply now" clicks; the privacy page gets a "Usage statistics" section once it's on.
+- **Privacy-friendly usage analytics** (Next #1): built and merged into staging. The Umami Cloud account exists and `NEXT_PUBLIC_UMAMI_WEBSITE_ID` is set in Vercel Production (2026-10-30), so counting starts with the next production release. Counts page views, filter use and "Apply now" clicks; the privacy page gets a "Usage statistics" section once it's on.
 - **Moved links** (Fixes 0b): done, see below.
 - **Supply chain:** `pip-audit` in CI (rest of Fixes 3 already done or still open, see below).
 
@@ -52,7 +52,7 @@ Nothing here gets built until step 0 shows demand. Guiding rule: students never 
 
 0. **Validate demand by hand** (S, no code): As the shareholder, I want 5 to 8 Dresden employers (small and mid-size tech firms, startups, institute groups that post student roles) to tell me whether they would pay for a featured student job, so that we build only what someone buys.
    - Acceptance: a one-page offer (what "featured" means, a price of €39 to €49 for 30 days, our audience numbers) goes out by email or in person. The result is written down: who said yes at which price, and why the others said no. **Go** = at least 2 written "yes, we'd buy" at ≥ €39. **No-go** = fewer, and we stop here.
-   - Needs: about 4 weeks of visitor numbers from the privacy-friendly analytics (built in sprint 4; on once the Umami account exists), or the offer has nothing to sell.
+   - Needs: about 4 weeks of visitor numbers from the privacy-friendly analytics (built in sprint 4; counting starts with the sprint 4 release), or the offer has nothing to sell.
    - Benchmarks: TU Dresden's Stellenticket charges about €50 per student ad; stellenwerk €79 / €149 per 30 days.
 1. **Featured job, sold by hand** (S, after Go): As an employer, I want my student job pinned at the top for 30 days, so that more of the right students see it. As a student, I want sponsored jobs clearly marked, so that I still trust the order of the board.
    - Acceptance: at most 2 featured jobs at a time, each with a visible "Sponsored" label (the "Anzeige" rule, §6 DDG / §5a UWG). It must be a real student role that passes our classifier (no HiWi, no full-time roles). It ends by itself after 30 days. The "Show only new" and filter results stay honest: a featured job appears only if it matches the active filters. Payment by a Stripe Payment Link with an invoice; no payment code on our site. The privacy page and a short "How ranking works" note say that paid placement exists.
