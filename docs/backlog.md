@@ -4,37 +4,42 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 
 ## Now
 
-_Empty: sprint 2 is being released._
+_Empty: sprint 3 is being released._
+
+**Release gate (shareholder):** the production release waits until `NEXT_PUBLIC_OPERATOR_STREET` and `_CITY` are set in Vercel production and the site is redeployed, so the imprint and privacy pages show no "Draft" note. Don't hide the legal pages instead.
 
 ## Next
 
-1. **Browser smoke tests in CI** (S): As a student, I want the board to never ship broken, so that it works when I check it between lectures.
-   - Acceptance: CI loads the built site in a headless browser and checks that the job list renders, a filter narrows it, a job opens, and a bookmark survives a reload. A failure blocks the PR.
-2. **Privacy-friendly usage analytics** (S): As a student, I want the team to know which filters and jobs people use, so that the board improves where it matters, without being tracked.
+1. **Privacy-friendly usage analytics** (S): As a student, I want the team to know which filters and jobs people use, so that the board improves where it matters, without being tracked.
    - Acceptance: cookieless and free, no personal data and no consent banner needed. It counts visits, filter use, and "Apply now" clicks. The privacy note on the site says what is counted.
-3. **More cities** (L): As a student in Leipzig or Chemnitz, I want the same board for my city, so that I find local student jobs as easily.
+2. **More cities** (L): As a student in Leipzig or Chemnitz, I want the same board for my city, so that I find local student jobs as easily.
    - Acceptance: choose a city with the location filter in the URL. Dresden stays the default. Classifier accuracy stays at or above 90% for every city.
    - Blocked by: serving the job list from the CDN first (docs/capacity.md: do it before a second city).
-4. **AI feature** (M, open): As a student, I want help judging fit quickly (for example a plain-English summary of hours, language and deadline), so that I can skip reading long German postings.
+3. **AI feature** (M, open): As a student, I want help judging fit quickly (for example a plain-English summary of hours, language and deadline), so that I can skip reading long German postings.
    - Open question: which outcome exactly? It must run at no cost, e.g. once a day in the fetcher. No per-visit calls to a paid API.
-5. **Custom domain** (S, **shareholder decision: ~€10/year**): As a student, I want a short, trustworthy address, so that I remember it and can share it with classmates.
+4. **Custom domain** (S, **shareholder decision: ~€10/year**): As a student, I want a short, trustworthy address, so that I remember it and can share it with classmates.
    - Acceptance: the domain serves production, the vercel.app address redirects to it, and saved jobs and the theme carry over.
 
 ## Fixes (from the release reviews)
 
 Non-blocking findings; the tech lead decides the order. Most are small.
 
+0. **Employer closure isn't remembered** (security, M; attack #2 re-check): when an employer closes a job, an exact-title copy on a job board can reappear the next day as its own job ("New", the copy's link and pay). Store tombstones (`closed_jobs(id, closed_on)`, schema change) and reject partial-only jobs with those ids for 30 days.
+
 1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
 2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
-3. **Employer feeds can be cut off silently** (should-fix, S): Infineon, GlobalFoundries, Bosch, Fraunhofer and Amazon stop at a page cap (150–500 postings; today's counts are 6–60). If a site grows past it, the missing postings count as closed. Make `fetch()` fail when it hits the cap, so the source counts as failed and nothing is removed.
-4. **Supply chain hardening** (security, S): pin GitHub Actions to commit SHAs and restrict allowed actions; add `pip-audit` to CI; a full `script-src` CSP with hashes for the two inline scripts; a lock file with hashes (`pip-compile --generate-hashes`) for transitive Python dependencies (`docs/security.md`, attack #1).
-5. **Small items** (nice-to-have, S):
+3. **Supply chain hardening** (security, S): pin GitHub Actions to commit SHAs and restrict allowed actions; add `pip-audit` to CI; a full `script-src` CSP with hashes for the two inline scripts; a lock file with hashes (`pip-compile --generate-hashes`) for transitive Python dependencies (`docs/security.md`, attack #1).
+4. **Small items** (nice-to-have, S):
    - the Saved page title lacks "[STAGING]" on staging
    - an outdated comment in `web/.env.example`
    - the clear-search button drops keyboard focus
    - the manual "Run workflow" button defaults to production; switch the default to staging
 
 ## Later
+
+- **Pages search engines can read** (M): per-job and per-company pages built at deploy time, so students find jobs on Google. Waits for serving the job list from the CDN (docs/capacity.md); today all jobs render in the browser only.
+- **RSS / calendar feed of deadlines** (S–M): few students use RSS; a static feed needs a rebuild or public storage after each fetch. After the CDN switch.
+- **Company pages** (M): little value at today's ~100 jobs from a few dozen employers; the company filter/search covers it.
 
 - **Login / accounts** (L): As a student, I want my saved jobs on my phone and my laptop, so that I don't lose them. Waits: bookmarks in the browser cover the need today. Accounts bring privacy, security and support costs. Look at it again only if students ask for sync.
   - **Technical preconditions (tech lead, fixed before any build):**
@@ -46,6 +51,14 @@ Non-blocking findings; the tech lead decides the order. Most are small.
     - **Data access:** new tables (e.g. `bookmarks`) only with RLS `user_id = auth.uid()`. The existing tables stay read-only for the public.
     - **Law:** privacy policy and imprint, data export and deletion (GDPR). Session cookies are strictly necessary, so no consent banner (TTDSG §25(2)). No tracking cookies.
     - **Before release:** `/hackerattack login` (Kevin) covers session theft, fixation, CSRF, IDOR on bookmarks, open redirects in the login flow, and rate limits on magic links.
+
+## Done (sprint 3: launch to students)
+
+- **Imprint and privacy pages** (`/imprint/`, `/privacy/`), linked from the footer. Privacy covers Vercel logs, Supabase requests, the three localStorage keys, no cookies and no tracking. Accepted on staging; **production only once the postal address is filled** (see the release gate under Now).
+- **Hours and pay**: shown only when the posting states them, in the row and the open job; "Up to 20 h/week" filter (`?hours=20`) keeps only jobs with stated hours ≤ 20. Hand check: 0 wrong values in 110 postings.
+- **New since your last visit**: "Welcome back, N new jobs, Since Tuesday" with "Show only new" (`?since=`, shareable) and "New" badges. The mark is local only, moves after a 30-minute break, and with storage blocked the board falls back to "Fresh this week".
+- **Share a job**: native share sheet on phones (title, company, `?job=` link), "Copy link" plus "Link copied" elsewhere. No tracking parameters.
+- Reliability: browser smoke tests in CI (24 Playwright tests block the PR); employer feeds fail loudly at their page cap instead of dropping postings; security fixes.
 
 ## Done (sprint 2: only open jobs)
 

@@ -9,6 +9,8 @@ export function SiteHeader() {
   const pathname = usePathname();
   const { count } = useBookmarks();
   const onSaved = pathname.replace(/\/$/, "").endsWith("/saved");
+  // The board is the home page only; legal pages mark neither link as current.
+  const onBoard = pathname === "/";
 
   return (
     <header className="mx-auto w-full max-w-7xl px-4 sm:px-8 lg:px-10">
@@ -19,7 +21,7 @@ export function SiteHeader() {
         <nav className="flex items-center gap-1 sm:gap-5">
           <Link
             href="/"
-            aria-current={onSaved ? undefined : "page"}
+            aria-current={onBoard ? "page" : undefined}
             className={`focus-ring hidden rounded px-1 font-medium sm:inline ${onSaved ? "text-muted hover:text-ink" : ""}`}
           >
             Jobs

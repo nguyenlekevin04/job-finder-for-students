@@ -277,3 +277,129 @@ def test_arbeitnow_country_sites_are_allowed():
     for host in ("www.arbeitnow.fr", "www.arbeitnow.ch", "www.arbeitnow.nl", "www.arbeitnow.co.uk"):
         assert main.safe_link("Arbeitnow", f"https://{host}/jobs/companies/x/y-1")
     assert not main.safe_link("Arbeitnow", "https://www.arbeitnow.evil/jobs/x")
+
+
+def test_hours_and_pay_come_only_from_the_first_posting():
+    jobs = main.build_jobs([
+        raw("Werkstudent Softwareentwicklung (m/w/d)", source="A", description="Software, Python, Git. 15 €/Std."),
+        raw("Werkstudent Softwareentwicklung (w/m/d)", source="B",
+            description="Python, Git. 10-20 h/Woche, 1.200 €/Monat"),
+    ])
+    (job,) = jobs.values()
+    # The first posting has pay but no hours: a later copy fills neither.
+    assert (job["hoursMin"], job["hoursMax"]) == (None, None)
+    assert (job["payAmount"], job["payUnit"]) == (15.0, "hour")
+
+
+def test_aggregator_copy_cannot_add_pay_to_an_employer_job():
+    """Kevin's proof: an exact-title Arbeitnow copy of an Infineon posting claims a wage."""
+    title, company = "Werkstudent Softwareentwicklung (m/w/d)", "Infineon"
+    jobs = main.build_jobs([
+        Job(source="Infineon", source_id="1", title=title, company=company,
+            url="https://jobs.infineon.com/careers/job/1", description="Du entwickelst Software in Dresden."),
+        Job(source="Arbeitnow", source_id="x", title=title, company=company,
+            url="https://www.arbeitnow.com/jobs/x", description="Python, Git. Stundenlohn: 45 €"),
+    ])
+    (job,) = jobs.values()
+    assert job["payAmount"] is None and job["payUnit"] is None
+    assert job["hoursMax"] is None
+
+
+def test_hours_and_pay_default_to_none():
+    (job,) = main.build_jobs([raw("Werkstudent Softwareentwicklung", source="A")]).values()
+    assert [job[k] for k in ("hoursMin", "hoursMax", "payAmount", "payUnit")] == [None] * 4
+
+
+GF_COMPANY_BA = "GlobalFoundries Management Services GmbH & Co. KG"
+
+
+def gf(title):
+    return raw(title, company="GlobalFoundries", source="GlobalFoundries",
+               url=f"https://globalfoundries.wd1.myworkdayjobs.com/External/job/{quote(title)}")
+
+
+def ba(title, company=GF_COMPANY_BA):
+    return raw(title, company=company, source="Arbeitsagentur",
+               url=f"https://www.arbeitsagentur.de/jobsuche/jobdetail/{quote(title)}")
+
+
+@pytest.mark.parametrize("full,cut", [
+    # Real staging pairs (GlobalFoundries feed vs. Arbeitsagentur's cut-off copy).
+    ("Werkstudent*in im Bereich Machine Learning & Virtual Metrology", "Werkstudent*in im Bereich Machine Learning & Virt"),
+    ("Werkstudent*in im Bereich TCAD – Machine Learning & KI", "Werkstudent*in im Bereich TCAD – Machine Learning"),
+])
+def test_globalfoundries_cut_off_copy_merges_into_full_posting(full, cut):
+    jobs = main.build_jobs([gf(full), ba(cut)])
+    (job,) = jobs.values()
+    assert job["id"] == main.job_id(full, "GlobalFoundries")  # ids don't change
+    assert job["title"] == full and job["company"] == "GlobalFoundries"
+    assert [l["source"] for l in job["links"]] == ["GlobalFoundries", "Arbeitsagentur"]
+
+
+def test_globalfoundries_twin_needs_one_long_prefix_match():
+    # Shorter than 40 characters: too generic to merge.
+    jobs = main.build_jobs([gf("Werkstudent*in Machine Learning KI"), ba("Werkstudent*in Machine Learning")])
+    assert len(jobs) == 2
+    # Two candidates share the prefix: ambiguous, no merge.
+    jobs = main.build_jobs([
+        gf("Werkstudent*in im Bereich TCAD – Machine Learning & KI"),
+        gf("Werkstudent*in im Bereich TCAD – Machine Learning & Data"),
+        ba("Werkstudent*in im Bereich TCAD – Machine Learning"),
+    ])
+    assert len(jobs) == 3
+    # Another company with the same cut-off title isn't merged.
+    jobs = main.build_jobs([
+        gf("Werkstudent*in im Bereich TCAD – Machine Learning & KI"),
+        ba("Werkstudent*in im Bereich TCAD – Machine Learning", company="Infineon Technologies Dresden GmbH"),
+    ])
+    assert len(jobs) == 2
+
+
+def test_globalfoundries_twin_needs_another_source():
+    # One feed doesn't list a posting twice: same-source prefix titles are two jobs.
+    jobs = main.build_jobs([
+        gf("Working Student Machine Learning for Process Control"),
+        gf("Working Student Machine Learning for Process Control and Yield"),
+    ])
+    assert len(jobs) == 2
+    # Arbeitsagentur's cut-off copies of two jobs still merge with their own feed posting.
+    jobs = main.build_jobs([
+        gf("Werkstudent*in im Bereich Machine Learning & Virtual Metrology"),
+        gf("Werkstudent*in im Bereich TCAD – Machine Learning & KI"),
+        ba("Werkstudent*in im Bereich Machine Learning & Virt"),
+    ])
+    assert len(jobs) == 2
+    assert sum(len(j["links"]) for j in jobs.values()) == 3
+
+
+def test_padded_aggregator_title_is_not_a_globalfoundries_twin():
+    """Kevin's proof: an Arbeitnow copy whose title is the real one plus made-up terms."""
+    real = "Werkstudent*in im Bereich Machine Learning & Virtual Metrology"
+    copy = Job(source="Arbeitnow", source_id="x", title=real + " - 60 EUR pro Stunde, 40 Std./Woche",
+               company="GlobalFoundries", url="https://www.arbeitnow.com/jobs/x")
+    jobs = main.build_jobs([gf(real), copy])
+    assert len(jobs) == 2
+    employer = jobs[main.job_id(real, "GlobalFoundries")]
+    assert employer["links"] == [{"source": "GlobalFoundries", "url": gf(real).url}]
+    assert employer["payAmount"] is None and employer["hoursMax"] is None
+    assert main.truncated_twin({"x": employer}, real[:50], GF_COMPANY_BA, "Arbeitnow") is None
+
+
+def test_is_globalfoundries():
+    assert main.is_globalfoundries("GlobalFoundries")
+    assert main.is_globalfoundries(GF_COMPANY_BA)
+    assert not main.is_globalfoundries("GlobalFoundriesX GmbH")
+
+
+def test_cut_off_copy_merges_although_the_full_title_is_also_on_the_arbeitsagentur():
+    # Staging data: the Arbeitsagentur lists GlobalFoundries' full title AND a cut-off copy.
+    full = "Werkstudent*in im Bereich Machine Learning & Virtual Metrology"
+    jobs = main.build_jobs([gf(full), ba(full), ba(full[:49])])
+    (job,) = jobs.values()
+    assert [l["source"] for l in job["links"]] == ["GlobalFoundries", "Arbeitsagentur", "Arbeitsagentur"]
+
+
+def test_longer_arbeitsagentur_title_is_a_different_role():
+    short = "Working Student Machine Learning for Process Control"
+    jobs = main.build_jobs([gf(short), ba(short), ba(short + " and Yield")])
+    assert len(jobs) == 2

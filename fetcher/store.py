@@ -32,6 +32,10 @@ COLUMNS = {
     "lastSeen": "last_seen",
     "links": "links",
     "snippet": "snippet",
+    "hoursMin": "hours_min",
+    "hoursMax": "hours_max",
+    "payAmount": "pay_amount",
+    "payUnit": "pay_unit",
 }
 
 

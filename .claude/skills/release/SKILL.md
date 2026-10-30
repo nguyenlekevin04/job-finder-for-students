@@ -11,6 +11,7 @@ Team agents live in `.claude/agents/`. If they aren't available as agent types, 
 
 ## Steps
 
+0. **Dead-code cleanup** (once per sprint, before the release; see `docs/workflow.md`): `code-reviewer` lists dead code with evidence, you confirm, `review-fixer` deletes it on `chore/cleanup-sprint-<n>`, checks stay green, and the PR merges into `staging`. Skip it only for a hotfix release.
 1. **Scope.** `git fetch` and list what ships: `git log --oneline origin/main..origin/staging` and `git diff --stat origin/main...origin/staging`. If nothing differs, tell the shareholder and stop.
 2. **Release pull request:** `gh pr create --base main --head staging --title "Release: <summary>"` with the template. It must merge with a **merge commit** (never squash), so `staging` and `main` stay in sync.
 3. **Staging site.** It's the Vercel preview of the `staging` branch (needs a Vercel login). Get a link the agents' browser can open with the Vercel MCP (`get_access_to_vercel_url` or a share link), and check that it shows the STAGING banner and staging data.
@@ -27,5 +28,9 @@ Team agents live in `.claude/agents/`. If they aren't available as agent types, 
    - Risks and the rollback plan.
    - Your recommendation: ship or don't.
    Then ask for the OK.
-7. **After the OK:** `gh pr merge <n> --merge`. Wait for the Vercel production deployment, then check `https://dresden-jobs.vercel.app`: it loads, it reads the production Supabase project, there's no STAGING banner, and the Saved page works. If it's broken, roll back in Vercel (promote the previous production deployment) and tell the shareholder.
+7. **After the OK:**
+   1. **Production prerequisites first, before merging:**
+      - Schema changes: if `git diff origin/main...origin/staging -- supabase/schema.sql` isn't empty, apply the new statements to the production project (the Supabase MCP is bound to production) and verify with a read-only REST select. Code that selects new columns breaks the site and the daily fetch if this is skipped.
+      - New `NEXT_PUBLIC_*` variables in the Production environment in Vercel.
+   2. `gh pr merge <n> --merge`. Wait for the Vercel production deployment, then check `https://dresden-jobs.vercel.app`: it loads, it reads the production Supabase project, there's no STAGING banner, and the Saved page works. If it's broken, roll back in Vercel (promote the previous production deployment) and tell the shareholder.
 8. Close out: update `docs/backlog.md` (done items) and memory if something changed.

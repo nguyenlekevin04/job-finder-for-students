@@ -82,10 +82,27 @@ def test_listed_partial_job_is_removed_when_its_check_says_closed():
 
 
 def test_one_open_link_keeps_the_job_and_closed_links_are_dropped():
-    prev = [job("a", "Bosch", "Arbeitnow")]
-    r = run(prev, [], partial={"Arbeitnow"}, checks={"https://Arbeitnow/a": OPEN})
+    prev = [job("a", "Arbeitsagentur", "Arbeitnow")]
+    checks = {"https://Arbeitsagentur/a": CLOSED, "https://Arbeitnow/a": OPEN}
+    r = run(prev, [], partial={"Arbeitsagentur", "Arbeitnow"}, checks=checks)
     assert ids(r) == {"a"}
     assert [l["source"] for l in r.jobs[0]["links"]] == ["Arbeitnow"]
+
+
+def test_closed_employer_link_removes_the_job_despite_open_aggregator_copy():
+    """Kevin's proof: the GlobalFoundries posting is gone from a working feed, the Arbeitnow copy is open."""
+    prev = [job("a", "GlobalFoundries", "Arbeitnow"), job("b", "GlobalFoundries"), job("c", "GlobalFoundries")]
+    r = run(prev, [now("a", "Arbeitnow"), now("b", "GlobalFoundries"), now("c", "GlobalFoundries")],
+            partial={"Arbeitnow"}, checks={"https://Arbeitnow/a": OPEN})
+    assert r.removed == {"a"} and ids(r) == {"b", "c"}
+
+
+def test_employer_link_stays_first_when_its_source_failed():
+    prev = [job("a", "GlobalFoundries", "Arbeitnow")]
+    r = run(prev, [now("a", "Arbeitnow")], ok={"GlobalFoundries": False, "Arbeitnow": True},
+            partial={"Arbeitnow"}, checks={"https://Arbeitnow/a": OPEN})
+    assert ids(r) == {"a"}
+    assert [l["source"] for l in r.jobs[0]["links"]] == ["GlobalFoundries", "Arbeitnow"]
 
 
 def test_older_links_of_a_listed_job_are_checked_and_kept_if_open():
@@ -233,3 +250,16 @@ def test_job_without_links_is_removed():
     assert ids(r) == {"b"}
     assert r.removed == {"a"}
     assert r.problems == []
+
+
+def test_a_link_that_moved_to_another_job_closes_the_stale_duplicate():
+    # Yesterday the cut-off Arbeitsagentur copy was its own job; today it merges into the
+    # employer's job. Its link is still open at the Arbeitsagentur, but it belongs elsewhere now.
+    stale = job("cut", "Arbeitsagentur")
+    employer = {**now("full", "GlobalFoundries"), "links": [
+        {"source": "GlobalFoundries", "url": "https://GlobalFoundries/full"},
+        {"source": "Arbeitsagentur", "url": "https://Arbeitsagentur/cut"},
+    ]}
+    r = run([stale], [employer], partial={"Arbeitsagentur"},
+            checks={"https://Arbeitsagentur/cut": OPEN})
+    assert r.removed == {"cut"} and ids(r) == {"full"}

@@ -11,9 +11,10 @@ import {
   makeIndex,
   type Filters,
 } from "@/lib/filters";
-import { isNew, relativeTime } from "@/lib/format";
+import { isNew, localDay, relativeTime, visitDayLabel } from "@/lib/format";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useJobsFile } from "@/lib/useJobs";
+import { useLastVisit } from "@/lib/useLastVisit";
 import { FilterGroups, SortSelect } from "./FilterGroups";
 import { SearchIcon, XIcon } from "./Icons";
 import { JobRow } from "./JobRow";
@@ -54,7 +55,10 @@ export function JobBoard() {
   }, [filters]);
 
   const update = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
-  const reset = () => setFilters((f) => ({ ...DEFAULT_FILTERS, job: f.job }));
+  const reset = () => {
+    setFilters((f) => ({ ...DEFAULT_FILTERS, job: f.job }));
+    searchRef.current?.focus(); // the Clear button disappears; keep keyboard users in place
+  };
   const openJob = (id: string) => setFilters((f) => ({ ...f, job: f.job === id ? null : id }));
 
   const data = state.status === "ready" ? state.data : null;
@@ -63,6 +67,28 @@ export function JobBoard() {
   const results = useMemo(() => applyFilters(jobs, filters, index), [jobs, filters, index]);
   const newCount = useMemo(() => jobs.filter((j) => isNew(j.firstSeen)).length, [jobs]);
   const active = activeFilterCount(filters);
+
+  // "New" is either "since your last visit" or, on a first visit, "this week".
+  // A ?since= link wins over the stored mark, so a shared link shows the same set.
+  const lastVisit = useLastVisit(data ? jobs : null); // undefined until the data is in, null on a first visit
+  const markDay = lastVisit?.seen ?? null;
+  const sinceDay = filters.since ?? markDay;
+  // "Since Tuesday" names the day of that visit, not the newest job it had.
+  const visitDay = lastVisit ? localDay(lastVisit.seenAt) : null;
+  const labelDay = visitDay && (!filters.since || filters.since === markDay) ? visitDay : sinceDay;
+  const sinceCount = useMemo(() => (sinceDay ? jobs.filter((j) => j.firstSeen > sinceDay).length : 0), [jobs, sinceDay]);
+  // Back after a long gap, every job is new since the mark: "since" would highlight
+  // everything, so fall back to the 7-day view instead of showing nothing.
+  const everythingNew = jobs.length > 0 && sinceCount >= jobs.length;
+  const newMode: "since" | "nothing" | "week" | null = filters.since
+    ? "since"
+    : markDay && sinceCount > 0
+      ? everythingNew ? "week" : "since"
+      : markDay
+        ? "nothing"
+        : lastVisit === null
+          ? "week"
+          : null;
 
   // A shared link with ?job= scrolls to that job once the data is in.
   const scrolled = useRef(false);
@@ -74,6 +100,8 @@ export function JobBoard() {
 
   // "/" jumps to the search field, like the hint says.
   const searchRef = useRef<HTMLInputElement>(null);
+  // Focus target after dismissing the "no longer available" notice, which unmounts.
+  const countRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
@@ -110,7 +138,10 @@ export function JobBoard() {
           {filters.q ? (
             <button
               type="button"
-              onClick={() => update({ q: "" })}
+              onClick={() => {
+                update({ q: "" });
+                searchRef.current?.focus(); // the button unmounts; keep keyboard users in the field
+              }}
               aria-label="Clear search"
               className="focus-ring grid size-6 place-items-center rounded text-muted hover:text-ink"
             >
@@ -122,7 +153,14 @@ export function JobBoard() {
         </div>
 
         {data ? (
-          <FilterGroups filters={filters} jobs={jobs} onChange={update} onReset={reset} activeCount={active} />
+          <FilterGroups
+            filters={filters}
+            jobs={jobs}
+            onChange={update}
+            onReset={reset}
+            activeCount={active}
+            sinceMode={newMode === "since"}
+          />
         ) : (
           <div className="mt-6 space-y-3">
             {Array.from({ length: 3 }, (_, i) => (
@@ -133,24 +171,47 @@ export function JobBoard() {
       </section>
 
       {/* Job list */}
-      <section aria-live="polite" className="min-w-0">
+      <section className="min-w-0">
         {state.status === "loading" && <LoadingList />}
         {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
         {data && (
           <>
             {/* Highlighting "new" only means something when some jobs aren't. */}
-            {newCount > 0 && newCount < jobs.length && <NewTicket count={newCount} active={filters.fresh} onToggle={() => update({ fresh: !filters.fresh })} />}
+            {/* A shared ?since= link keeps its ticket even when everything is new, so the filter stays visible and clearable. */}
+            {newMode === "since" && sinceDay && (sinceCount < jobs.length || !!filters.since) && (
+              <NewTicket
+                since={labelDay}
+                count={sinceCount}
+                active={!!filters.since}
+                onToggle={() => update({ since: filters.since ? null : sinceDay })}
+              />
+            )}
+            {newMode === "nothing" && visitDay && visitDay !== localDay(new Date()) && (
+              <p className="mb-6 border-l-2 border-rule pl-3 text-sm text-muted">
+                Nothing new since {visitDayLabel(visitDay)}. The list updates every morning.
+              </p>
+            )}
+            {newMode === "week" && newCount > 0 && newCount < jobs.length && (
+              <NewTicket count={newCount} active={filters.fresh} onToggle={() => update({ fresh: !filters.fresh })} />
+            )}
             {/* A shared ?job= link to a job that closed since: say so instead of opening nothing. */}
             {filters.job && !jobs.some((j) => j.id === filters.job) && (
               <p role="status" className="mb-4 flex flex-wrap items-baseline gap-x-3 border-l-2 border-rule pl-3 text-sm text-muted">
                 This job is no longer available.
-                <button type="button" onClick={() => update({ job: null })} className="focus-ring link-u rounded text-ink">
+                <button
+                  type="button"
+                  onClick={() => {
+                    update({ job: null });
+                    countRef.current?.focus();
+                  }}
+                  className="focus-ring hit link-u rounded text-ink"
+                >
                   Dismiss
                 </button>
               </p>
             )}
             <div className="flex items-center justify-between gap-4 pb-2.5 text-[13px] text-muted">
-              <span>
+              <span ref={countRef} tabIndex={-1} data-testid="results-count" aria-live="polite" className="focus-ring rounded">
                 {results.length === jobs.length ? `${jobs.length} jobs` : `${results.length} of ${jobs.length} jobs`}
                 {data.generatedAt ? ` · updated ${relativeTime(data.generatedAt)}` : " · first update pending"}
               </span>
@@ -175,7 +236,8 @@ export function JobBoard() {
                     onToggle={openJob}
                     saved={isSaved(job.id)}
                     onToggleSave={toggle}
-                    showNew={newCount < jobs.length}
+                    showNew={(newMode === "since" && sinceCount < jobs.length) || (newMode === "week" && newCount < jobs.length)}
+                    newSince={newMode === "since" ? sinceDay : null}
                   />
                 ))}
               </ol>

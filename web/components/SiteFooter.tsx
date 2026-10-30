@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useJobsFile } from "@/lib/useJobs";
 
 const SOURCE_LINKS: Record<string, string> = {
@@ -13,7 +14,7 @@ const SOURCE_LINKS: Record<string, string> = {
 const STEPS = [
   ["Collected every morning", "Job boards, employers, Fraunhofer, HZDR and TU Dresden are checked once a day. Jobs that have closed are removed the same morning."],
   ["Filtered for students", "Only Werkstudent roles, internships and thesis topics in AI, data, software and embedded systems make the cut."],
-  ["Saved in your browser", "Bookmarks stay on this device. There's no account and nothing is tracked."],
+  ["Saved in your browser", "Bookmarks stay on this device. There's no account and no tracking."],
 ];
 
 export function SiteFooter() {
@@ -60,6 +61,15 @@ export function SiteFooter() {
             .
           </p>
         </div>
+
+        <nav aria-label="Legal" className="mt-6 flex gap-5 text-sm text-muted">
+          <Link href="/imprint/" className="focus-ring hit rounded hover:text-ink hover:underline">
+            Imprint
+          </Link>
+          <Link href="/privacy/" className="focus-ring hit rounded hover:text-ink hover:underline">
+            Privacy
+          </Link>
+        </nav>
       </div>
     </footer>
   );

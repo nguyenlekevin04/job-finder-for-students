@@ -62,7 +62,7 @@ Root `.env` (read by a minimal loader in `main.py`; real env vars win) holds `SU
   - Errors and tracebacks go through `redact()`, which strips URL query strings. They may carry API keys, and the status is stored in the publicly readable `fetch_runs` table.
 - **Employer career feeds** (Infineon/Eightfold, GlobalFoundries/Workday, Bosch/SmartRecruiters, Amazon) list every role without descriptions. Their sources fetch the full posting only when `classify.is_student_title()` matches, which keeps it to a handful of requests per run. Each strips the company's boilerplate intro so the snippet starts with the role. Workday search needs POST (`net.post_json`). The session asks for gzip only, because amazon.jobs answers the default zstd offer with a body urllib3 can't decode.
 - **`store.py`** has two backends behind `get_store()`: `SupabaseStore` (plain `requests` against PostgREST: `previous()` pages through every row, `save(jobs, removed, …)` upserts with `on_conflict=id` + `resolution=merge-duplicates`, deletes `removed` by id and inserts a `fetch_runs` row) and `JsonFileStore` (same on the file). `COLUMNS` maps the camelCase job dict to snake_case columns — keep it, `schema.sql`, `web/lib/types.ts` and `JOB_SELECT` in `web/lib/useJobs.ts` in sync. Legacy JWT keys (`eyJ…`) also go in `Authorization`; new `sb_secret_`/`sb_publishable_` keys only in `apikey`.
-- **Open jobs only** (`fetcher/availability.py`, pure, tested offline): `decide()` gives every link open/closed/unknown and every job a verdict. Sources default to a complete feed (listed = open, not listed while the source worked = closed); aggregators set `FEED = "partial"` and may define `check(url)`. A posting the source still lists (`raw_urls`) but that didn't become a job today (detail page timed out, reclassified) is unknown, not closed. `lastSeen` means "last confirmed open"; unconfirmed jobs stay `UNCONFIRMED_DAYS` (2), and closed links are dropped from every job that stays. A guard keeps a source's jobs and raises the alarm when the source's own closed links would remove at least `GUARD_MIN_REMOVALS` (3) and more than half of its jobs in one run; removals after the grace period are never blocked. To approve a real mass closure, run "Update jobs" with `accept_removals=<Source>` (env `ACCEPT_REMOVALS`). Per-source link counts go into `fetch_runs.sources[name].links`. New sources: set `FEED = "partial"` if the feed is capped or search-ranked.
+- **Open jobs only** (`fetcher/availability.py`, pure, tested offline): `decide()` gives every link open/closed/unknown and every job a verdict. Sources default to a complete feed (listed = open, not listed while the source worked = closed); aggregators set `FEED = "partial"` and may define `check(url)`. A posting the source still lists (`raw_urls`) but that didn't become a job today (detail page timed out, reclassified) is unknown, not closed. `lastSeen` means "last confirmed open"; unconfirmed jobs stay `UNCONFIRMED_DAYS` (2), and closed links are dropped from every job that stays. A guard keeps a source's jobs and raises the alarm when the source's own closed links would remove at least `GUARD_MIN_REMOVALS` (3) and more than half of its jobs in one run; removals after the grace period are never blocked. To approve a real mass closure, run "Update jobs" with `accept_removals=<Source>` (env `ACCEPT_REMOVALS`). Per-source link counts go into `fetch_runs.sources[name].links`. The employer is authoritative: complete-feed links sort before aggregator links, and when a job's first (complete-feed) link closes, the job closes even if an aggregator still lists a copy. Hours and pay come only from the first (highest-priority) posting. New sources: set `FEED = "partial"` if the feed is capped or search-ranked.
 - **Changing `norm_title` / `norm_company` changes job IDs**, which resets `firstSeen` ("New" badges) and orphans users' browser bookmarks.
 - The HTTP helper module is `fetcher/net.py`, deliberately not `http.py`: running `python fetcher/main.py` puts `fetcher/` on `sys.path`, and a local `http.py` shadows the stdlib and breaks `requests`.
 
@@ -87,11 +87,9 @@ The user calls these by name; start them only when asked or when `/feature` or `
   - Acts as an architect and tech lead with 10+ years of big-tech experience.
   - Decides what is technically necessary and how and when things get built.
   - Briefs the agents, checks their output against the code, implements, and commits.
-- **Devs, managed entirely by the tech lead:**
-  - **Mia (`mia`): senior frontend engineer.** `web/`.
-  - **Jonas (`jonas`): senior backend and data engineer.** `fetcher/`, `supabase/`, workflows.
-  - The tech lead splits a design into tasks that don't share files and runs them in parallel, each in its own git worktree on its own branch.
-  - Devs commit only on their branch. They never push, merge, change settings or touch production. The tech lead integrates, pushes and opens the PR.
+- **Mia (`mia`): senior full-stack engineer**, managed entirely by the tech lead.
+  - Builds across `web/`, `fetcher/`, `supabase/` and the workflows, in her own git worktree on her own branch.
+  - Commits only on her branch. Never pushes, merges, changes settings or touches production. The tech lead integrates, pushes and opens the PR.
 - **Otto (`otto`): senior product owner.**
   - Says what he wants for students and why, as user stories with acceptance criteria.
   - May only edit `docs/backlog.md`.
@@ -104,6 +102,8 @@ The user calls these by name; start them only when asked or when `/feature` or `
 - **Review team: staff engineers.**
   - `code-reviewer` is read-only and covers bugs, security and code quality in existing code, never missing features.
   - `review-fixer` applies confirmed findings.
+
+**End of every sprint:** the review team removes dead code before the release (`docs/workflow.md`).
 
 **Flow:** `docs/workflow.md` is the source of truth (run it with `/feature <idea>` and `/release`). In short: Otto states the want → the tech lead designs → Iris and the tech lead agree on UX → the tech lead builds → the review team reviews (the author never approves their own change) → PR into `staging` → Iris, the review team and Otto test staging → the shareholder (the user) gives the OK → release PR `staging` → `main` with a merge commit, never squash.
 

@@ -6,7 +6,7 @@
 // The old address passes them along in the URL hash; the new one imports them
 // only when the visitor really came from the old address (document.referrer),
 // so a crafted link can't plant bookmarks, and only https job links are kept.
-// Remove this once the Render site is deleted.
+// Remove after 2027-01-31 (and delete the Render site).
 
 export const NEW_ORIGIN = "https://dresden-jobs.vercel.app";
 export const OLD_ORIGIN = "https://dresden-student-jobs.onrender.com";

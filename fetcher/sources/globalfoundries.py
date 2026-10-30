@@ -19,6 +19,7 @@ SITE = "https://globalfoundries.wd1.myworkdayjobs.com/External"
 API = "https://globalfoundries.wd1.myworkdayjobs.com/wday/cxs/globalfoundries/External"
 PAGE = 20  # Workday's maximum page size
 MAX_PAGES = 10
+FEED_SLACK = 2  # postings that may close while paging
 
 # Descriptions open with a standard company blurb ("Über GF … www.gf.com.").
 INTRO = re.compile(r"^(Über|About) GF\b.{0,1500}?www\.gf\.com\s*\.?\s*", re.S)
@@ -64,15 +65,36 @@ def parse_detail(data: dict) -> tuple[str, str | None]:
     return INTRO.sub("", clean_text(info.get("jobDescription")))[:4000], to_day(info.get("startDate"))
 
 
+def is_last_page(data: dict, page: int, total: int) -> bool:
+    """True when page `page` (0-based) ends the feed.
+
+    Workday reports `total` only on the first page (later pages say 0), so the
+    caller passes the first page's total.
+    """
+    postings = data.get("jobPostings") or []
+    if not total:  # no total reported: only a short or empty page ends the feed
+        return len(postings) < PAGE
+    return not postings or (page + 1) * PAGE >= total
+
+
 def fetch() -> list[Job]:
     jobs: list[Job] = []
+    total = rows = 0
     for page in range(MAX_PAGES):
         data = post_json(f"{API}/jobs", {"appliedFacets": {}, "limit": PAGE, "offset": page * PAGE,
                                          "searchText": "Dresden"})
+        total = total or data.get("total") or 0
+        rows += len(data.get("jobPostings") or [])
         jobs.extend(parse_list(data))
-        if (page + 1) * PAGE >= (data.get("total") or 0):
+        if is_last_page(data, page, total):
             break
         time.sleep(0.4)
+    else:  # a cut-off list would make the missing postings count as closed
+        raise RuntimeError(f"{NAME}: more than {MAX_PAGES * PAGE} postings; raise MAX_PAGES")
+    # An empty or short page before the reported end. A slack of 2 tolerates postings that
+    # close while the pages are being fetched, so that alone never fails the source.
+    if total and rows < min(total, MAX_PAGES * PAGE) - FEED_SLACK:
+        raise RuntimeError(f"{NAME}: feed ended early: got {rows} of {total}")
     for job in jobs:
         if is_student_title(job.title):
             try:

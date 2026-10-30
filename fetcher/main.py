@@ -27,6 +27,7 @@ from fetcher.sources import (  # noqa: E402
 )
 from fetcher.availability import UNKNOWN, decide  # noqa: E402
 from fetcher.store import JsonFileStore, get_store  # noqa: E402
+from fetcher.terms import extract_terms  # noqa: E402
 
 OUTPUT = ROOT / "web" / "public" / "jobs.json"  # local fallback when Supabase isn't configured
 
@@ -104,6 +105,42 @@ def strip_company_prefix(title: str, company: str) -> str:
 def job_id(title: str, company: str) -> str:
     key = f"{norm_title(title)}|{norm_company(company)}"
     return hashlib.sha1(key.encode()).hexdigest()[:12]
+
+
+def is_globalfoundries(company: str) -> bool:
+    c = norm_company(company)
+    return c == "globalfoundries" or c.startswith("globalfoundries ")
+
+
+TWIN_MIN_TITLE = 40  # shorter titles are too generic to match by prefix
+TWIN_SOURCE = "Arbeitsagentur"  # the only source that cuts titles off; others could pad a title to match
+
+
+def truncated_twin(jobs: dict[str, dict], title: str, company: str, source: str) -> str | None:
+    """Id of the one GlobalFoundries job this posting duplicates, else None.
+
+    The Arbeitsagentur lists GlobalFoundries postings as "GlobalFoundries Management Services
+    GmbH & Co. KG" with titles cut off ("... Machine Learning & Virt"), so job_id() differs from
+    the employer's own posting. A match needs the same company, one normalized title equal to
+    or a prefix of the other, the shorter one at least TWIN_MIN_TITLE characters, and exactly
+    one such job. Only postings from TWIN_SOURCE match, and only into jobs that started from
+    another source, so two real roles with prefix titles stay two jobs. Job ids stay as they are.
+    """
+    if source != TWIN_SOURCE or not is_globalfoundries(company):
+        return None
+    t = norm_title(title)
+    matches = []
+    for jid, j in jobs.items():
+        # Skip jobs that started from this same source: two Arbeitsagentur postings are two jobs.
+        # A GlobalFoundries-feed job may already carry an Arbeitsagentur link (the full title is
+        # listed there too), and its cut-off copy must still merge into it.
+        if not is_globalfoundries(j["company"]) or j["links"][0]["source"] == source:
+            continue
+        other = norm_title(j["title"])
+        # The Arbeitsagentur only cuts titles off, never adds words: its title must be the prefix.
+        if len(t) >= TWIN_MIN_TITLE and other.startswith(t):
+            matches.append(jid)
+    return matches[0] if len(matches) == 1 else None
 
 
 def redact(text: str) -> str:
@@ -194,11 +231,14 @@ def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
         if not tags:
             continue
         jid = job_id(r.title, r.company)
+        if jid not in jobs:
+            jid = truncated_twin(jobs, r.title, r.company, r.source) or jid
         link = {"source": r.source, "url": r.url}
         posted_at = r.posted_at if r.posted_at and r.posted_at <= today else None  # a future date would sort first
+        terms = extract_terms(r.title, r.tags, r.description)  # full description, before the snippet cut
         if jid in jobs:
             # raw arrives in SOURCES order, so the first posting is the most trusted one: a later
-            # copy (e.g. an aggregator's) only fills what it left empty and can't replace its text.
+            # copy (e.g. an aggregator's) only fills an empty date or snippet and can't replace its text.
             j = jobs[jid]
             if all(l["url"] != r.url for l in j["links"]):
                 j["links"].append(link)
@@ -207,6 +247,7 @@ def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
             if not j["snippet"] and tags["snippet"]:
                 # Flag and snippet come from the same posting.
                 j["snippet"], j["englishFriendly"] = tags["snippet"], tags["englishFriendly"]
+            # Hours and pay come only from the first posting: a later copy could invent them.
             j["fields"] = sorted(set(j["fields"]) | set(tags["fields"]), key=list(FIELD_LABELS).index)
             continue
         jobs[jid] = {
@@ -220,6 +261,7 @@ def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
             "deadline": r.deadline,
             "links": [link],
             "snippet": tags["snippet"],
+            **terms,
         }
     for source, n in rejected.items():
         print(f"  ! {source}: skipped {n} postings with a link outside its allowed hosts")
