@@ -250,3 +250,16 @@ def test_job_without_links_is_removed():
     assert ids(r) == {"b"}
     assert r.removed == {"a"}
     assert r.problems == []
+
+
+def test_a_link_that_moved_to_another_job_closes_the_stale_duplicate():
+    # Yesterday the cut-off Arbeitsagentur copy was its own job; today it merges into the
+    # employer's job. Its link is still open at the Arbeitsagentur, but it belongs elsewhere now.
+    stale = job("cut", "Arbeitsagentur")
+    employer = {**now("full", "GlobalFoundries"), "links": [
+        {"source": "GlobalFoundries", "url": "https://GlobalFoundries/full"},
+        {"source": "Arbeitsagentur", "url": "https://Arbeitsagentur/cut"},
+    ]}
+    r = run([stale], [employer], partial={"Arbeitsagentur"},
+            checks={"https://Arbeitsagentur/cut": OPEN})
+    assert r.removed == {"cut"} and ids(r) == {"full"}
