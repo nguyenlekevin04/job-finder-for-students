@@ -87,11 +87,9 @@ The user calls these by name; start them only when asked or when `/feature` or `
   - Acts as an architect and tech lead with 10+ years of big-tech experience.
   - Decides what is technically necessary and how and when things get built.
   - Briefs the agents, checks their output against the code, implements, and commits.
-- **Devs, managed entirely by the tech lead:**
-  - **Mia (`mia`): senior frontend engineer.** `web/`.
-  - **Jonas (`jonas`): senior backend and data engineer.** `fetcher/`, `supabase/`, workflows.
-  - The tech lead splits a design into tasks that don't share files and runs them in parallel, each in its own git worktree on its own branch.
-  - Devs commit only on their branch. They never push, merge, change settings or touch production. The tech lead integrates, pushes and opens the PR.
+- **Mia (`mia`): senior full-stack engineer**, managed entirely by the tech lead.
+  - Builds across `web/`, `fetcher/`, `supabase/` and the workflows, in her own git worktree on her own branch.
+  - Commits only on her branch. Never pushes, merges, changes settings or touches production. The tech lead integrates, pushes and opens the PR.
 - **Otto (`otto`): senior product owner.**
   - Says what he wants for students and why, as user stories with acceptance criteria.
   - May only edit `docs/backlog.md`.

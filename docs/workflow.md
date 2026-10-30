@@ -13,24 +13,22 @@ Run it with the skills in `.claude/skills/`:
 |---|---|---|---|
 | Shareholder | the user | priorities, the final production OK | — |
 | Tech lead | main session | technical design, building, decisions on findings, merging | approve production without the shareholder |
-| Frontend dev | `mia` | `web/`: builds the tech lead's tasks on her own branch | design product or UX alone, push, merge, touch production |
-| Backend dev | `jonas` | `fetcher/`, `supabase/`, workflows: builds the tech lead's tasks on his own branch | decide scope, push, merge, write to production |
+| Full-stack dev | `mia` | `web/`, `fetcher/`, `supabase/`, workflows: builds the tech lead's tasks on her own branch | design product or UX alone, decide scope, push, merge, touch production |
 | Product owner | `otto` | user stories, acceptance criteria, priority, acceptance at the end | write code |
 | UI/UX | `iris` | look, flow, copy and accessibility; keeps the site minimal, clean and intuitive | write code |
 | Ethical hacker | `kevin` | attacks our own system and proves holes (`/hackerattack`) | touch production data, attack third parties, use real secrets |
 | Review team | `code-reviewer` (read-only), `review-fixer` | bugs, security and quality; browser bug test on staging | review its own fixes, add features |
 
-**Separation of duties:** whoever writes a change doesn't approve it. The tech lead and the devs build; the review team reviews. Devs never review each other's code. Fixes from `review-fixer` are checked again by `code-reviewer` before they count.
+**Separation of duties:** whoever writes a change doesn't approve it. The tech lead and Mia build; the review team reviews. Fixes from `review-fixer` are checked again by `code-reviewer` before they count.
 
 ## Development: idea → pull request into `staging`
 
 1. **Priority** (Otto + tech lead): Otto writes the user story with acceptance criteria and ranks it in `docs/backlog.md`. The tech lead checks feasibility and cost (free tiers only; anything that costs money goes to the shareholder).
 2. **Technical design** (tech lead): a short plan with files, data and schema changes, risks, tests and the rollback path.
 3. **UX design** (Iris + tech lead): Iris says how it should look and behave; the tech lead says what's feasible. They agree before building.
-4. **Build** (tech lead with Mia and Jonas):
-   - The tech lead splits the design into tasks that don't share files: web goes to Mia, fetcher, data and workflows to Jonas. Small or cross-cutting work the tech lead does alone.
-   - Devs run in parallel, each in an isolated git worktree on its own branch, with tests for new logic.
-   - The tech lead checks each result, merges the branches into one `feature/<name>`, and runs all checks.
+4. **Build** (tech lead with Mia):
+   - Mia builds the task in an isolated git worktree on its own branch, with tests for new logic. Small changes the tech lead does alone.
+   - The tech lead checks the result and runs all checks.
 5. **Code review** (review team + tech lead), scaled to the risk of the change:
    - **Small** (docs, copy, config, or about 50 lines without data, security or workflow impact): one `code-reviewer` pass. The tech lead fixes confirmed findings directly. A second pass happens only when a fix isn't trivial.
    - **Normal** (fetcher logic, data, security, workflows, anything students see): `code-reviewer` lists findings, the tech lead decides which are valid, `review-fixer` applies them, and `code-reviewer` checks the fixes.
