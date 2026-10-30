@@ -4,6 +4,8 @@ dresden/jobs is a job board for student roles (Werkstudent, internship, thesis) 
 
 Last updated: 2026-10-30 (after sprint 3).
 
+Architecture style in one line: a **3-tier** system (static site → read-only REST → Postgres) whose only custom backend is a **modular monolith** (the fetcher), with managed services for hosting, data and CI. Not microservices. `docs/architecture-styles.md` explains the three styles and why.
+
 ## 1. System overview
 
 ```mermaid
