@@ -4,7 +4,7 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 
 ## Now
 
-_Empty: sprint 3 is being released._
+_Empty: sprint 3 was released on 2026-10-30._
 
 **Release gate (shareholder):** the production release waits until `NEXT_PUBLIC_OPERATOR_STREET` and `_CITY` are set in Vercel production and the site is redeployed, so the imprint and privacy pages show no "Draft" note. Don't hide the legal pages instead.
 
@@ -25,6 +25,7 @@ _Empty: sprint 3 is being released._
 Non-blocking findings; the tech lead decides the order. Most are small.
 
 0. **Employer closure isn't remembered** (security, M; attack #2 re-check): when an employer closes a job, an exact-title copy on a job board can reappear the next day as its own job ("New", the copy's link and pay). Store tombstones (`closed_jobs(id, closed_on)`, schema change) and reject partial-only jobs with those ids for 30 days.
+0b. **Moved links count as closures** (quality, S; review of #23): a link that moved to another job is recorded as closed, so a mass re-title on an aggregator trips the guard with "if they really closed…" and inflates `links.closed` in `fetch_runs`. Give moved links their own marker (`MOVED`) for the wording and the stats.
 
 1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
 2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
