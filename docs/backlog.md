@@ -24,8 +24,7 @@ Non-blocking findings; the tech lead decides the order. Most are small.
 
 1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
 2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
-3. **Third-party script and CSP** (security, M; Kevin, sprint 4 check): Umami's script runs on our page, so a compromised cloud.umami.is could rewrite the "Apply now" links. Serve a pinned copy of the tracker from our own site (`data-host-url` pointing to Umami), then add `script-src 'self'` with build-time hashes (Next's inline scripts too) and a `connect-src` for Supabase and Umami. Also restrict allowed actions in the repository settings (shareholder, one click).
-4. **Page through tombstones** (quality, S; release QA): `SupabaseStore.closed()` reads `closed_jobs` in one request; above PostgREST's row cap (1,000) the list would be cut off. Page it like `previous()`.
+3. **Restrict allowed GitHub Actions** (security, S, shareholder): one click in the repository settings.
 5. **Check the Umami volume after a week** (S): the free plan is capped by monthly events; filter events fire on every change.
 
 ## Later
@@ -62,6 +61,12 @@ Nothing here gets built until step 0 shows demand. Guiding rule: students never 
 4. **Free support and grants** (S, no revenue risk): ask dresden|exists (TU Dresden founder support) and the student councils (Fachschaftsräte) to share the board, and check whether a public-interest open-source grant would cover hosting. This adds students, which is what makes items 1 to 3 sellable.
 
 **Not doing:** display ads (AdSense etc.: they need a cookie banner under §25 TDDDG and break "no tracking", and earn a few euros a month at our size); a paid tier or paid alerts for students; selling or sharing usage data; employer branding pages (they need far more traffic first; TU Dresden sells profiles for €975+ with the university's name behind it). **Later, only on request:** affiliate links for international students (blocked account, health insurance), each labelled.
+
+## Done (sprint 5)
+
+- **No third-party code on the site:** the Umami tracker is a pinned copy served from our own origin.
+- **Strict Content-Security-Policy per page:** only our scripts (hashed inline ones included) run, and the browser only talks to us, Supabase and Umami. An injected script is blocked.
+- Tombstones are read in pages, so the list can't be cut off.
 
 ## Done (sprint 4, released 2026-10-30)
 

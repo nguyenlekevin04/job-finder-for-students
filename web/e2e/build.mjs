@@ -1,4 +1,5 @@
-// Builds the static export the smoke tests run against (`npm run test:e2e`).
+// Builds the static export the smoke tests run against (`npm run test:e2e`), with the same
+// `npm run build` as Vercel, so the pages carry their Content-Security-Policy.
 //
 // - Copies e2e/fixtures/jobs.json to public/jobs.json for the build and puts any
 //   existing local fetcher output back afterwards. The first job's firstSeen is set to today, so
@@ -35,6 +36,6 @@ const env = {
   NEXT_PUBLIC_DEPLOY_ENV: "",
   NEXT_BASE_PATH: "",
 };
-const res = spawnSync("npx", ["next", "build"], { cwd: web, env, stdio: "inherit", shell: process.platform === "win32" });
+const res = spawnSync("npm", ["run", "build"], { cwd: web, env, stdio: "inherit", shell: process.platform === "win32" });
 if (hadData) renameSync(backup, target); // the export in out/ already holds the fixture
 process.exit(res.status ?? 1);

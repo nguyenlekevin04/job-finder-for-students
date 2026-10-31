@@ -88,11 +88,19 @@ class SupabaseStore:
 
     def closed(self) -> dict[str, str] | None:
         """Tombstones of employer-closed jobs (id -> closed on), or None while the table is missing."""
-        res = self.session.get(f"{self.base}/closed_jobs", params={"select": "id,closed_on"}, timeout=30)
-        if res.status_code == 404:  # PGRST205: run supabase/schema.sql to create closed_jobs
-            print("::warning title=closed_jobs missing::Run supabase/schema.sql; employer closures aren't remembered.")
-            return None
-        return {r["id"]: r["closed_on"] for r in self._check(res).json()}
+        closed: dict[str, str] = {}
+        offset, page = 0, 1000  # paged like previous(): Supabase caps each response
+        while True:
+            res = self.session.get(f"{self.base}/closed_jobs", timeout=30, params={
+                "select": "id,closed_on", "order": "id", "limit": str(page), "offset": str(offset)})
+            if res.status_code == 404:  # PGRST205: run supabase/schema.sql to create closed_jobs
+                print("::warning title=closed_jobs missing::Run supabase/schema.sql; employer closures aren't remembered.")
+                return None
+            rows = self._check(res).json()
+            closed.update({r["id"]: r["closed_on"] for r in rows})
+            if len(rows) < page:
+                return closed
+            offset += page
 
     def save_closed(self, add: dict[str, str], drop: set[str], today: str) -> None:
         """Add new tombstones, drop reopened ones and those older than TOMBSTONE_DAYS."""

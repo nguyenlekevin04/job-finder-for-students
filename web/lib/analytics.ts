@@ -4,7 +4,11 @@
 import type { Filters } from "./filters";
 
 export const UMAMI_WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID?.trim() || "";
-export const UMAMI_SCRIPT = "https://cloud.umami.is/script.js";
+// Our own pinned copy of Umami's tracker (public/vendor/umami.js), so no third-party code runs
+// on the site; it only sends counts to gateway.umami.is (allowed in scripts/csp.mjs).
+// To update: download https://cloud.umami.is/script.js, read it, and replace the file
+// (keep the header comment with the new date and sha256).
+export const UMAMI_SCRIPT = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/vendor/umami.js`;
 export const ANALYTICS_ON = UMAMI_WEBSITE_ID !== "";
 
 type EventData = Record<string, string>;
