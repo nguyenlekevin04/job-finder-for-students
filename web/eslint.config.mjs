@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored third-party code, kept byte-for-byte (see lib/analytics.ts).
+    "public/vendor/**",
   ]),
 ]);
 
