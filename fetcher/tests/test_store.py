@@ -155,3 +155,17 @@ def test_json_store_keeps_tombstones(tmp_path):
     assert store.closed() == {"a": "2026-10-30", "old": "2026-09-01"}
     store.save_closed({}, {"a"}, "2026-10-30")
     assert store.closed() == {}  # "a" reopened, "old" expired
+
+
+def test_closed_pages_past_the_row_cap():
+    rows = [{"id": f"{i:04d}", "closed_on": "2026-10-20"} for i in range(1500)]
+
+    class Paged(FakeSession):
+        def request(self, method, url, params=None, **kw):
+            self.calls.append(params)
+            o, n = int(params["offset"]), int(params["limit"])
+            return FakeResponse(method, url, body=rows[o:o + n])
+
+    s = Paged()
+    assert len(SupabaseStore("https://x.supabase.co", "sb_secret_x", session=s).closed()) == 1500
+    assert [c["offset"] for c in s.calls] == ["0", "1000"]
