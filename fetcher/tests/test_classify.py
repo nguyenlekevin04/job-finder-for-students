@@ -209,3 +209,27 @@ def test_reliable_occupation_tags_still_count(title, tags):
 def test_snippet_does_not_start_at_about_the_role_inside_a_sentence():
     text = ("We care about the role of technology in society and build software in Python and Java. " * 4)
     assert classify(job("Werkstudent Softwareentwicklung", description=text))["snippet"].startswith("We care")
+
+
+@pytest.mark.parametrize("title", [
+    "Werkstudent*in HR-Administration (m/w/d) - Personalsachbearbeitung & KI",
+    "Werkstudent (w/m/d) Recruiting & HR Operations - IT-Business",
+    "Werkstudent Tax Technology VAT (w/m/d)",
+    "Praktikant / Werkstudent Fördermittelberatung - Business Tax (m/w/d)",
+    "Werkstudent GTM (m/w/d)",
+    "Working Student Research-Based Venture Development & Funding Strategy",
+    "Payments and Reconciliations Intern (f/m/d)",
+    "Werkstudent SEO & AI Search Visibility (m/w/d)",
+    "Praktikum im Rahmen des WAT-Unterrichts möglich",
+    "Praktikum im Rahmen einer Umschulung Fachinformatiker für Anwendungsentwicklung",
+])
+def test_office_roles_that_mention_ai_or_it_are_dropped(title):
+    assert classify(job(title, tags="Informatiker/in")) is None
+
+
+@pytest.mark.parametrize("title", [
+    "Werkstudent Data Engineer im Controlling (m/w/d)",
+    "Werkstudent Softwareentwicklung Steuer-Tools (m/w/d)",
+])
+def test_tech_work_in_office_departments_stays(title):
+    assert classify(job(title)) is not None

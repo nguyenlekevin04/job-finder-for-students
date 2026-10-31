@@ -23,11 +23,12 @@ def test_arbeitsagentur(fixture_text):
     assert "Informatiker/in" in j.tags
 
 
-def test_arbeitnow_keeps_only_dresden_or_remote(fixture_text):
+def test_arbeitnow_keeps_only_board_cities_or_remote(fixture_text):
     data = json.loads(fixture_text("arbeitnow.json"))
     jobs = arbeitnow.parse(data)
-    assert len(jobs) == 8  # fixture has 8 remote + 8 on-site elsewhere
-    assert all(j.remote for j in jobs)
+    # The fixture has 8 remote postings, 4 on-site in Berlin (a board city) and 4 elsewhere.
+    assert len(jobs) == 12
+    assert all(j.remote or j.city == "berlin" for j in jobs)
     assert all(j.url.startswith("https://www.arbeitnow.com/") for j in jobs)
     assert all(j.posted_at and len(j.posted_at) == 10 for j in jobs)
 
@@ -163,3 +164,24 @@ def test_student_jobs_from_employers_get_classified(fixture_text):
     kept = [j.title for j in amz if classify(j)]
     assert kept == ["Software Dev Engineer Internship - Embedded Development (Linux)"]
 
+
+
+def test_arbeitnow_tags_the_city_and_keeps_remote_cityless():
+    from fetcher.sources import arbeitnow
+    data = {"data": [
+        {"slug": "a", "title": "Werkstudent Data", "url": "https://www.arbeitnow.com/a", "location": "Leipzig"},
+        {"slug": "b", "title": "Working Student ML", "url": "https://www.arbeitnow.com/b", "location": "Munich", "remote": True},
+        {"slug": "c", "title": "Werkstudent IT", "url": "https://www.arbeitnow.com/c", "location": "Hamburg"},
+    ]}
+    jobs = {j.source_id: j for j in arbeitnow.parse(data)}
+    assert jobs["a"].city == "leipzig" and not jobs["a"].remote
+    assert jobs["b"].city == "" and jobs["b"].remote
+    assert "c" not in jobs
+
+
+def test_arbeitsagentur_sets_the_searched_city():
+    from fetcher.sources import arbeitsagentur
+    data = {"ergebnisliste": [{"referenznummer": "1", "stellenangebotsTitel": "Werkstudent IT",
+                               "stellenlokationen": [{"adresse": {"ort": "Markkleeberg"}}]}]}
+    job = arbeitsagentur.parse(data, "leipzig")[0]
+    assert job.city == "leipzig" and job.location == "Markkleeberg"

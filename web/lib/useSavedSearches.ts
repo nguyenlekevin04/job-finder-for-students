@@ -2,7 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import { activeFilterCount, filtersFromParams, filtersToParams, type Filters } from "./filters";
-import { FIELD_LABELS, TYPE_LABELS } from "./types";
+import { CITY_LABELS, FIELD_LABELS, TYPE_LABELS } from "./types";
 
 // Saved searches, in this browser only: a free stand-in for email alerts. Each search keeps
 // the newest firstSeen it showed when last opened, so the Saved page can say "3 new".
@@ -67,6 +67,7 @@ export function searchKey(f: Filters): string {
 export function searchLabel(qs: string): string {
   const f = filtersFromParams(new URLSearchParams(qs));
   const parts = [
+    f.city !== "dresden" && CITY_LABELS[f.city],
     ...f.types.map((t) => TYPE_LABELS[t]),
     ...f.fields.map((x) => FIELD_LABELS[x]),
     f.english && "English-friendly",
@@ -81,7 +82,7 @@ export function searchLabel(qs: string): string {
 
 /** Worth saving: a search text or at least one filter (sort, open job and "since" don't count). */
 export function isSearch(f: Filters): boolean {
-  return !!f.q.trim() || activeFilterCount({ ...f, since: null }) > 0;
+  return !!f.q.trim() || f.city !== "dresden" || activeFilterCount({ ...f, since: null }) > 0;
 }
 
 export function useSavedSearches() {

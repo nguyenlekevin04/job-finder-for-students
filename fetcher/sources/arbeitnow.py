@@ -8,7 +8,7 @@ import re
 import time
 
 from fetcher.net import clean_text, get_json, status_code, to_day
-from fetcher.models import Job
+from fetcher.models import CITIES, Job
 
 NAME = "Arbeitnow"
 # Only the newest MAX_PAGES pages are read, so older postings drop out while still open.
@@ -19,14 +19,14 @@ MAX_PAGES = 10
 
 
 def parse(data: dict) -> list[Job]:
-    """Keep only Dresden or fully remote postings."""
+    """Keep postings in the board's cities, or fully remote ones."""
     jobs = []
     for j in data.get("data") or []:
         if not (j.get("slug") and j.get("title") and j.get("url")):
             continue
         location = j.get("location") or ""
-        in_dresden = bool(re.search(r"dresden", location, re.I))
-        if not in_dresden and not j.get("remote"):
+        city = next((key for key, name in CITIES.items() if re.search(name, location, re.I)), "")
+        if not city and not j.get("remote"):
             continue
         jobs.append(Job(
             source=NAME,
@@ -35,7 +35,8 @@ def parse(data: dict) -> list[Job]:
             company=j.get("company_name") or "Unknown",
             url=j["url"],
             location=location or "Remote",
-            remote=bool(j.get("remote")) and not in_dresden,
+            remote=bool(j.get("remote")) and not city,
+            city=city,
             posted_at=to_day(j.get("created_at")),
             tags=" ".join(j.get("tags") or []),
             description=clean_text(j.get("description"))[:4000],

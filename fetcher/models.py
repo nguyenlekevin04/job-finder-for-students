@@ -3,6 +3,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+# The cities the board covers: key -> name as job sites spell it. Dresden is the default.
+CITIES = {"dresden": "Dresden", "leipzig": "Leipzig", "chemnitz": "Chemnitz", "berlin": "Berlin"}
+
 
 @dataclass
 class Job:
@@ -14,6 +17,8 @@ class Job:
     company: str
     url: str
     location: str = "Dresden"
+    # The board's city, a key of CITIES. Empty for remote-only postings.
+    city: str = "dresden"
     remote: bool = False
     posted_at: str | None = None  # YYYY-MM-DD
     deadline: str | None = None  # YYYY-MM-DD

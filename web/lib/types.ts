@@ -29,7 +29,12 @@ export interface Job {
   payAmount?: number | null; // EUR, as stated
   payUnit?: "hour" | "month" | null;
   germanLevel?: GermanLevel | null; // as the posting states it; null = not stated
+  city?: City | ""; // "" for remote-only postings; missing in data saved before cities = Dresden
 }
+
+export const CITIES = ["dresden", "leipzig", "chemnitz", "berlin"] as const;
+export type City = (typeof CITIES)[number];
+export const CITY_LABELS: Record<City, string> = { dresden: "Dresden", leipzig: "Leipzig", chemnitz: "Chemnitz", berlin: "Berlin" };
 
 /** "none" = no German needed, "basic" = B1–B2, "fluent" = C1 or better. */
 export type GermanLevel = "none" | "basic" | "fluent";

@@ -171,6 +171,20 @@ describe("applyFilters", () => {
     expect(ids(applyFilters(jobs, f({ job: "b" }), null))).toEqual(["c", "b", "a"]);
   });
 
+  it("shows a city's jobs plus remote ones; old data without a city counts as Dresden", () => {
+    const list = [
+      job({ id: "dd" }),
+      job({ id: "dd2", city: "dresden" }),
+      job({ id: "le", city: "leipzig" }),
+      job({ id: "remote", city: "", remote: true }),
+    ];
+    expect(ids(applyFilters(list, f(), null)).sort()).toEqual(["dd", "dd2", "remote"]);
+    expect(ids(applyFilters(list, f({ city: "leipzig" }), null)).sort()).toEqual(["le", "remote"]);
+    expect(ids(applyFilters(list, f({ city: "leipzig", remote: false }), null))).toEqual(["le"]);
+    expect(filtersToParams(f({ city: "leipzig" })).get("city")).toBe("leipzig");
+    expect(filtersFromParams(new URLSearchParams("city=paris")).city).toBe("dresden");
+  });
+
   it("treats a job as expired only after its deadline day", () => {
     expect(isExpired(job({ deadline: "2026-10-28" }))).toBe(true);
     expect(isExpired(job({ deadline: "2026-10-29" }))).toBe(false);
