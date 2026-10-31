@@ -191,7 +191,8 @@ def test_fraunhofer_raises_past_the_cap(monkeypatch, fixture_text):
 
 def test_fraunhofer_feed_ending_early_is_fine(monkeypatch, fixture_text):
     monkeypatch.setattr(fraunhofer, "get_text", _fraunhofer_get_text(fixture_text("fraunhofer_list.html"), 50))
-    assert len(fraunhofer.fetch()) == 50
+    # The fake serves the same 25 rows on each page and for each city; they're kept once.
+    assert len(fraunhofer.fetch()) == 25
 
 
 # --- Amazon (one request, `hits` = total) ---

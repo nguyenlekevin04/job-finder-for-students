@@ -1,4 +1,4 @@
-"""Fraunhofer job portal, filtered to Dresden (IWS, IIS/EAS, IKTS, IPMS, IVI, ...)."""
+"""Fraunhofer job portal, filtered to the board's cities (Dresden, Leipzig, Chemnitz)."""
 from __future__ import annotations
 
 import re
@@ -7,7 +7,7 @@ import time
 from bs4 import BeautifulSoup
 
 from fetcher.net import clean_text, de_date, get_text
-from fetcher.models import Job
+from fetcher.models import CITIES, Job
 
 NAME = "Fraunhofer"
 
@@ -20,7 +20,7 @@ STUDENT_HINT = re.compile(
     r"werkstudent|praktik|intern|thesis|abschlussarbeit|bachelor|master|diplom|studienarbeit|student", re.I)
 
 
-def parse_list(html: str) -> list[Job]:
+def parse_list(html: str, city: str = "dresden") -> list[Job]:
     soup = BeautifulSoup(html, "html.parser")
     jobs = []
     for row in soup.select("tr.data-row"):
@@ -37,7 +37,8 @@ def parse_list(html: str) -> list[Job]:
             title=a.get_text(strip=True),
             company=f"Fraunhofer {facility.get_text(strip=True)}" if facility else "Fraunhofer",
             url=BASE + href,
-            location=place.get_text(strip=True) if place else "Dresden",
+            location=place.get_text(strip=True) if place else CITIES[city],
+            city=city,
         ))
     return jobs
 
@@ -57,17 +58,20 @@ def is_last_page(page: list[Job]) -> bool:
 
 
 def fetch() -> list[Job]:
-    jobs: list[Job] = []
-    # One extra probe page, so a list of exactly MAX_ROWS postings still ends on a short page.
-    for start in range(0, MAX_ROWS + PAGE_SIZE, PAGE_SIZE):
-        html = get_text(f"{BASE}/search/", params={"q": "", "locationsearch": "Dresden", "startrow": start})
-        page = parse_list(html)
-        jobs.extend(page)
-        if is_last_page(page):
-            break
-        time.sleep(0.4)
-    else:  # a cut-off list would make the missing postings count as closed
-        raise RuntimeError(f"{NAME}: more than {MAX_ROWS} postings; raise MAX_ROWS")
+    by_id: dict[str, Job] = {}
+    for city, name in CITIES.items():
+        # One extra probe page, so a list of exactly MAX_ROWS postings still ends on a short page.
+        for start in range(0, MAX_ROWS + PAGE_SIZE, PAGE_SIZE):
+            html = get_text(f"{BASE}/search/", params={"q": "", "locationsearch": name, "startrow": start})
+            page = parse_list(html, city)
+            for job in page:
+                by_id.setdefault(job.source_id, job)
+            if is_last_page(page):
+                break
+            time.sleep(0.4)
+        else:  # a cut-off list would make the missing postings count as closed
+            raise RuntimeError(f"{NAME}: more than {MAX_ROWS} postings in {name}; raise MAX_ROWS")
+    jobs = list(by_id.values())
 
     for job in (j for j in jobs if STUDENT_HINT.search(j.title)):
         try:

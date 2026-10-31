@@ -28,6 +28,7 @@ COLUMNS = {
     "title": "title",
     "company": "company",
     "location": "location",
+    "city": "city",
     "remote": "remote",
     "type": "type",
     "types": "types",
