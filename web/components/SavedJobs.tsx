@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { jobDate } from "@/lib/filters";
+import { applyFilters, filtersFromParams, isExpired, jobDate, makeIndex } from "@/lib/filters";
 import { STATUS_LABELS, STATUSES, useApplications, type AppStatus } from "@/lib/useApplications";
 import { useBookmarks } from "@/lib/useBookmarks";
+import { searchLabel, useSavedSearches } from "@/lib/useSavedSearches";
 import { useJobsFile } from "@/lib/useJobs";
 import type { Job } from "@/lib/types";
 import { JobRow } from "./JobRow";
@@ -19,6 +20,18 @@ export function SavedJobs() {
   const [removed, setRemoved] = useState<Record<string, Job>>({});
   const [announce, setAnnounce] = useState("");
   const { applications, setStatus, persistent } = useApplications();
+  const { searches, remove: removeSearch, markSeen } = useSavedSearches();
+  // Per saved search: its matches today and how many are newer than when it was last opened.
+  const searchRows = useMemo(() => {
+    if (state.status !== "ready") return searches.map((s) => ({ ...s, total: null, fresh: 0, newest: s.seen }));
+    const jobs = state.data.jobs.filter((j) => !isExpired(j));
+    const index = makeIndex(jobs);
+    return searches.map((s) => {
+      const hits = applyFilters(jobs, filtersFromParams(new URLSearchParams(s.qs)), index);
+      const newest = hits.reduce<string | null>((m, j) => (!m || j.firstSeen > m ? j.firstSeen : m), null);
+      return { ...s, total: hits.length, fresh: hits.filter((j) => !s.seen || j.firstSeen > s.seen).length, newest };
+    });
+  }, [searches, state]);
   // "none" = saved but not applied yet; null = all.
   const [show, setShow] = useState<AppStatus | "none" | null>(null);
   const matches = (id: string, st: AppStatus | "none" | null) =>
@@ -68,6 +81,42 @@ export function SavedJobs() {
       <p role="status" className="sr-only">
         {announce}
       </p>
+
+      {searchRows.length > 0 && (
+        <section aria-labelledby="searches-title" className="mt-10">
+          <h2 id="searches-title" className="text-xl font-semibold tracking-[-0.03em]">
+            Saved searches
+          </h2>
+          <ul className="mt-3 border-b-[1.5px] border-rule">
+            {searchRows.map((s) => (
+              <li key={s.qs} className="flex items-center justify-between gap-4 border-t-[1.5px] border-rule py-3.5">
+                <Link
+                  href={`/?${s.qs}`}
+                  onClick={() => markSeen(s.qs, s.newest)}
+                  className="focus-ring link-u min-w-0 rounded text-[17px] font-semibold tracking-[-0.02em]"
+                >
+                  {searchLabel(s.qs)}
+                </Link>
+                <span className="flex shrink-0 items-center gap-4 text-sm">
+                  {s.total !== null && (
+                    <span className={s.fresh > 0 ? "font-semibold text-orange-text" : "text-muted"} data-testid="search-new">
+                      {s.fresh > 0 ? `${s.fresh} new` : `${s.total} job${s.total === 1 ? "" : "s"}`}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeSearch(s.qs)}
+                    aria-label={`Remove saved search ${searchLabel(s.qs)}`}
+                    className="focus-ring hit link-u rounded text-muted hover:text-ink"
+                  >
+                    Remove
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="mt-10">
         {state.status === "loading" && count > 0 ? (

@@ -16,6 +16,7 @@ import { filterEvents, track } from "@/lib/analytics";
 import { isNew, localDay, relativeTime, visitDayLabel } from "@/lib/format";
 import { useApplications } from "@/lib/useApplications";
 import { useBookmarks } from "@/lib/useBookmarks";
+import { isSearch, searchKey, useSavedSearches } from "@/lib/useSavedSearches";
 import { useJobsFile } from "@/lib/useJobs";
 import { useLastVisit } from "@/lib/useLastVisit";
 import { FilterGroups, SortSelect } from "./FilterGroups";
@@ -28,6 +29,7 @@ export function JobBoard() {
   const { state, retry } = useJobsFile();
   const { isSaved, toggle } = useBookmarks();
   const { applications, setStatus } = useApplications();
+  const savedSearches = useSavedSearches();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -247,7 +249,24 @@ export function JobBoard() {
                 {results.length === jobs.length ? `${jobs.length} jobs` : `${results.length} of ${jobs.length} jobs`}
                 {data.generatedAt ? ` · updated ${relativeTime(data.generatedAt)}` : " · first update pending"}
               </span>
-              <SortSelect value={filters.sort} onChange={(sort) => update({ sort })} />
+              <span className="flex items-center gap-4">
+                {isSearch(filters) && (
+                  <button
+                    type="button"
+                    disabled={savedSearches.isSaved(searchKey(filters))}
+                    onClick={() => {
+                      // Everything on the board now counts as seen, whatever "since" view is active.
+                      const newest = jobs.reduce<string | null>((m, j) => (!m || j.firstSeen > m ? j.firstSeen : m), null);
+                      savedSearches.add(searchKey(filters), newest);
+                      track("save_search");
+                    }}
+                    className="focus-ring hit link-u rounded font-semibold text-ink disabled:no-underline disabled:opacity-70"
+                  >
+                    {savedSearches.isSaved(searchKey(filters)) ? "Search saved ✓" : "Save this search"}
+                  </button>
+                )}
+                <SortSelect value={filters.sort} onChange={(sort) => update({ sort })} />
+              </span>
             </div>
             {jobs.length === 0 ? (
               <EmptyState title="No jobs yet">The list is filled every morning. Check back soon.</EmptyState>

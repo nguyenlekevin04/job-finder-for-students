@@ -387,3 +387,35 @@ test("a job-board posting says where Apply leads", async ({ page }) => {
   await row(page, job.title).click();
   await expect(page.getByRole("link", { name: `View on ${new URL(job.links[0].url).hostname.replace(/^www\./, "")}` })).toBeVisible();
 });
+
+test("save a search, see it on the Saved page and open it again", async ({ page }) => {
+  await openBoard(page, "/?type=thesis");
+  await page.getByRole("button", { name: "Save this search" }).click();
+  await expect(page.getByRole("button", { name: "Search saved ✓" })).toBeDisabled();
+
+  await page.goto("/saved/");
+  const link = page.getByRole("link", { name: "Thesis" });
+  await expect(link).toBeVisible();
+  await expect(page.getByTestId("search-new")).toHaveText(/\d+ jobs?/); // nothing new since saving
+  await link.click();
+  await expect(page).toHaveURL(/[?&]type=thesis/);
+  await expect(typeOption(page, "Thesis")).toHaveAttribute("aria-pressed", "true");
+});
+
+test("a deadline can be added to the calendar", async ({ page }) => {
+  const job = fixture.jobs.find((j) => j.deadline)!;
+  await openBoard(page);
+  await row(page, job.title).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Add to calendar" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe(`deadline-${job.id}.ics`);
+});
+
+test("the board can be installed as an app", async ({ page, request }) => {
+  await openBoard(page);
+  const href = await page.locator('link[rel="manifest"]').getAttribute("href");
+  const manifest = await (await request.get(href!)).json();
+  expect(manifest.display).toBe("standalone");
+  for (const icon of manifest.icons) expect((await request.get(icon.src)).status()).toBe(200);
+});
