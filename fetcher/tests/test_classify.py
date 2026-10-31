@@ -127,3 +127,52 @@ def test_consulting_title_cannot_be_rescued_by_description():
 def test_chip_fab_engineering_roles_stay(title, description):
     assert classify(job(title, description=description)) is not None
 
+
+
+# --- Lena's false hits (2026-10-31): none of these may be tagged AI/ML ---
+
+def not_ai(result):
+    return result is None or "ai" not in result["fields"]
+
+
+def test_climate_consulting_with_ai_category_tag_is_dropped():
+    r = classify(job("Germany | Working Student in Consulting | Climate Risk and Decarbonisation",
+                     tags="AI Software Development", description="Python and AI for climate models."))
+    assert r is None
+
+
+def test_one_passing_ai_mention_does_not_make_a_job_ai():
+    desc = ("You verify digital chip designs with SystemVerilog and Python scripts, automate regression "
+            "tests in Linux and work with the hardware team. We also explore AI in our tool chain.")
+    r = classify(job("Working Student - Digital Functional Verification (f/m/div)", description=desc))
+    assert r is not None and not_ai(r) and "hardware" in r["fields"]
+
+
+def test_backoffice_operations_is_dropped():
+    desc = "Du pflegst Daten im CRM, nutzt Software-Tools, Python-Skripte, SQL und KI-Assistenten."
+    assert classify(job("Werkstudent Backoffice Operations (m/w/d) - deutschlandweit im Homeoffice",
+                        description=desc)) is None
+
+
+@pytest.mark.parametrize("title", [
+    "Werkstudent (m/w/d) im Kalibrierlabor",
+    "Werkstudent Elektrotechnik (m/w/d)",
+    "Praktikant/Werkstudent Elektrotechnik",
+])
+def test_lab_and_electrical_roles_are_never_ai(title):
+    assert not_ai(classify(job(title, description="Messtechnik, Elektronik, Prüfstände und KI.")))
+
+
+@pytest.mark.parametrize("title", [
+    "Studentische Hilfskraft mit anschließender Abschlussarbeit - Infrastrukturgestützte Lokalisierung",
+    "Wissenschaftliche Hilfskraft (m/w/d) Machine Learning",
+    "HiWi Masterarbeit Computer Vision",
+])
+def test_hiwi_posts_are_dropped_even_with_a_thesis(title):
+    assert classify(job(title)) is None
+
+
+def test_two_ai_terms_in_the_description_still_count():
+    desc = "Du trainierst neuronale Netze mit PyTorch und evaluierst Large Language Models in Python."
+    r = classify(job("Werkstudent (m/w/d) Forschung", description=desc))
+    assert r is not None and "ai" in r["fields"]

@@ -4,7 +4,25 @@ Owner: Otto (product owner). Ranked by value to students against effort. Free ti
 
 ## Now
 
-_Empty: sprint 4 was released on 2026-10-30._
+### MVP (from Lena's interview, 2026-10-31)
+
+Goal: a board a busy international student trusts and comes back to, as fast as possible. Each story ships to production on its own, in this order. Students never pay. **No account in the MVP**: everything stays in the browser, and alerts work by email with double opt-in.
+
+1. ✅ **AI/ML list without noise** (S, shipped 2026-10-31): As a CS/AI student, I want the AI/ML filter to show only AI/ML roles and no HiWi posts, so that I trust the list and don't waste time.
+   - Acceptance: the five postings Lena named (climate consulting, "Digital Functional Verification", Backoffice, Kalibrierlabor, Elektrotechnik) are not tagged AI/ML, each as a test case in `test_classify.py`. "Studentische Hilfskraft" / HiWi is dropped even when combined with a thesis ("… mit anschließender Abschlussarbeit"). A hand check of the AI/ML filter on production finds ≤ 1 wrong job in 20. Every row shows its age ("3 days ago"); the tech lead checks which jobs looked "old" to Lena and fixes the cause if it is a bug.
+2. **Search that understands AI words** (S): As a student, I want "machine learning", "ML", "KI", "AI", "LLM" and "deep learning" to find each other, so that one search finds everything relevant.
+   - Acceptance: searching any word of a synonym group gives the same results as its strongest term; "machine learning" returns at least as many jobs as the AI/ML filter. Groups also cover German/English pairs (Informatik/computer science, Datenanalyse/data analysis) and umlauts (ä/ae). Search text is still never sent to analytics.
+3. **Scan on the phone** (S): As a student on my phone between lectures, I want to see jobs on the first screen and snippets that start with the role, so that I can judge a job in seconds.
+   - Acceptance: on a 390×844 viewport the first job row is visible without scrolling (filters fold away, Playwright check). Snippets of the top 5 employers by job count start with the role, not company boilerplate. After a reload the active filters are still there (URL), checked in a smoke test.
+4. **The facts I decide on** (M): As an international student, I want the required German level, the deadline, the pay and where "Apply" leads, so that I only open jobs I can actually get.
+   - Acceptance: each job shows German level as "English OK", "German B1–B2" or "German C1+" when the posting says so (else nothing, never a guess), and a "German level" filter. Deadline and pay show when stated; a hand check of 50 postings finds 0 wrong values. Jobs past their deadline leave the board. The Apply button names its target ("Apply at Fraunhofer", "View on arbeitnow.com") and uses the employer link when we have one.
+   - Notes: new column → schema, `COLUMNS`, types and `JOB_SELECT` in sync.
+5. **Track my applications** (S): As a student applying to several jobs, I want to mark saved jobs as applied / interview / offer / rejected with a date, so that I keep track without a spreadsheet.
+   - Acceptance: status and date are set from the Saved page and the open job, stored in localStorage only, survive a reload, and the Saved page can filter by status. Works with storage blocked (no crash, a short notice). No account.
+6. **Weekly email alert for a search** (M–L, **shareholder action: create a Resend account and buy the custom domain, ~€10/year**, needed to send mail to students): As a student, I want one email a week with new jobs for my saved search, so that I don't have to check the board.
+   - Acceptance: "Email me new jobs for this search" takes an email address only (no account, no password). Double opt-in: nothing is sent until the student clicks the confirm link. At most one email a week, only when there are new matches, each with a one-click unsubscribe (and `List-Unsubscribe` header). At most 3 alerts per address; unconfirmed sign-ups are deleted after 48 h. The privacy page names the email provider and the stored data; "delete my data" works from any email. Rate limit on sign-ups.
+   - Gate: `/hackerattack alerts` (Kevin) before production: email bombing, enumeration, unsubscribe/confirm token guessing, injection into email content.
+   - Notes: needs a small server part (e.g. a Supabase Edge Function for sign-up/confirm) and a weekly GitHub Action to send; the tech lead decides. No login needed for this.
 
 **Open step (shareholder):** the `closed_jobs` table still has to be created in the **staging** project (URL contains `dszz`). Production has it. Until then staging runs without the closure memory and logs a warning.
 
@@ -23,7 +41,7 @@ _Empty: sprint 4 was released on 2026-10-30._
 Non-blocking findings; the tech lead decides the order. Most are small.
 
 1. **Duplicate jobs from GlobalFoundries** (should-fix, M): the same posting appears under two company names and with cut-off titles. Changes job IDs, which resets "New" badges, so it ships in its own release.
-2. **HiWi + thesis posting gets through** (Otto decides, S): "Studentische Hilfskraft mit anschließender Abschlussarbeit" shows as a thesis.
+2. ~~HiWi + thesis posting gets through~~: moved into MVP story 1 (Otto: drop it).
 3. **Restrict allowed GitHub Actions** (security, S, shareholder): one click in the repository settings.
 5. **Check the Umami volume after a week** (S): the free plan is capped by monthly events; filter events fire on every change.
 
@@ -31,9 +49,13 @@ Non-blocking findings; the tech lead decides the order. Most are small.
 
 - **Pages search engines can read** (M): per-job and per-company pages built at deploy time, so students find jobs on Google. Waits for serving the job list from the CDN (docs/capacity.md); today all jobs render in the browser only.
 - **RSS / calendar feed of deadlines** (S–M): few students use RSS; a static feed needs a rebuild or public storage after each fetch. After the CDN switch.
+- **Instant thesis alerts / push notifications** (M): weekly email first; instant only if students ask after MVP 6 (push needs a service worker and more security work).
+- **Thesis group, supervisor and contact email** (M): HZDR/Fraunhofer pages state them inconsistently, and publishing personal emails needs care; revisit after MVP 4 shows how reliable extraction is.
+- **Sync of saved jobs and status across devices** (L): needs login (see below); MVP keeps everything in the browser and alerts work without an account.
+- **Make the imprint easier to find** (S): it is in the footer and legally fine; not a student need.
 - **Company pages** (M): little value at today's ~100 jobs from a few dozen employers; the company filter/search covers it.
 
-- **Login / accounts** (L): As a student, I want my saved jobs on my phone and my laptop, so that I don't lose them. Waits: bookmarks in the browser cover the need today. Accounts bring privacy, security and support costs. Look at it again only if students ask for sync.
+- **Login / accounts** (L): As a student, I want my saved jobs on my phone and my laptop, so that I don't lose them. Waits: bookmarks in the browser cover the need today. Accounts bring privacy, security and support costs. Look at it again only if students ask for sync. Lena (2026-10-31) wants it only for alerts and sync, via magic link or Google, never a password/CV/profile, and saving must never need an account; MVP 6 covers alerts without it.
   - **Technical preconditions (tech lead, fixed before any build):**
     - **Sign-in without passwords:** magic link or OAuth with PKCE (Supabase Auth, free tier). We never store passwords.
     - **Sessions in cookies, not localStorage:** HttpOnly, Secure, SameSite=Lax, `__Host-` prefix, set by the server (Next.js on Vercel with `@supabase/ssr`). This means leaving `output: "export"` for the auth routes, which is an architecture change. A token in localStorage can be stolen by any XSS.
