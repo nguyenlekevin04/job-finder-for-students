@@ -205,8 +205,41 @@ def extract_pay(title: str, tags: str, description: str) -> tuple[float | None, 
     return None, None
 
 
+# --------------------------------------------------------- German level --
+# Only what the posting states: "none" (no German needed), "basic" (B1–B2, "gute
+# Deutschkenntnisse") or "fluent" (C1+, "fließend", "verhandlungssicher"). Never a guess.
+DE_NONE = re.compile(
+    r"no german (is )?(required|needed|necessary)|german (is |language )?(skills )?(are |is )?not (required|needed|necessary)"
+    r"|deutschkenntnisse (sind )?nicht (erforderlich|notwendig|zwingend)|kein(e)? deutsch(kenntnisse)? (erforderlich|notwendig)"
+    r"|english[- ]only|(working|company|team|office) language (is )?english|arbeitssprache (ist )?englisch", re.I)
+DE_FLUENT = re.compile(
+    r"(fließend|flie(ss|ß)ende?n?|verhandlungssicher\w*|sehr gute?n?|exzellente?n?|hervorragende?n?|ausgezeichnete?n?|perfekte?n?)"
+    r"\s+(deutsch|kenntnisse in deutsch)"
+    r"|deutsch(kenntnisse)?\W{1,3}(auf\s+)?(c1|c2|muttersprach\w*|fließend|verhandlungssicher)"
+    r"|deutsch(kenntnisse)?\s+(in wort und schrift\s+)?(fließend|verhandlungssicher)"
+    r"|\bc[12]\b[^.]{0,25}(deutsch|german)|(deutsch|german)[^.]{0,15}\bc[12]\b"
+    r"|(fluent|business[- ]fluent|excellent|very good|native)( level)?( in| command of)? german"
+    r"|german\W{1,3}(fluent|native|c1|c2)|deutsch als muttersprache", re.I)
+DE_BASIC = re.compile(
+    r"(?<!sehr )(gute|grundlegende|solide|erste|basic)n?\s+deutsch(kenntnisse)?"
+    r"|deutsch(kenntnisse)?\W{1,3}(auf\s+)?(niveau\s+)?b[12]\b|\bb[12]\b[^.]{0,25}(deutsch|german)"
+    r"|(basic|good|conversational|intermediate) german|german\W{1,3}b[12]\b", re.I)
+
+
+def extract_german(title: str, description: str) -> str | None:
+    text = _clean(f"{title} {description}")
+    if DE_NONE.search(text):
+        return "none"
+    if DE_FLUENT.search(text):
+        return "fluent"
+    if DE_BASIC.search(text):
+        return "basic"
+    return None
+
+
 def extract_terms(title: str, tags: str, description: str) -> dict:
-    """{"hoursMin", "hoursMax", "payAmount", "payUnit"}; None for anything not stated."""
+    """{"hoursMin", "hoursMax", "payAmount", "payUnit", "germanLevel"}; None for anything not stated."""
     hours_min, hours_max = extract_hours(title or "", tags or "", description or "")
     pay, unit = extract_pay(title or "", tags or "", description or "")
-    return {"hoursMin": hours_min, "hoursMax": hours_max, "payAmount": pay, "payUnit": unit}
+    return {"hoursMin": hours_min, "hoursMax": hours_max, "payAmount": pay, "payUnit": unit,
+            "germanLevel": extract_german(title or "", description or "")}

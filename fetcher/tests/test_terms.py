@@ -95,9 +95,9 @@ def test_parse_amount(raw, value):
 
 def test_extract_terms_shape():
     assert extract_terms("Werkstudent (m/w/d)", "", "") == {
-        "hoursMin": None, "hoursMax": None, "payAmount": None, "payUnit": None}
+        "hoursMin": None, "hoursMax": None, "payAmount": None, "payUnit": None, "germanLevel": None}
     assert extract_terms(W, "", "15-20 h/Woche, 15 €/h") == {
-        "hoursMin": 15, "hoursMax": 20, "payAmount": 15.0, "payUnit": "hour"}
+        "hoursMin": 15, "hoursMax": 20, "payAmount": 15.0, "payUnit": "hour", "germanLevel": None}
 
 
 def test_fixture_postings(fixture_text):
@@ -106,7 +106,8 @@ def test_fixture_postings(fixture_text):
     ifx = infineon.parse_detail(json.loads(fixture_text("infineon_detail.json")))
     assert extract_hours("", "", ifx) == (None, 20)
     fh, _ = fraunhofer.parse_detail(fixture_text("fraunhofer_detail.html"))
-    assert extract_terms("", "", fh) == {"hoursMin": None, "hoursMax": None, "payAmount": None, "payUnit": None}
+    assert extract_terms("", "", fh) == {"hoursMin": None, "hoursMax": None, "payAmount": None, "payUnit": None,
+                                         "germanLevel": None}
 
 
 @pytest.mark.parametrize("text, expected", [

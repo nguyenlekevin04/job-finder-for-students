@@ -170,6 +170,24 @@ describe("applyFilters", () => {
     expect(ids(applyFilters(jobs, f({ job: "b" }), null))).toEqual(["c", "b", "a"]);
   });
 
+  it("hides jobs past their deadline unless one is open", () => {
+    const list = [job({ id: "old", deadline: "2026-10-28" }), job({ id: "today", deadline: "2026-10-29" }), job({ id: "none" })];
+    expect(ids(applyFilters(list, f(), null)).sort()).toEqual(["none", "today"]);
+    expect(ids(applyFilters(list, f({ job: "old" }), null)).sort()).toEqual(["none", "old", "today"]);
+  });
+
+  it("keeps only jobs that state German B2 or none is enough", () => {
+    const list = [
+      job({ id: "none", germanLevel: "none" }),
+      job({ id: "basic", germanLevel: "basic" }),
+      job({ id: "fluent", germanLevel: "fluent" }),
+      job({ id: "unknown", englishFriendly: true }),
+    ];
+    expect(ids(applyFilters(list, f({ german: true }), null)).sort()).toEqual(["basic", "none"]);
+    expect(filtersToParams(f({ german: true })).get("de")).toBe("b2");
+    expect(filtersFromParams(new URLSearchParams("de=b2")).german).toBe(true);
+  });
+
   it("searches title and company", () => {
     const index = makeIndex(jobs);
     expect(ids(applyFilters(jobs, f({ q: "alpha" }), index))).toEqual(["b"]);

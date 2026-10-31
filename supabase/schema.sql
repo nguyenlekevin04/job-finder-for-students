@@ -28,6 +28,9 @@ alter table public.jobs add column if not exists hours_max  smallint;
 alter table public.jobs add column if not exists pay_amount numeric(8,2);
 alter table public.jobs add column if not exists pay_unit   text check (pay_unit in ('hour', 'month'));
 
+-- German level as the posting states it (fetcher/terms.py extract_german); null = not stated.
+alter table public.jobs add column if not exists german_level text check (german_level in ('none', 'basic', 'fluent'));
+
 -- No query needs this index: stale rows are deleted by id.
 drop index if exists public.jobs_last_seen_idx;
 

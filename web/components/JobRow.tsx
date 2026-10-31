@@ -3,7 +3,7 @@
 import { track } from "@/lib/analytics";
 import { jobDate } from "@/lib/filters";
 import { daysUntil, formatDate, isNew, jobTerms, relativeDay } from "@/lib/format";
-import { FIELD_LABELS, TYPE_LABELS, type Job } from "@/lib/types";
+import { AGGREGATORS, FIELD_LABELS, GERMAN_LABELS, TYPE_LABELS, type Job, type JobLink } from "@/lib/types";
 import { STATUS_LABELS, STATUSES, type AppStatus, type Application } from "@/lib/useApplications";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowUpRightIcon, StarIcon } from "./Icons";
@@ -19,6 +19,16 @@ interface Props {
   newSince?: string | null; // "YYYY-MM-DD": "New" means first seen after this day instead of this week
   application?: Application | null; // application status, for saved jobs
   onStatus?: (id: string, status: AppStatus | null) => void; // set where the status can be changed
+}
+
+/** Say where the button leads: the employer's own site, or a job board's copy of the posting. */
+function applyLabel(link: JobLink): string {
+  if (!AGGREGATORS.includes(link.source)) return `Apply at ${link.source}`;
+  try {
+    return `View on ${new URL(link.url).hostname.replace(/^www\./, "")}`;
+  } catch {
+    return `View on ${link.source}`;
+  }
 }
 
 function jobPlace(job: Job): string {
@@ -99,7 +109,9 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
             {terms.hours && <Fact label="Hours">{terms.hours}</Fact>}
             {terms.pay && <Fact label="Pay">{terms.pay}</Fact>}
             <Fact label="Field">{job.fields.map((f) => FIELD_LABELS[f]).join(", ")}</Fact>
-            <Fact label="Language">{job.englishFriendly ? "English OK" : "German"}</Fact>
+            <Fact label="Language">
+              {job.germanLevel ? GERMAN_LABELS[job.germanLevel] : job.englishFriendly ? "English OK" : "Posting in German"}
+            </Fact>
             <Fact label={job.postedAt ? "Posted" : "Found"}>{formatDate(jobDate(job))}</Fact>
             {/* A closed job's deadline means nothing any more. */}
             {!closed && deadlineDays !== null && deadlineDays >= 0 && (
@@ -143,7 +155,7 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
                   onClick={() => track("apply", { source: primary.source })}
                   className="focus-ring inline-flex items-center gap-2 rounded-[10px] bg-btn px-4 py-2.5 text-[15px] font-semibold tracking-[-0.02em] text-btn-ink transition hover:opacity-90"
                 >
-                  Apply now <ArrowUpRightIcon width={15} height={15} />
+                  {applyLabel(primary)} <ArrowUpRightIcon width={15} height={15} />
                 </a>
                 <button type="button" onClick={() => onToggleSave(job)} aria-pressed={saved} className="focus-ring hit link-u rounded">
                   {saved ? "Remove from saved" : "Save for later"}

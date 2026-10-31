@@ -139,7 +139,8 @@ test("opening a job sets ?job= and shows an https Apply link", async ({ page }) 
   await openBoard(page);
   await row(page, job.title).click();
   await expect(page).toHaveURL(new RegExp(`[?&]job=${job.id}`));
-  const apply = page.getByRole("link", { name: "Apply now" });
+  // The button names where it leads: the employer's site, or the job board's copy.
+  const apply = page.getByRole("link", { name: `Apply at ${job.links[0].source}` });
   await expect(apply).toHaveAttribute("href", job.links[0].url);
   expect(job.links[0].url).toMatch(/^https:\/\//);
 });
@@ -378,4 +379,11 @@ test("track an application on a saved job, keep it after a reload and filter by 
   await page.getByRole("button", { name: /^Applied 1/ }).click();
   await expect(page.locator('li[id^="row-"]')).toHaveCount(1);
   await page.getByRole("button", { name: /^Not applied/ }).waitFor({ state: "detached" }); // nothing else saved
+});
+
+test("a job-board posting says where Apply leads", async ({ page }) => {
+  const job = fixture.jobs.find((j) => j.links[0].source === "Arbeitnow")!;
+  await openBoard(page);
+  await row(page, job.title).click();
+  await expect(page.getByRole("link", { name: `View on ${new URL(job.links[0].url).hostname.replace(/^www\./, "")}` })).toBeVisible();
 });
