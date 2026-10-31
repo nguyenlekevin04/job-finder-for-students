@@ -127,3 +127,85 @@ def test_consulting_title_cannot_be_rescued_by_description():
 def test_chip_fab_engineering_roles_stay(title, description):
     assert classify(job(title, description=description)) is not None
 
+
+
+# --- Lena's false hits (2026-10-31): none of these may be tagged AI/ML ---
+
+def not_ai(result):
+    return result is None or "ai" not in result["fields"]
+
+
+def test_climate_consulting_with_ai_category_tag_is_dropped():
+    r = classify(job("Germany | Working Student in Consulting | Climate Risk and Decarbonisation",
+                     tags="AI Software Development", description="Python and AI for climate models."))
+    assert r is None
+
+
+def test_one_passing_ai_mention_does_not_make_a_job_ai():
+    desc = ("You verify digital chip designs with SystemVerilog and Python scripts, automate regression "
+            "tests in Linux and work with the hardware team. We also explore AI in our tool chain.")
+    r = classify(job("Working Student - Digital Functional Verification (f/m/div)", description=desc))
+    assert r is not None and not_ai(r) and "hardware" in r["fields"]
+
+
+def test_backoffice_operations_is_dropped():
+    desc = "Du pflegst Daten im CRM, nutzt Software-Tools, Python-Skripte, SQL und KI-Assistenten."
+    assert classify(job("Werkstudent Backoffice Operations (m/w/d) - deutschlandweit im Homeoffice",
+                        description=desc)) is None
+
+
+@pytest.mark.parametrize("title", [
+    "Werkstudent (m/w/d) im Kalibrierlabor",
+    "Werkstudent Elektrotechnik (m/w/d)",
+    "Praktikant/Werkstudent Elektrotechnik",
+])
+def test_lab_and_electrical_roles_are_never_ai(title):
+    assert not_ai(classify(job(title, description="Messtechnik, Elektronik, Prüfstände und KI.")))
+
+
+@pytest.mark.parametrize("title", [
+    "Studentische Hilfskraft mit anschließender Abschlussarbeit - Infrastrukturgestützte Lokalisierung",
+    "Wissenschaftliche Hilfskraft (m/w/d) Machine Learning",
+    "HiWi Masterarbeit Computer Vision",
+])
+def test_hiwi_posts_are_dropped_even_with_a_thesis(title):
+    assert classify(job(title)) is None
+
+
+def test_two_ai_terms_in_the_description_still_count():
+    desc = "Du trainierst neuronale Netze mit PyTorch und evaluierst Large Language Models in Python."
+    r = classify(job("Werkstudent (m/w/d) Forschung", description=desc))
+    assert r is not None and "ai" in r["fields"]
+
+
+def test_snippet_skips_the_company_intro():
+    intro = "Who we are: True North Partners is a consultancy with offices in Amsterdam, Dubai and London. " * 3
+    role = "Your tasks: You analyse climate risk data with Python and build dashboards for clients. " * 4
+    s = classify(job("Working Student Data Analytics", description=intro + role))["snippet"]
+    assert s.startswith("Your tasks")
+
+
+def test_snippet_keeps_postings_without_a_role_heading():
+    text = "Wir suchen eine*n Werkstudent*in für Softwareentwicklung in Python und Java. " * 5
+    assert classify(job("Werkstudent Softwareentwicklung", description=text))["snippet"].startswith("Wir suchen")
+
+
+def test_snippet_ignores_task_words_inside_a_sentence():
+    text = "Bei uns warten spannende Aufgaben in der Softwareentwicklung mit Python und Java auf dich. " * 4
+    assert classify(job("Werkstudent Softwareentwicklung", description=text))["snippet"].startswith("Bei uns")
+
+
+@pytest.mark.parametrize("title, tags", [
+    ("Werkstudent (m/w/d) Berechtigungsmanagement / IAM", "Informatiker/in"),
+    ("Werkstudent Kundenportal (m/w/d)", "Fachinformatiker/in - Anwendungsentwicklung"),
+    ("Werkstudent Event-Streaming Plattform (m/w/d)", "Fachinformatiker/in - Anwendungsentwicklung"),
+    ("Werkstudent Security Operations Center (m/w/d)", "Informatiker/in"),
+    ("Working Student Operations Research", "Software Development"),
+])
+def test_reliable_occupation_tags_still_count(title, tags):
+    assert classify(job(title, tags=tags)) is not None
+
+
+def test_snippet_does_not_start_at_about_the_role_inside_a_sentence():
+    text = ("We care about the role of technology in society and build software in Python and Java. " * 4)
+    assert classify(job("Werkstudent Softwareentwicklung", description=text))["snippet"].startswith("We care")

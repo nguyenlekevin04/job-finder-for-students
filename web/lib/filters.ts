@@ -1,5 +1,6 @@
-import Fuse from "fuse.js";
 import { isNew, localDay } from "./format";
+import { search, type SearchIndex } from "./search";
+export { makeIndex } from "./search";
 import { ALL_FIELDS, ALL_TYPES, type Field, type Job, type JobType } from "./types";
 
 export type Sort = "newest" | "company";
@@ -93,25 +94,11 @@ export function jobDate(job: Job): string {
   return job.postedAt ?? job.firstSeen;
 }
 
-export function makeIndex(jobs: Job[]) {
-  return new Fuse(jobs, {
-    keys: [
-      { name: "title", weight: 3 },
-      { name: "company", weight: 2 },
-      { name: "snippet", weight: 1 },
-      { name: "location", weight: 0.5 },
-    ],
-    threshold: 0.35,
-    ignoreLocation: true,
-    minMatchCharLength: 2,
-  });
-}
-
-export function applyFilters(jobs: Job[], f: Filters, index: Fuse<Job> | null): Job[] {
+export function applyFilters(jobs: Job[], f: Filters, index: SearchIndex | null): Job[] {
   let result = jobs;
   const q = f.q.trim();
   if (q && index) {
-    const hits = new Set(index.search(q).map((r) => r.item.id));
+    const hits = search(jobs, q, index);
     result = result.filter((j) => hits.has(j.id));
   }
   result = result.filter(

@@ -13,6 +13,7 @@ import {
 } from "@/lib/filters";
 import { filterEvents, track } from "@/lib/analytics";
 import { isNew, localDay, relativeTime, visitDayLabel } from "@/lib/format";
+import { useApplications } from "@/lib/useApplications";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useJobsFile } from "@/lib/useJobs";
 import { useLastVisit } from "@/lib/useLastVisit";
@@ -25,6 +26,7 @@ import { EmptyState, ErrorState, LoadingList } from "./States";
 export function JobBoard() {
   const { state, retry } = useJobsFile();
   const { isSaved, toggle } = useBookmarks();
+  const { applications, setStatus } = useApplications();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -64,6 +66,8 @@ export function JobBoard() {
     }, 1000);
     return () => clearTimeout(t);
   }, [filters]);
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const update = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
   const reset = () => {
@@ -125,7 +129,7 @@ export function JobBoard() {
   }, []);
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-10 pt-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-14 lg:pt-12">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 pt-6 sm:gap-10 sm:pt-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-14 lg:pt-12">
       {/* Intro, search and filters */}
       {/* max-h + scroll so short screens can reach every filter; px/pb keep focus rings inside the scroll box */}
       <section className="lg:sticky lg:top-6 lg:-mx-1.5 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto lg:px-1.5 lg:pb-1.5 lg:[scrollbar-color:var(--c-line)_transparent] lg:[scrollbar-width:thin]">
@@ -163,15 +167,30 @@ export function JobBoard() {
           )}
         </div>
 
+        {/* Phones: filters fold away behind one button, so the first job shows on the first screen. */}
+        {data && (
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((o) => !o)}
+            aria-expanded={filtersOpen}
+            aria-controls="filters"
+            className="focus-ring mt-4 inline-flex min-h-10 items-center gap-2 rounded text-[15px] font-semibold lg:hidden"
+          >
+            {filtersOpen ? "Hide filters" : "Filters"}
+            {active > 0 && <span className="rounded-full bg-btn px-2 py-0.5 text-xs text-btn-ink tabular-nums">{active}</span>}
+          </button>
+        )}
         {data ? (
-          <FilterGroups
-            filters={filters}
-            jobs={jobs}
-            onChange={update}
-            onReset={reset}
-            activeCount={active}
-            sinceMode={newMode === "since"}
-          />
+          <div id="filters" className={filtersOpen ? "" : "max-lg:hidden"}>
+            <FilterGroups
+              filters={filters}
+              jobs={jobs}
+              onChange={update}
+              onReset={reset}
+              activeCount={active}
+              sinceMode={newMode === "since"}
+            />
+          </div>
         ) : (
           <div className="mt-6 space-y-3">
             {Array.from({ length: 3 }, (_, i) => (
@@ -246,6 +265,8 @@ export function JobBoard() {
                     open={filters.job === job.id}
                     onToggle={openJob}
                     saved={isSaved(job.id)}
+                    application={applications[job.id]}
+                    onStatus={setStatus}
                     onToggleSave={toggle}
                     showNew={(newMode === "since" && sinceCount < jobs.length) || (newMode === "week" && newCount < jobs.length)}
                     newSince={newMode === "since" ? sinceDay : null}
