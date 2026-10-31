@@ -2,6 +2,7 @@
 
 import { track } from "@/lib/analytics";
 import { jobDate } from "@/lib/filters";
+import { deadlineIcs } from "@/lib/ics";
 import { daysUntil, formatDate, isNew, jobTerms, relativeDay } from "@/lib/format";
 import { AGGREGATORS, FIELD_LABELS, GERMAN_LABELS, TYPE_LABELS, type Job, type JobLink } from "@/lib/types";
 import { STATUS_LABELS, STATUSES, type AppStatus, type Application } from "@/lib/useApplications";
@@ -19,6 +20,18 @@ interface Props {
   newSince?: string | null; // "YYYY-MM-DD": "New" means first seen after this day instead of this week
   application?: Application | null; // application status, for saved jobs
   onStatus?: (id: string, status: AppStatus | null) => void; // set where the status can be changed
+}
+
+function downloadDeadline(job: Job) {
+  const ics = deadlineIcs(job);
+  if (!ics) return;
+  const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `deadline-${job.id}.ics`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  track("add_to_calendar");
 }
 
 /** Say where the button leads: the employer's own site, or a job board's copy of the posting. */
@@ -116,7 +129,10 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
             {/* A closed job's deadline means nothing any more. */}
             {!closed && deadlineDays !== null && deadlineDays >= 0 && (
               <Fact label="Apply by">
-                <span className={deadlineDays <= 7 ? "font-semibold text-orange-text" : ""}>{formatDate(job.deadline!)}</span>
+                <span className={deadlineDays <= 7 ? "font-semibold text-orange-text" : ""}>{formatDate(job.deadline!)}</span>{" "}
+                <button type="button" onClick={() => downloadDeadline(job)} className="focus-ring link-u rounded text-muted hover:text-ink">
+                  Add to calendar
+                </button>
               </Fact>
             )}
             <Fact label="Found on">

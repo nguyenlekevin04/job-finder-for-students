@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   },
   description:
     "Werkstudent, internship and thesis positions in AI, ML and Computer Science around Dresden – collected daily from several job sources.",
+  // Opens like an app from the iPhone home screen (the manifest covers Android).
+  appleWebApp: { capable: true, title: "dresden/jobs", statusBarStyle: "default" },
   // Keep the staging site out of search results so students only ever find production.
   ...(isStaging && { robots: { index: false, follow: false } }),
 };
