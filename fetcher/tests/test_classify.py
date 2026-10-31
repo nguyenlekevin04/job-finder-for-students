@@ -230,6 +230,14 @@ def test_office_roles_that_mention_ai_or_it_are_dropped(title):
 @pytest.mark.parametrize("title", [
     "Werkstudent Data Engineer im Controlling (m/w/d)",
     "Werkstudent Softwareentwicklung Steuer-Tools (m/w/d)",
+    "Werkstudent Business Intelligence im Controlling",
+    "Werkstudent Power BI Finance",
+    "Werkstudent BI im Controlling (m/w/d)",
+    "Werkstudent IT-Security Prüfung",
 ])
 def test_tech_work_in_office_departments_stays(title):
     assert classify(job(title)) is not None
+
+
+def test_personalisierung_is_not_a_personnel_role():
+    assert classify(job("Werkstudent Personalisierung und Recommender Systems", tags="Informatiker/in")) is not None

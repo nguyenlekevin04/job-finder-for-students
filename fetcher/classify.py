@@ -86,7 +86,7 @@ NON_TECH_TITLE = re.compile(
 # and narrower than NON_TECH_TITLE: BA occupation tags ("Informatiker/in") are reliable and
 # must keep titles like "Berechtigungsmanagement" (contains "recht") or "Kundenportal".
 NON_TECH_TAG_BLOCK = re.compile(
-    r"\b(marketing|social media|seo|sales|vertrieb|verkauf|human resources|hr|recruit\w*|personal\w+|legal|jurist\w*"
+    r"\b(marketing|social media|seo|sales|vertrieb|verkauf|human resources|hr|recruit\w*|personal(abteilung|wesen|sachbearbeit\w*|referent\w*|management|administration)|legal|jurist\w*"
     r"|finance|finanz\w*|buchhalt\w*|accounting|controlling|einkauf|procurement|consulting|beratung|\w*beratung"
     r"|back ?office|climate|klima\w*|nachhaltig\w*|sustainab\w*|tax|steuer\w*|treasury|assurance|audit|prüfung"
     r"|fördermittel\w*|growth|gtm|go-to-market|business development|versicherungsmathematik|kommunikation"
@@ -96,7 +96,8 @@ NON_TECH_TAG_BLOCK = re.compile(
 # ("Data Engineer im Controlling", "Softwareentwicklung Steuer-Tools").
 STRONG_TECH_TITLE = re.compile(
     r"software|entwickl|developer|engineer|informatik|programmier|data scien|machine learning|deep learning"
-    r"|\bml\b|backend|frontend|full-?stack|devops|data analy|datenanaly|integration", re.I)
+    r"|\bml\b|backend|frontend|full-?stack|devops|data analy|datenanaly|integration|\bdata\b"
+    r"|business intelligence|power ?bi|security|sicherheit|recommender", re.I)
 MIN_DESC_HITS = 3
 MIN_AI_DESC_HITS = 2  # description-only evidence for AI/ML needs this many distinct AI terms
 
@@ -227,7 +228,7 @@ def classify(job: Job) -> dict | None:
         return None
     # Office roles (HR, tax, consulting, sales…) that merely mention AI or IT are not tech jobs
     # (Berlin, 2026-10-31: "HR-Administration … & KI", "Recruiting & HR Operations - IT-Business").
-    if NON_TECH_TAG_BLOCK.search(job.title) and not STRONG_TECH_TITLE.search(job.title):
+    if NON_TECH_TAG_BLOCK.search(job.title) and not (STRONG_TECH_TITLE.search(job.title) or BI_WORD.search(job.title)):
         return None
 
     # Type: from title or source category; description only as a fallback for

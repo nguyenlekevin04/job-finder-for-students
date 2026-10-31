@@ -14,7 +14,7 @@ import {
   type Filters,
 } from "@/lib/filters";
 import { filterEvents, track } from "@/lib/analytics";
-import { CITIES, CITY_LABELS } from "@/lib/types";
+import { CITIES, CITY_LABELS, type City } from "@/lib/types";
 import { isNew, localDay, relativeTime, visitDayLabel } from "@/lib/format";
 import { useApplications } from "@/lib/useApplications";
 import { useBookmarks } from "@/lib/useBookmarks";
@@ -86,6 +86,9 @@ export function JobBoard() {
   const allJobs = useMemo(() => (data?.jobs ?? []).filter((j) => !isExpired(j)), [data]);
   // Everything below (counts, tickets, filters) is about the chosen city's board.
   const jobs = useMemo(() => allJobs.filter((j) => inCity(j, filters.city)), [allJobs, filters.city]);
+  // A ?job= link to another city's job (a shared link, an old bookmark) opens that city's board.
+  const elsewhere = filters.job ? allJobs.find((j) => j.id === filters.job && !inCity(j, filters.city)) : undefined;
+  if (elsewhere?.city) setFilters((f) => ({ ...f, city: elsewhere.city as City }));
   const cityCounts = useMemo(
     () => Object.fromEntries(CITIES.map((c) => [c, allJobs.filter((j) => !j.remote && (j.city || "dresden") === c).length])),
     [allJobs],
