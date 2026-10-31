@@ -104,8 +104,12 @@ export function b2IsEnough(job: Job): boolean {
   return job.germanLevel === "none" || job.germanLevel === "basic";
 }
 
+/** Past its deadline: no longer worth applying, even before the daily update removes it. */
+export function isExpired(job: Job, today = localDay(new Date())): boolean {
+  return !!job.deadline && job.deadline < today;
+}
+
 export function applyFilters(jobs: Job[], f: Filters, index: SearchIndex | null): Job[] {
-  const today = localDay(new Date());
   let result = jobs;
   const q = f.q.trim();
   if (q && index) {
@@ -118,8 +122,6 @@ export function applyFilters(jobs: Job[], f: Filters, index: SearchIndex | null)
       (!f.fields.length || j.fields.some((x) => f.fields.includes(x))) &&
       (!f.english || j.englishFriendly) &&
       (!f.german || b2IsEnough(j)) &&
-      // Past its deadline: no longer worth applying, even before the next daily update removes it.
-      (!j.deadline || j.deadline >= today || j.id === f.job) &&
       (f.remote || !j.remote) &&
       (!f.fresh || isNew(j.firstSeen)) &&
       (!f.hours || withinHours(j)) &&

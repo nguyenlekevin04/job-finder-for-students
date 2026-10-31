@@ -4,6 +4,7 @@ import {
   applyFilters,
   DEFAULT_FILTERS,
   filtersFromParams,
+  isExpired,
   filtersToParams,
   makeIndex,
   type Filters,
@@ -170,10 +171,10 @@ describe("applyFilters", () => {
     expect(ids(applyFilters(jobs, f({ job: "b" }), null))).toEqual(["c", "b", "a"]);
   });
 
-  it("hides jobs past their deadline unless one is open", () => {
-    const list = [job({ id: "old", deadline: "2026-10-28" }), job({ id: "today", deadline: "2026-10-29" }), job({ id: "none" })];
-    expect(ids(applyFilters(list, f(), null)).sort()).toEqual(["none", "today"]);
-    expect(ids(applyFilters(list, f({ job: "old" }), null)).sort()).toEqual(["none", "old", "today"]);
+  it("treats a job as expired only after its deadline day", () => {
+    expect(isExpired(job({ deadline: "2026-10-28" }))).toBe(true);
+    expect(isExpired(job({ deadline: "2026-10-29" }))).toBe(false);
+    expect(isExpired(job({}))).toBe(false);
   });
 
   it("keeps only jobs that state German B2 or none is enough", () => {

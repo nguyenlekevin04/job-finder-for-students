@@ -8,6 +8,7 @@ import {
   DEFAULT_FILTERS,
   filtersFromParams,
   filtersToParams,
+  isExpired,
   makeIndex,
   type Filters,
 } from "@/lib/filters";
@@ -77,7 +78,8 @@ export function JobBoard() {
   const openJob = (id: string) => setFilters((f) => ({ ...f, job: f.job === id ? null : id }));
 
   const data = state.status === "ready" ? state.data : null;
-  const jobs = useMemo(() => data?.jobs ?? [], [data]);
+  // Jobs past their deadline leave the board everywhere: list, counts and search.
+  const jobs = useMemo(() => (data?.jobs ?? []).filter((j) => !isExpired(j)), [data]);
   const index = useMemo(() => (jobs.length ? makeIndex(jobs) : null), [jobs]);
   const results = useMemo(() => applyFilters(jobs, filters, index), [jobs, filters, index]);
   const newCount = useMemo(() => jobs.filter((j) => isNew(j.firstSeen)).length, [jobs]);
