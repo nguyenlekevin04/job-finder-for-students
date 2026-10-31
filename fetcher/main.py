@@ -255,6 +255,7 @@ def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
             "title": re.sub(r"\s+", " ", r.title).strip(),
             "company": r.company.strip(),
             "location": r.location,
+            "city": r.city,
             "remote": r.remote,
             **{k: tags[k] for k in ("type", "types", "fields", "englishFriendly")},
             "postedAt": posted_at,

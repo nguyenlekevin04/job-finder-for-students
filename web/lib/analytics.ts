@@ -26,6 +26,7 @@ export function track(name: string, data?: EventData): void {
 /** The filters a user just turned on or changed, as "filter" events. Turning a filter off isn't counted. */
 export function filterEvents(prev: Filters, next: Filters): EventData[] {
   const out: EventData[] = [];
+  if (next.city !== prev.city) out.push({ name: "city", value: next.city });
   for (const t of next.types) if (!prev.types.includes(t)) out.push({ name: "type", value: t });
   for (const f of next.fields) if (!prev.fields.includes(f)) out.push({ name: "field", value: f });
   if (next.english && !prev.english) out.push({ name: "english" });

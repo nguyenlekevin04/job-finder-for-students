@@ -31,6 +31,9 @@ alter table public.jobs add column if not exists pay_unit   text check (pay_unit
 -- German level as the posting states it (fetcher/terms.py extract_german); null = not stated.
 alter table public.jobs add column if not exists german_level text check (german_level in ('none', 'basic', 'fluent'));
 
+-- The board's city (a key of fetcher.models.CITIES); empty for remote-only postings.
+alter table public.jobs add column if not exists city text not null default 'dresden';
+
 -- No query needs this index: stale rows are deleted by id.
 drop index if exists public.jobs_last_seen_idx;
 

@@ -29,7 +29,9 @@ EXCLUDE = re.compile(
     r"\bausbildung\b|auszubildende|\bazubi|duales? studium|dualer student|schüler|\bpupils?\b"
     r"|doktorand|\bph\.? ?d\b|postdoc|professur|\bsenior\b|\bteam ?lead|gruppenleit|abteilungsleit"
     # HiWi posts are excluded on purpose (user requirement), also "HiWi mit anschließender Abschlussarbeit".
-    r"|studentische[rn]? hilfskr|wissenschaftliche[rn]? hilfskr|\bhiwis?\b",
+    r"|studentische[rn]? hilfskr|wissenschaftliche[rn]? hilfskr|\bhiwis?\b"
+    # School placements and retraining, not university students.
+    r"|unterricht|schulpraktik|umschulung",
     re.I)
 
 # --------------------------------------------------------------- tech field --
@@ -84,10 +86,18 @@ NON_TECH_TITLE = re.compile(
 # and narrower than NON_TECH_TITLE: BA occupation tags ("Informatiker/in") are reliable and
 # must keep titles like "Berechtigungsmanagement" (contains "recht") or "Kundenportal".
 NON_TECH_TAG_BLOCK = re.compile(
-    r"\b(marketing|social media|sales|vertrieb|verkauf|human resources|hr|recruit\w*|legal|jurist\w*"
-    r"|finance|finanz\w*|buchhalt\w*|accounting|controlling|einkauf|procurement|consulting|beratung"
-    r"|back ?office|climate|klima\w*|nachhaltig\w*|sustainab\w*)\b",
+    r"\b(marketing|social media|seo|sales|vertrieb|verkauf|human resources|hr|recruit\w*|personal(abteilung|wesen|sachbearbeit\w*|referent\w*|management|administration)|legal|jurist\w*"
+    r"|finance|finanz\w*|buchhalt\w*|accounting|controlling|einkauf|procurement|consulting|beratung|\w*beratung"
+    r"|back ?office|climate|klima\w*|nachhaltig\w*|sustainab\w*|tax|steuer\w*|treasury|assurance|audit|prüfung"
+    r"|fördermittel\w*|growth|gtm|go-to-market|business development|versicherungsmathematik|kommunikation"
+    r"|flottenmanagement|venture\w*|funding|payments?|reconciliations?)\b",
     re.I)
+# A title that names hands-on tech work keeps the job even next to a word above
+# ("Data Engineer im Controlling", "Softwareentwicklung Steuer-Tools").
+STRONG_TECH_TITLE = re.compile(
+    r"software|entwickl|developer|engineer|informatik|programmier|data scien|machine learning|deep learning"
+    r"|\bml\b|backend|frontend|full-?stack|devops|data analy|datenanaly|integration|\bdata\b"
+    r"|business intelligence|power ?bi|security|sicherheit|recommender", re.I)
 MIN_DESC_HITS = 3
 MIN_AI_DESC_HITS = 2  # description-only evidence for AI/ML needs this many distinct AI terms
 
@@ -215,6 +225,10 @@ def classify(job: Job) -> dict | None:
     strong = job.title if non_tech else f"{job.title} {job.tags}"
 
     if EXCLUDE.search(job.title):
+        return None
+    # Office roles (HR, tax, consulting, sales…) that merely mention AI or IT are not tech jobs
+    # (Berlin, 2026-10-31: "HR-Administration … & KI", "Recruiting & HR Operations - IT-Business").
+    if NON_TECH_TAG_BLOCK.search(job.title) and not (STRONG_TECH_TITLE.search(job.title) or BI_WORD.search(job.title)):
         return None
 
     # Type: from title or source category; description only as a fallback for

@@ -1,11 +1,12 @@
 import { isNew, localDay } from "./format";
 import { search, type SearchIndex } from "./search";
 export { makeIndex } from "./search";
-import { ALL_FIELDS, ALL_TYPES, type Field, type Job, type JobType } from "./types";
+import { ALL_FIELDS, ALL_TYPES, CITIES, type City, type Field, type Job, type JobType } from "./types";
 
 export type Sort = "newest" | "company";
 
 export interface Filters {
+  city: City; // the board's city; remote jobs show in every city
   q: string;
   types: JobType[];
   fields: Field[];
@@ -20,6 +21,7 @@ export interface Filters {
 }
 
 export const DEFAULT_FILTERS: Filters = {
+  city: "dresden",
   q: "",
   types: [],
   fields: [],
@@ -51,7 +53,9 @@ function day(v: string | null): string | null {
 
 // URL <-> filters, so a filtered view can be bookmarked or shared.
 export function filtersFromParams(p: URLSearchParams): Filters {
+  const city = p.get("city");
   return {
+    city: CITIES.includes(city as City) ? (city as City) : "dresden",
     q: p.get("q") ?? "",
     types: list(p.get("type")).filter((t): t is JobType => ALL_TYPES.includes(t as JobType)),
     fields: list(p.get("field")).filter((f): f is Field => ALL_FIELDS.includes(f as Field)),
@@ -68,6 +72,7 @@ export function filtersFromParams(p: URLSearchParams): Filters {
 
 export function filtersToParams(f: Filters): URLSearchParams {
   const p = new URLSearchParams();
+  if (f.city !== "dresden") p.set("city", f.city);
   if (f.q.trim()) p.set("q", f.q.trim());
   if (f.types.length) p.set("type", f.types.join(","));
   if (f.fields.length) p.set("field", f.fields.join(","));
@@ -99,6 +104,11 @@ export function jobDate(job: Job): string {
   return job.postedAt ?? job.firstSeen;
 }
 
+/** On this city's board: jobs there, plus remote jobs (which the "Include remote" option controls). */
+export function inCity(job: Job, city: City): boolean {
+  return job.remote || (job.city || "dresden") === city;
+}
+
 /** The posting says German B1–B2 is enough, or that no German is needed. */
 export function b2IsEnough(job: Job): boolean {
   return job.germanLevel === "none" || job.germanLevel === "basic";
@@ -122,6 +132,7 @@ export function applyFilters(jobs: Job[], f: Filters, index: SearchIndex | null)
       (!f.fields.length || j.fields.some((x) => f.fields.includes(x))) &&
       (!f.english || j.englishFriendly) &&
       (!f.german || b2IsEnough(j)) &&
+      inCity(j, f.city) &&
       (f.remote || !j.remote) &&
       (!f.fresh || isNew(j.firstSeen)) &&
       (!f.hours || withinHours(j)) &&

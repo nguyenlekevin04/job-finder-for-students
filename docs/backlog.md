@@ -35,7 +35,7 @@ Goal: a board a busy international student trusts and comes back to, as fast as 
 
 ## Next
 
-1. **More cities** (L): As a student in Leipzig or Chemnitz, I want the same board for my city, so that I find local student jobs as easily.
+1. ✅ **More cities** (L, shipped 2026-10-31: Leipzig, Chemnitz and Berlin via Arbeitsagentur, Fraunhofer and Arbeitnow; the CDN switch is postponed until Supabase egress nears 2.5 GB/month, see docs/capacity.md): As a student in Leipzig or Chemnitz, I want the same board for my city, so that I find local student jobs as easily.
    - Acceptance: choose a city with the location filter in the URL. Dresden stays the default. Classifier accuracy stays at or above 90% for every city.
    - Blocked by: serving the job list from the CDN first (docs/capacity.md: do it before a second city).
 2. **AI feature** (M, open): As a student, I want help judging fit quickly (for example a plain-English summary of hours, language and deadline), so that I can skip reading long German postings.

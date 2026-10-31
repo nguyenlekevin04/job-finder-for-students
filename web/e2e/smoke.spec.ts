@@ -419,3 +419,12 @@ test("the board can be installed as an app", async ({ page, request }) => {
   expect(manifest.display).toBe("standalone");
   for (const icon of manifest.icons) expect((await request.get(icon.src)).status()).toBe(200);
 });
+
+test("switching the city updates the URL and the headline", async ({ page }) => {
+  await openBoard(page);
+  await page.getByRole("group", { name: "City" }).getByRole("button", { name: /^Leipzig/ }).click();
+  await expect(page).toHaveURL(/[?&]city=leipzig/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Leipzig");
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Leipzig");
+});

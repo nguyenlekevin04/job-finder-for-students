@@ -112,6 +112,7 @@ flowchart LR
 | `links` | JSON list of `{source, url}`; the first is "Apply now" |
 | `snippet` | up to 700 characters of the description |
 | `hours_min`, `hours_max`, `pay_amount`, `pay_unit` | only when the posting states them |
+| `city` | the board's city (`dresden`, `leipzig`, `chemnitz`, `berlin`); empty for remote-only postings |
 | `german_level` | `none` / `basic` (B1–B2) / `fluent` (C1+), only when the posting states it (`terms.extract_german`) |
 
 **`fetch_runs`**: one row per daily run with the job count and per-source status (`ok`, `count`, `error`, `skipped`, `rejected`, `links: {open, closed, unknown, moved}`). It is public, so errors pass through `redact()`, which strips URL query strings.

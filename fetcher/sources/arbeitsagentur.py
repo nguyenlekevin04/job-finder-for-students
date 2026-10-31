@@ -9,7 +9,7 @@ import time
 from urllib.parse import quote, unquote
 
 from fetcher.net import get_json, status_code, to_day
-from fetcher.models import Job
+from fetcher.models import CITIES, Job
 
 NAME = "Arbeitsagentur"
 # Search results are capped (100 per query), so a missing posting may still be open.
@@ -41,7 +41,7 @@ QUERIES = [
 ]
 
 
-def parse(data: dict) -> list[Job]:
+def parse(data: dict, city: str = "dresden") -> list[Job]:
     jobs = []
     for j in data.get("ergebnisliste") or []:
         ref = j.get("referenznummer")
@@ -54,7 +54,8 @@ def parse(data: dict) -> list[Job]:
             title=j["stellenangebotsTitel"],
             company=j.get("firma") or "Unknown",
             url=f"https://www.arbeitsagentur.de/jobsuche/jobdetail/{quote(ref)}",
-            location=addr.get("ort") or "Dresden",
+            location=addr.get("ort") or CITIES[city],
+            city=city,
             posted_at=to_day((j.get("veroeffentlichungszeitraum") or {}).get("von")
                              or j.get("datumErsteVeroeffentlichung")),
             tags=", ".join(b for b in dict.fromkeys([j.get("hauptberuf"), *(j.get("alleBerufe") or [])]) if b),
@@ -64,11 +65,12 @@ def parse(data: dict) -> list[Job]:
 
 def fetch() -> list[Job]:
     by_ref: dict[str, Job] = {}
-    for was in QUERIES:
-        params = {"was": was, "wo": "Dresden", "umkreis": "30", "size": "100", "page": "1"}
-        for job in parse(get_json(API, headers=HEADERS, params=params)):
-            by_ref.setdefault(job.source_id, job)
-        time.sleep(0.3)
+    for city, name in CITIES.items():  # 30 km around each city; they don't overlap
+        for was in QUERIES:
+            params = {"was": was, "wo": name, "umkreis": "30", "size": "100", "page": "1"}
+            for job in parse(get_json(API, headers=HEADERS, params=params), city):
+                by_ref.setdefault(job.source_id, job)
+            time.sleep(0.3)
     return list(by_ref.values())
 
 
