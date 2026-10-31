@@ -255,7 +255,8 @@ export function JobBoard() {
                     type="button"
                     disabled={savedSearches.isSaved(searchKey(filters))}
                     onClick={() => {
-                      const newest = results.reduce<string | null>((m, j) => (!m || j.firstSeen > m ? j.firstSeen : m), null);
+                      // Everything on the board now counts as seen, whatever "since" view is active.
+                      const newest = jobs.reduce<string | null>((m, j) => (!m || j.firstSeen > m ? j.firstSeen : m), null);
                       savedSearches.add(searchKey(filters), newest);
                       track("save_search");
                     }}

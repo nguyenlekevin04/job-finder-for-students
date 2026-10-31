@@ -28,6 +28,8 @@ Goal: a board a busy international student trusts and comes back to, as fast as 
 
 - ✅ **Saved searches** (S): "Save this search" on the board; the Saved page lists them with "N new" since last opened. Browser only, no account.
 - ✅ **Add a deadline to the calendar** (S): one-day .ics event with a reminder 2 days before, made in the browser.
+- ✅ **Install as an app** (S): web app manifest and home-screen icons, opens full-screen from the phone's home screen.
+- Later: thesis contact person (only HZDR lists names, no emails; needs a new column).
 
 **Open step (shareholder):** the `closed_jobs` table still has to be created in the **staging** project (URL contains `dszz`). Production has it. Until then staging runs without the closure memory and logs a warning.
 

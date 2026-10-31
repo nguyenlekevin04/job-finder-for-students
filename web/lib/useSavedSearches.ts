@@ -60,7 +60,7 @@ function subscribe(onChange: () => void) {
 
 /** The search part of the filters, as a stable query string (the open job doesn't count). */
 export function searchKey(f: Filters): string {
-  return filtersToParams({ ...f, job: null, since: null }).toString();
+  return filtersToParams({ ...f, job: null, since: null, sort: "newest" }).toString();
 }
 
 /** A short name for a search: "Thesis · AI / ML · “python”". */

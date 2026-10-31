@@ -2,7 +2,7 @@ import type { Job } from "./types";
 
 // A one-day calendar entry for a job's application deadline, built in the browser.
 // RFC 5545: CRLF line ends, escaped text, all-day DTSTART/DTEND (end is exclusive).
-const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 const day = (iso: string) => iso.replace(/-/g, "");
 
 function nextDay(iso: string): string {

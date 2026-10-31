@@ -411,3 +411,11 @@ test("a deadline can be added to the calendar", async ({ page }) => {
   const file = await download;
   expect(file.suggestedFilename()).toBe(`deadline-${job.id}.ics`);
 });
+
+test("the board can be installed as an app", async ({ page, request }) => {
+  await openBoard(page);
+  const href = await page.locator('link[rel="manifest"]').getAttribute("href");
+  const manifest = await (await request.get(href!)).json();
+  expect(manifest.display).toBe("standalone");
+  for (const icon of manifest.icons) expect((await request.get(icon.src)).status()).toBe(200);
+});
