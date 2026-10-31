@@ -19,10 +19,15 @@ Goal: a board a busy international student trusts and comes back to, as fast as 
    - Notes: new column → schema, `COLUMNS`, types and `JOB_SELECT` in sync.
 5. ✅ **Track my applications** (S, shipped 2026-10-31): As a student applying to several jobs, I want to mark saved jobs as applied / interview / offer / rejected with a date, so that I keep track without a spreadsheet.
    - Acceptance: status and date are set from the Saved page and the open job, stored in localStorage only, survive a reload, and the Saved page can filter by status. Works with storage blocked (no crash, a short notice). No account.
-6. **Weekly email alert for a search** (M–L, **shareholder action: create a Resend account and buy the custom domain, ~€10/year**, needed to send mail to students): As a student, I want one email a week with new jobs for my saved search, so that I don't have to check the board.
+6. ⏸ **Weekly email alert for a search** (paused 2026-10-31: needs a ~€10/year domain; free features first. Saved searches with "N new" on the Saved page cover part of it) (M–L, **shareholder action: create a Resend account and buy the custom domain, ~€10/year**, needed to send mail to students): As a student, I want one email a week with new jobs for my saved search, so that I don't have to check the board.
    - Acceptance: "Email me new jobs for this search" takes an email address only (no account, no password). Double opt-in: nothing is sent until the student clicks the confirm link. At most one email a week, only when there are new matches, each with a one-click unsubscribe (and `List-Unsubscribe` header). At most 3 alerts per address; unconfirmed sign-ups are deleted after 48 h. The privacy page names the email provider and the stored data; "delete my data" works from any email. Rate limit on sign-ups.
    - Gate: `/hackerattack alerts` (Kevin) before production: email bombing, enumeration, unsubscribe/confirm token guessing, injection into email content.
    - Notes: needs a small server part (e.g. a Supabase Edge Function for sign-up/confirm) and a weekly GitHub Action to send; the tech lead decides. No login needed for this.
+
+### Free features (2026-10-31)
+
+- ✅ **Saved searches** (S): "Save this search" on the board; the Saved page lists them with "N new" since last opened. Browser only, no account.
+- ✅ **Add a deadline to the calendar** (S): one-day .ics event with a reminder 2 days before, made in the browser.
 
 **Open step (shareholder):** the `closed_jobs` table still has to be created in the **staging** project (URL contains `dszz`). Production has it. Until then staging runs without the closure memory and logs a warning.
 
