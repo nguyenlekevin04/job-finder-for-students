@@ -78,7 +78,15 @@ NON_TECH_TITLE = re.compile(
     r"|controlling|\bhr\b|human resources|personal|recruit|legal|recht|jurist|einkauf|procurement"
     r"|kunden|customer success|assistenz|event|kommunikation|communication|\bpr\b|logistik"
     r"|metal|flotation|chemi|recycling|biolog|medizin|pharma|oxide|werkstoff|keramik|korrosion"
-    r"|consulting|beratung|back ?office|\boperations\b|\bclimate\b|klima|nachhaltig|sustainab",
+    r"|consulting|beratung|back ?office|\bclimate\b|klima|nachhaltig|sustainab",
+    re.I)
+# Titles that are non-tech even when an aggregator's category tags say otherwise. Word-bounded
+# and narrower than NON_TECH_TITLE: BA occupation tags ("Informatiker/in") are reliable and
+# must keep titles like "Berechtigungsmanagement" (contains "recht") or "Kundenportal".
+NON_TECH_TAG_BLOCK = re.compile(
+    r"\b(marketing|social media|sales|vertrieb|verkauf|human resources|hr|recruit\w*|legal|jurist\w*"
+    r"|finance|finanz\w*|buchhalt\w*|accounting|controlling|einkauf|procurement|consulting|beratung"
+    r"|back ?office|climate|klima\w*|nachhaltig\w*|sustainab\w*)\b",
     re.I)
 MIN_DESC_HITS = 3
 MIN_AI_DESC_HITS = 2  # description-only evidence for AI/ML needs this many distinct AI terms
@@ -171,10 +179,10 @@ def is_english(title: str, description: str) -> bool:
 # Where the role itself starts in a posting. Text before it is usually the company intro
 # ("Who we are… offices in Amsterdam, Dubai…"), which tells a student nothing (Lena).
 ROLE_START = re.compile(
-    r"\b(your (tasks|role|responsibilities|mission)|what you('ll| will) do|about the role|key tasks"
+    r"\b(your (tasks|role|responsibilities|mission)|what you('ll| will) do|key tasks"
     r"|deine aufgaben|ihre aufgaben|das erwartet dich|was dich erwartet|was sie erwartet|deine rolle|ihre rolle)\b"
     # Bare words only as a heading ("Aufgaben:"), not inside a sentence ("spannende Aufgaben warten").
-    r"|\b(responsibilities|aufgaben(gebiet)?|tasks|the role|stellenbeschreibung)\s*:",
+    r"|\b(responsibilities|aufgaben(gebiet)?|tasks|the role|about the role|stellenbeschreibung)\s*:",
     re.I)
 ROLE_START_WITHIN = 2500  # only skip an intro, never most of the posting
 
@@ -203,7 +211,7 @@ def is_student_title(title: str) -> bool:
 def classify(job: Job) -> dict | None:
     # Title + reliable short context. Tags can't make a clearly non-tech title tech
     # (aggregator categories like "AI" on a climate-consulting role).
-    non_tech = bool(NON_TECH_TITLE.search(job.title)) and not _fields(job.title)
+    non_tech = bool(NON_TECH_TAG_BLOCK.search(job.title)) and not _fields(job.title)
     strong = job.title if non_tech else f"{job.title} {job.tags}"
 
     if EXCLUDE.search(job.title):

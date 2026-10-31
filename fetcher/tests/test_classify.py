@@ -193,3 +193,19 @@ def test_snippet_keeps_postings_without_a_role_heading():
 def test_snippet_ignores_task_words_inside_a_sentence():
     text = "Bei uns warten spannende Aufgaben in der Softwareentwicklung mit Python und Java auf dich. " * 4
     assert classify(job("Werkstudent Softwareentwicklung", description=text))["snippet"].startswith("Bei uns")
+
+
+@pytest.mark.parametrize("title, tags", [
+    ("Werkstudent (m/w/d) Berechtigungsmanagement / IAM", "Informatiker/in"),
+    ("Werkstudent Kundenportal (m/w/d)", "Fachinformatiker/in - Anwendungsentwicklung"),
+    ("Werkstudent Event-Streaming Plattform (m/w/d)", "Fachinformatiker/in - Anwendungsentwicklung"),
+    ("Werkstudent Security Operations Center (m/w/d)", "Informatiker/in"),
+    ("Working Student Operations Research", "Software Development"),
+])
+def test_reliable_occupation_tags_still_count(title, tags):
+    assert classify(job(title, tags=tags)) is not None
+
+
+def test_snippet_does_not_start_at_about_the_role_inside_a_sentence():
+    text = ("We care about the role of technology in society and build software in Python and Java. " * 4)
+    assert classify(job("Werkstudent Softwareentwicklung", description=text))["snippet"].startswith("We care")

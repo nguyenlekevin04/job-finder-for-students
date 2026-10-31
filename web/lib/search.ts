@@ -49,6 +49,7 @@ export const SYNONYMS: Group[] = [
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** Whole-word match on folded text ("ml" must not hit "html"). */
 const wordRe = (term: string) => new RegExp(`(^|[^a-z0-9])${escape(fold(term))}($|[^a-z0-9])`);
+const prefixRe = (term: string) => new RegExp(`(^|[^a-z0-9])${escape(fold(term))}`);
 
 export interface SearchIndex {
   fuse: Fuse<Job>;
@@ -78,8 +79,9 @@ export function search(jobs: Job[], q: string, index: SearchIndex): Set<string> 
   if (!query) return hits;
 
   const group = SYNONYMS.find((g) => g.terms.some((t) => fold(t) === query));
-  const terms = group ? group.terms : [query];
-  const res = terms.map(wordRe);
+  // Synonym terms match whole words ("ml" must not hit "html"); anything else also matches the
+  // start of a word, so typing "Dre" or "pyt" already finds Dresden and Python.
+  const res = group ? group.terms.map(wordRe) : [prefixRe(query)];
   for (const j of jobs) {
     const text = index.text.get(j.id) ?? "";
     if (res.some((re) => re.test(text)) || (group?.field && j.fields.includes(group.field))) hits.add(j.id);

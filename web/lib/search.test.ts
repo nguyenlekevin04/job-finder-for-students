@@ -48,4 +48,10 @@ describe("search", () => {
     expect(find("metrology")).toEqual(["tagged"]);
     expect(find("metrolgy")).toEqual(["tagged"]);
   });
+
+  it("finds word starts while typing short queries", () => {
+    expect(find("Dre").length).toBe(jobs.length); // every job is in Dresden
+    expect(find("metr")).toEqual(["tagged"]);
+    expect(find("inf")).toEqual(["inf"]);
+  });
 });
