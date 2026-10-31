@@ -168,9 +168,23 @@ def is_english(title: str, description: str) -> bool:
     return bool(EN_TITLE.search(title)) and not DE_TITLE.search(title)
 
 
+# Where the role itself starts in a posting. Text before it is usually the company intro
+# ("Who we are… offices in Amsterdam, Dubai…"), which tells a student nothing (Lena).
+ROLE_START = re.compile(
+    r"\b(your (tasks|role|responsibilities|mission)|what you('ll| will) do|about the role|key tasks"
+    r"|deine aufgaben|ihre aufgaben|das erwartet dich|was dich erwartet|was sie erwartet|deine rolle|ihre rolle)\b"
+    # Bare words only as a heading ("Aufgaben:"), not inside a sentence ("spannende Aufgaben warten").
+    r"|\b(responsibilities|aufgaben(gebiet)?|tasks|the role|stellenbeschreibung)\s*:",
+    re.I)
+ROLE_START_WITHIN = 2500  # only skip an intro, never most of the posting
+
+
 def snippet(job: Job) -> str:
     text = job.description or job.tags
     text = re.sub(r"\s+", " ", text).strip()
+    m = ROLE_START.search(text, 1, ROLE_START_WITHIN)
+    if m and len(text) - m.start() >= 200:  # enough left to be worth showing
+        text = text[m.start():]
     if len(text) <= SNIPPET_LEN:
         return text
     cut = text[:SNIPPET_LEN].rsplit(" ", 1)[0]

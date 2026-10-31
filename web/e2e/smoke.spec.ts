@@ -344,3 +344,21 @@ test("the footer links to the imprint and privacy pages", async ({ page }) => {
   await expect(page).toHaveTitle("Privacy · dresden/jobs");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your privacy.");
 });
+
+test("on a phone the first job is visible without scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openBoard(page);
+  const first = page.locator('li[id^="row-"]').first();
+  const box = await first.boundingBox();
+  expect(box && box.y + 60).toBeLessThanOrEqual(700); // room for the browser's own toolbars
+});
+
+test("on a phone the filters open from one button", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openBoard(page);
+  await expect(page.getByRole("group", { name: "Type" })).toBeHidden();
+  await page.getByRole("button", { name: "Filters" }).click();
+  await typeOption(page, "Internship").click();
+  await expect(page.getByRole("button", { name: /Hide filters/ })).toContainText("1");
+  await expect(count(page)).not.toHaveText(new RegExp(`^${TOTAL} jobs`));
+});

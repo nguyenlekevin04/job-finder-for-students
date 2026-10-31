@@ -176,3 +176,20 @@ def test_two_ai_terms_in_the_description_still_count():
     desc = "Du trainierst neuronale Netze mit PyTorch und evaluierst Large Language Models in Python."
     r = classify(job("Werkstudent (m/w/d) Forschung", description=desc))
     assert r is not None and "ai" in r["fields"]
+
+
+def test_snippet_skips_the_company_intro():
+    intro = "Who we are: True North Partners is a consultancy with offices in Amsterdam, Dubai and London. " * 3
+    role = "Your tasks: You analyse climate risk data with Python and build dashboards for clients. " * 4
+    s = classify(job("Working Student Data Analytics", description=intro + role))["snippet"]
+    assert s.startswith("Your tasks")
+
+
+def test_snippet_keeps_postings_without_a_role_heading():
+    text = "Wir suchen eine*n Werkstudent*in für Softwareentwicklung in Python und Java. " * 5
+    assert classify(job("Werkstudent Softwareentwicklung", description=text))["snippet"].startswith("Wir suchen")
+
+
+def test_snippet_ignores_task_words_inside_a_sentence():
+    text = "Bei uns warten spannende Aufgaben in der Softwareentwicklung mit Python und Java auf dich. " * 4
+    assert classify(job("Werkstudent Softwareentwicklung", description=text))["snippet"].startswith("Bei uns")
