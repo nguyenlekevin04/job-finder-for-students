@@ -139,7 +139,8 @@ test("opening a job sets ?job= and shows an https Apply link", async ({ page }) 
   await openBoard(page);
   await row(page, job.title).click();
   await expect(page).toHaveURL(new RegExp(`[?&]job=${job.id}`));
-  const apply = page.getByRole("link", { name: "Apply now" });
+  // The button names where it leads: the employer's site, or the job board's copy.
+  const apply = page.getByRole("link", { name: `Apply at ${job.links[0].source}` });
   await expect(apply).toHaveAttribute("href", job.links[0].url);
   expect(job.links[0].url).toMatch(/^https:\/\//);
 });
@@ -343,4 +344,46 @@ test("the footer links to the imprint and privacy pages", async ({ page }) => {
   await expect(page).toHaveURL(/\/privacy\/$/);
   await expect(page).toHaveTitle("Privacy · dresden/jobs");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your privacy.");
+});
+
+test("on a phone the first job is visible without scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openBoard(page);
+  const first = page.locator('li[id^="row-"]').first();
+  const box = await first.boundingBox();
+  expect(box && box.y + 60).toBeLessThanOrEqual(700); // room for the browser's own toolbars
+});
+
+test("on a phone the filters open from one button", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openBoard(page);
+  await expect(page.getByRole("group", { name: "Type" })).toBeHidden();
+  await page.getByRole("button", { name: "Filters" }).click();
+  await typeOption(page, "Internship").click();
+  await expect(page.getByRole("button", { name: /Hide filters/ })).toContainText("1");
+  await expect(count(page)).not.toHaveText(new RegExp(`^${TOTAL} jobs`));
+});
+
+test("track an application on a saved job, keep it after a reload and filter by it", async ({ page }) => {
+  await openBoard(page);
+  const first = page.locator('li[id^="row-"]').first();
+  await first.getByRole("button").first().click();
+  await expect(first.getByRole("combobox", { name: "Status" })).toHaveCount(0); // only for saved jobs
+  await first.getByRole("button", { name: "Save for later" }).click();
+  await first.getByRole("combobox", { name: "Status" }).selectOption("applied");
+  await expect(first.getByTestId("app-status")).toContainText("Applied");
+
+  await page.goto("/saved/");
+  await page.reload();
+  await expect(page.getByTestId("app-status")).toContainText("Applied");
+  await page.getByRole("button", { name: /^Applied 1/ }).click();
+  await expect(page.locator('li[id^="row-"]')).toHaveCount(1);
+  await page.getByRole("button", { name: /^Not applied/ }).waitFor({ state: "detached" }); // nothing else saved
+});
+
+test("a job-board posting says where Apply leads", async ({ page }) => {
+  const job = fixture.jobs.find((j) => j.links[0].source === "Arbeitnow")!;
+  await openBoard(page);
+  await row(page, job.title).click();
+  await expect(page.getByRole("link", { name: `View on ${new URL(job.links[0].url).hostname.replace(/^www\./, "")}` })).toBeVisible();
 });

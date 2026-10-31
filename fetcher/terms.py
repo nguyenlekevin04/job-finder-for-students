@@ -205,8 +205,51 @@ def extract_pay(title: str, tags: str, description: str) -> tuple[float | None, 
     return None, None
 
 
+# --------------------------------------------------------- German level --
+# Only what the posting states: "none" (no German needed), "basic" (B1–B2, "gute
+# Deutschkenntnisse") or "fluent" (C1+, "fließend", "verhandlungssicher"). Never a guess.
+_D = r"(?:deutsch(?:kenntnisse|sprachkenntnisse)?|german)\b"  # the language, not "Deutschland"
+# Explicit: German is not needed. Wins over everything.
+DE_NONE = re.compile(
+    r"no german (is )?(required|needed|necessary)|german (is |language )?(skills )?(are |is )?not (required|needed|necessary)"
+    r"|deutschkenntnisse (sind )?nicht (erforderlich|notwendig|zwingend)|kein(e)? deutsch(kenntnisse)? (erforderlich|notwendig)",
+    re.I)
+# The team's language. Weaker: a posting can work in English and still ask for fluent German.
+DE_TEAM_EN = re.compile(
+    r"english[- ]only|(working|company|team|office) language (is )?english|arbeitssprache (ist )?englisch", re.I)
+# Levels must sit right next to the language ("Deutsch C1", "C1-Niveau Deutsch"), so "English C1,
+# Deutsch von Vorteil" or "Führerschein C1" never count.
+DE_FLUENT = re.compile(
+    r"(fließend|flie(ss|ß)ende?n?|verhandlungssicher\w*|sehr gute?n?|exzellente?n?|hervorragende?n?|ausgezeichnete?n?"
+    r"|perfekte?n?)\s+(kenntnisse in\s+)?" + _D +
+    r"|\b" + _D + r"[\s(:\-–]{1,3}(auf\s+|niveau\s+|level\s+)*(c1|c2|muttersprach\w*|fließend|verhandlungssicher)\b"
+    r"|\bdeutsch(kenntnisse)?\s+in wort und schrift\s+(fließend|verhandlungssicher)"
+    r"|\bc[12]\b([\s(:\-–]{1,3}(niveau|level))?[\s(:\-–]{1,3}(in\s+)?" + _D +
+    r"|(fluent|business[- ]fluent|excellent|very good|native)( level)?( in| command of)? german\b"
+    r"|deutsch als muttersprache", re.I)
+DE_BASIC = re.compile(
+    r"(?<!sehr )(gute|grundlegende|solide|erste|basic)n?\s+" + _D +
+    r"|\b" + _D + r"[\s(:\-–]{1,3}(auf\s+|niveau\s+|level\s+|mind(\.|estens)\s+)*b[12]\b"
+    r"|\bb[12]\b([\s(:\-–]{1,3}(niveau|level))?[\s(:\-–]{1,3}(in\s+)?" + _D +
+    r"|(basic|good|conversational|intermediate) german\b", re.I)
+
+
+def extract_german(title: str, description: str) -> str | None:
+    text = _clean(f"{title} {description}")
+    if DE_NONE.search(text):
+        return "none"
+    if DE_FLUENT.search(text):
+        return "fluent"
+    if DE_TEAM_EN.search(text):
+        return "none"
+    if DE_BASIC.search(text):
+        return "basic"
+    return None
+
+
 def extract_terms(title: str, tags: str, description: str) -> dict:
-    """{"hoursMin", "hoursMax", "payAmount", "payUnit"}; None for anything not stated."""
+    """{"hoursMin", "hoursMax", "payAmount", "payUnit", "germanLevel"}; None for anything not stated."""
     hours_min, hours_max = extract_hours(title or "", tags or "", description or "")
     pay, unit = extract_pay(title or "", tags or "", description or "")
-    return {"hoursMin": hours_min, "hoursMax": hours_max, "payAmount": pay, "payUnit": unit}
+    return {"hoursMin": hours_min, "hoursMax": hours_max, "payAmount": pay, "payUnit": unit,
+            "germanLevel": extract_german(title or "", description or "")}

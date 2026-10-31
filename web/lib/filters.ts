@@ -1,5 +1,6 @@
-import Fuse from "fuse.js";
 import { isNew, localDay } from "./format";
+import { search, type SearchIndex } from "./search";
+export { makeIndex } from "./search";
 import { ALL_FIELDS, ALL_TYPES, type Field, type Job, type JobType } from "./types";
 
 export type Sort = "newest" | "company";
@@ -9,6 +10,7 @@ export interface Filters {
   types: JobType[];
   fields: Field[];
   english: boolean;
+  german: boolean; // only jobs that state German B1–B2 or no German at all
   remote: boolean; // include remote jobs
   fresh: boolean; // only jobs first seen in the last 7 days
   hours: boolean; // only jobs that state at most HOURS_LIMIT h/week
@@ -22,6 +24,7 @@ export const DEFAULT_FILTERS: Filters = {
   types: [],
   fields: [],
   english: false,
+  german: false,
   remote: true,
   fresh: false,
   hours: false,
@@ -53,6 +56,7 @@ export function filtersFromParams(p: URLSearchParams): Filters {
     types: list(p.get("type")).filter((t): t is JobType => ALL_TYPES.includes(t as JobType)),
     fields: list(p.get("field")).filter((f): f is Field => ALL_FIELDS.includes(f as Field)),
     english: p.get("en") === "1",
+    german: p.get("de") === "b2",
     remote: p.get("remote") !== "0",
     fresh: p.get("new") === "1",
     hours: p.get("hours") === String(HOURS_LIMIT),
@@ -68,6 +72,7 @@ export function filtersToParams(f: Filters): URLSearchParams {
   if (f.types.length) p.set("type", f.types.join(","));
   if (f.fields.length) p.set("field", f.fields.join(","));
   if (f.english) p.set("en", "1");
+  if (f.german) p.set("de", "b2");
   if (!f.remote) p.set("remote", "0");
   if (f.fresh) p.set("new", "1");
   if (f.hours) p.set("hours", String(HOURS_LIMIT));
@@ -82,6 +87,7 @@ export function activeFilterCount(f: Filters): number {
     f.types.length +
     f.fields.length +
     (f.english ? 1 : 0) +
+    (f.german ? 1 : 0) +
     (f.remote ? 0 : 1) +
     (f.fresh ? 1 : 0) +
     (f.hours ? 1 : 0) +
@@ -93,25 +99,21 @@ export function jobDate(job: Job): string {
   return job.postedAt ?? job.firstSeen;
 }
 
-export function makeIndex(jobs: Job[]) {
-  return new Fuse(jobs, {
-    keys: [
-      { name: "title", weight: 3 },
-      { name: "company", weight: 2 },
-      { name: "snippet", weight: 1 },
-      { name: "location", weight: 0.5 },
-    ],
-    threshold: 0.35,
-    ignoreLocation: true,
-    minMatchCharLength: 2,
-  });
+/** The posting says German B1–B2 is enough, or that no German is needed. */
+export function b2IsEnough(job: Job): boolean {
+  return job.germanLevel === "none" || job.germanLevel === "basic";
 }
 
-export function applyFilters(jobs: Job[], f: Filters, index: Fuse<Job> | null): Job[] {
+/** Past its deadline: no longer worth applying, even before the daily update removes it. */
+export function isExpired(job: Job, today = localDay(new Date())): boolean {
+  return !!job.deadline && job.deadline < today;
+}
+
+export function applyFilters(jobs: Job[], f: Filters, index: SearchIndex | null): Job[] {
   let result = jobs;
   const q = f.q.trim();
   if (q && index) {
-    const hits = new Set(index.search(q).map((r) => r.item.id));
+    const hits = search(jobs, q, index);
     result = result.filter((j) => hits.has(j.id));
   }
   result = result.filter(
@@ -119,6 +121,7 @@ export function applyFilters(jobs: Job[], f: Filters, index: Fuse<Job> | null): 
       (!f.types.length || j.types.some((t) => f.types.includes(t))) &&
       (!f.fields.length || j.fields.some((x) => f.fields.includes(x))) &&
       (!f.english || j.englishFriendly) &&
+      (!f.german || b2IsEnough(j)) &&
       (f.remote || !j.remote) &&
       (!f.fresh || isNew(j.firstSeen)) &&
       (!f.hours || withinHours(j)) &&

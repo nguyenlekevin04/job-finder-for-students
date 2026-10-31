@@ -3,7 +3,8 @@
 import { track } from "@/lib/analytics";
 import { jobDate } from "@/lib/filters";
 import { daysUntil, formatDate, isNew, jobTerms, relativeDay } from "@/lib/format";
-import { FIELD_LABELS, TYPE_LABELS, type Job } from "@/lib/types";
+import { AGGREGATORS, FIELD_LABELS, GERMAN_LABELS, TYPE_LABELS, type Job, type JobLink } from "@/lib/types";
+import { STATUS_LABELS, STATUSES, type AppStatus, type Application } from "@/lib/useApplications";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowUpRightIcon, StarIcon } from "./Icons";
 
@@ -16,6 +17,18 @@ interface Props {
   closed?: boolean; // on the Saved page: no longer on the board, so no longer open
   showNew?: boolean; // false when every job is new, so the label would mean nothing
   newSince?: string | null; // "YYYY-MM-DD": "New" means first seen after this day instead of this week
+  application?: Application | null; // application status, for saved jobs
+  onStatus?: (id: string, status: AppStatus | null) => void; // set where the status can be changed
+}
+
+/** Say where the button leads: the employer's own site, or a job board's copy of the posting. */
+function applyLabel(link: JobLink): string {
+  if (!AGGREGATORS.includes(link.source)) return `Apply at ${link.source}`;
+  try {
+    return `View on ${new URL(link.url).hostname.replace(/^www\./, "")}`;
+  } catch {
+    return `View on ${link.source}`;
+  }
 }
 
 function jobPlace(job: Job): string {
@@ -23,7 +36,7 @@ function jobPlace(job: Job): string {
   return job.location && !/remote/i.test(job.location) ? `Remote · ${job.location}` : "Remote";
 }
 
-export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showNew = true, newSince }: Props) {
+export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showNew = true, newSince, application, onStatus }: Props) {
   const fresh = showNew && !closed && (newSince ? job.firstSeen > newSince : isNew(job.firstSeen));
   const primary = job.links[0];
   const deadlineDays = job.deadline ? daysUntil(job.deadline) : null;
@@ -51,6 +64,11 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
           <span className="mt-1.5 block text-[14.5px] text-muted">
             <b className="font-semibold text-ink">{job.company}</b> · {jobPlace(job)} · {relativeDay(jobDate(job))}
           </span>
+          {application && (
+            <span className="mt-1 block text-[13px] font-semibold text-ink" data-testid="app-status">
+              {STATUS_LABELS[application.status]} · {formatDate(application.date)}
+            </span>
+          )}
           {terms.line && (
             <span className="mt-1 hidden text-[13px] font-semibold text-muted tabular-nums sm:block">{terms.line}</span>
           )}
@@ -91,7 +109,9 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
             {terms.hours && <Fact label="Hours">{terms.hours}</Fact>}
             {terms.pay && <Fact label="Pay">{terms.pay}</Fact>}
             <Fact label="Field">{job.fields.map((f) => FIELD_LABELS[f]).join(", ")}</Fact>
-            <Fact label="Language">{job.englishFriendly ? "English OK" : "German"}</Fact>
+            <Fact label="Language">
+              {job.germanLevel ? GERMAN_LABELS[job.germanLevel] : job.englishFriendly ? "English OK" : "Posting in German"}
+            </Fact>
             <Fact label={job.postedAt ? "Posted" : "Found"}>{formatDate(jobDate(job))}</Fact>
             {/* A closed job's deadline means nothing any more. */}
             {!closed && deadlineDays !== null && deadlineDays >= 0 && (
@@ -135,13 +155,30 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
                   onClick={() => track("apply", { source: primary.source })}
                   className="focus-ring inline-flex items-center gap-2 rounded-[10px] bg-btn px-4 py-2.5 text-[15px] font-semibold tracking-[-0.02em] text-btn-ink transition hover:opacity-90"
                 >
-                  Apply now <ArrowUpRightIcon width={15} height={15} />
+                  {applyLabel(primary)} <ArrowUpRightIcon width={15} height={15} />
                 </a>
                 <button type="button" onClick={() => onToggleSave(job)} aria-pressed={saved} className="focus-ring hit link-u rounded">
                   {saved ? "Remove from saved" : "Save for later"}
                 </button>
                 <ShareButton job={job} />
               </>
+            )}
+            {saved && onStatus && (
+              <label className="inline-flex items-center gap-2 text-[15px]">
+                <span className="text-muted">Status</span>
+                <select
+                  value={application?.status ?? ""}
+                  onChange={(e) => onStatus(job.id, (e.target.value || null) as AppStatus | null)}
+                  className="focus-ring min-h-10 cursor-pointer rounded border border-line bg-transparent px-2 font-semibold"
+                >
+                  <option value="">Not applied</option>
+                  {STATUSES.map((st) => (
+                    <option key={st} value={st}>
+                      {STATUS_LABELS[st]}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { HOURS_LIMIT, withinHours, type Filters, type Sort } from "@/lib/filters";
+import { b2IsEnough, HOURS_LIMIT, withinHours, type Filters, type Sort } from "@/lib/filters";
 import { ALL_FIELDS, ALL_TYPES, FIELD_LABELS, TYPE_LABELS, type Job } from "@/lib/types";
 
 interface Props {
@@ -48,12 +48,14 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount, si
   // filter is never hidden and the panel doesn't jump. "Fresh this week" doesn't open it:
   // the ticket in the list already shows that state.
   const [more, setMore] = useState(false);
-  const moreActive = filters.fields.length > 0 || filters.english || !filters.remote || filters.hours;
+  const moreActive = filters.fields.length > 0 || filters.english || filters.german || !filters.remote || filters.hours;
   if (moreActive && !more) setMore(true);
   const count = (pred: (j: Job) => boolean) => jobs.filter(pred).length;
   const hoursCount = count(withinHours);
   // Options that would match nothing (or compete with the "since" ticket) hide, unless they're on.
   const showHours = hoursCount > 0 || filters.hours;
+  const germanCount = count(b2IsEnough);
+  const showGerman = germanCount > 0 || filters.german;
   const showFresh = !sinceMode || filters.fresh;
 
   return (
@@ -99,6 +101,11 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount, si
           <Option on={filters.english} onClick={() => onChange({ english: !filters.english })}>
             English-friendly
           </Option>
+          {showGerman && (
+            <Option on={filters.german} onClick={() => onChange({ german: !filters.german })} count={germanCount}>
+              German B2 is enough
+            </Option>
+          )}
           {showFresh && (
             <Option on={filters.fresh} onClick={() => onChange({ fresh: !filters.fresh })}>
               Fresh this week
@@ -106,9 +113,15 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount, si
           )}
         </Group>
         {/* Present with the option, so screen readers announce the note when the filter turns on. */}
-        {showHours && (
-          <p aria-live="polite" className={filters.hours ? "mt-2 text-xs text-muted" : "sr-only"}>
-            {filters.hours ? "Only jobs that state their hours." : ""}
+        {(showHours || showGerman) && (
+          <p aria-live="polite" className={filters.hours || filters.german ? "mt-2 text-xs text-muted" : "sr-only"}>
+            {filters.hours && filters.german
+              ? "Only jobs that state their hours and German level."
+              : filters.hours
+                ? "Only jobs that state their hours."
+                : filters.german
+                  ? "Only jobs that state their German level."
+                  : ""}
           </p>
         )}
       </div>

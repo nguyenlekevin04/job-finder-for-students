@@ -43,6 +43,7 @@ COLUMNS = {
     "hoursMax": "hours_max",
     "payAmount": "pay_amount",
     "payUnit": "pay_unit",
+    "germanLevel": "german_level",
 }
 
 

@@ -4,7 +4,7 @@ import { LEGAL_PLACEHOLDERS, OPERATOR } from "@/lib/legal";
 
 // TODO before launch: check this text with a privacy policy generator (e.g. eRecht24)
 // and fill in the real data in web/lib/legal.ts. Keep the list of browser storage keys
-// in sync with the code (useBookmarks, ThemeToggle, useLastVisit). Also confirm the
+// in sync with the code (useBookmarks, useApplications, ThemeToggle, useLastVisit). Also confirm the
 // provider details: Vercel's, Supabase's and Umami's addresses, the Supabase project's region,
 // and the legal basis for transfers outside the EU (Data Privacy Framework / SCCs).
 
@@ -68,6 +68,10 @@ const SECTIONS: [string, React.ReactNode][] = [
       <ul className="list-disc space-y-1 pl-5">
         <li>
           <code className={code}>dsj:bookmarks:v1</code>: the jobs you saved for later.
+        </li>
+        <li>
+          <code className={code}>dsj:applications:v1</code>: the application status you set on saved jobs (applied,
+          interview, offer, rejected) and the day you set it.
         </li>
         <li>
           <code className={code}>dsj:theme</code>: light or dark mode, if you picked one.
@@ -162,7 +166,7 @@ export default function PrivacyPage() {
             <div className="mt-2 space-y-3 text-[16px] leading-relaxed text-ink">{body}</div>
           </section>
         ))}
-        <p className="mt-8 text-xs text-muted">Last updated 30 Oct 2026</p>
+        <p className="mt-8 text-xs text-muted">Last updated 31 Oct 2026</p>
       </div>
     </div>
   );

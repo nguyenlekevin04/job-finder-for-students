@@ -27,7 +27,9 @@ TYPE_PATTERNS: dict[str, re.Pattern] = {
 # Postings that are never what we want, even if a type keyword appears.
 EXCLUDE = re.compile(
     r"\bausbildung\b|auszubildende|\bazubi|duales? studium|dualer student|schüler|\bpupils?\b"
-    r"|doktorand|\bph\.? ?d\b|postdoc|professur|\bsenior\b|\bteam ?lead|gruppenleit|abteilungsleit",
+    r"|doktorand|\bph\.? ?d\b|postdoc|professur|\bsenior\b|\bteam ?lead|gruppenleit|abteilungsleit"
+    # HiWi posts are excluded on purpose (user requirement), also "HiWi mit anschließender Abschlussarbeit".
+    r"|studentische[rn]? hilfskr|wissenschaftliche[rn]? hilfskr|\bhiwis?\b",
     re.I)
 
 # --------------------------------------------------------------- tech field --
@@ -76,9 +78,18 @@ NON_TECH_TITLE = re.compile(
     r"|controlling|\bhr\b|human resources|personal|recruit|legal|recht|jurist|einkauf|procurement"
     r"|kunden|customer success|assistenz|event|kommunikation|communication|\bpr\b|logistik"
     r"|metal|flotation|chemi|recycling|biolog|medizin|pharma|oxide|werkstoff|keramik|korrosion"
-    r"|consulting|beratung",
+    r"|consulting|beratung|back ?office|\bclimate\b|klima|nachhaltig|sustainab",
+    re.I)
+# Titles that are non-tech even when an aggregator's category tags say otherwise. Word-bounded
+# and narrower than NON_TECH_TITLE: BA occupation tags ("Informatiker/in") are reliable and
+# must keep titles like "Berechtigungsmanagement" (contains "recht") or "Kundenportal".
+NON_TECH_TAG_BLOCK = re.compile(
+    r"\b(marketing|social media|sales|vertrieb|verkauf|human resources|hr|recruit\w*|legal|jurist\w*"
+    r"|finance|finanz\w*|buchhalt\w*|accounting|controlling|einkauf|procurement|consulting|beratung"
+    r"|back ?office|climate|klima\w*|nachhaltig\w*|sustainab\w*)\b",
     re.I)
 MIN_DESC_HITS = 3
+MIN_AI_DESC_HITS = 2  # description-only evidence for AI/ML needs this many distinct AI terms
 
 # Hands-on maintenance, repair, technician and building-services roles. Chip fabs post
 # many of these; they aren't jobs for CS/AI students (Otto, 2026-10-29). Engineering
@@ -136,6 +147,16 @@ def _fields(text: str) -> set[str]:
     return found
 
 
+def _desc_fields(text: str) -> set[str]:
+    """Fields from free text. AI/ML needs MIN_AI_DESC_HITS distinct terms: one passing
+    mention ("we also use AI") is the most common false AI/ML tag (Lena, 2026-10-31)."""
+    fields = _fields(text)
+    ai_terms = {m.group(0).lower() for m in FIELD_PATTERNS["ai"].finditer(NOISE.sub(" ", text))}
+    if len(ai_terms) < MIN_AI_DESC_HITS:
+        fields.discard("ai")
+    return fields
+
+
 def _field_hits(text: str) -> int:
     """Number of distinct tech keywords in free text (used for weaker evidence)."""
     text = NOISE.sub(" ", text)
@@ -155,9 +176,23 @@ def is_english(title: str, description: str) -> bool:
     return bool(EN_TITLE.search(title)) and not DE_TITLE.search(title)
 
 
+# Where the role itself starts in a posting. Text before it is usually the company intro
+# ("Who we are… offices in Amsterdam, Dubai…"), which tells a student nothing (Lena).
+ROLE_START = re.compile(
+    r"\b(your (tasks|role|responsibilities|mission)|what you('ll| will) do|key tasks"
+    r"|deine aufgaben|ihre aufgaben|das erwartet dich|was dich erwartet|was sie erwartet|deine rolle|ihre rolle)\b"
+    # Bare words only as a heading ("Aufgaben:"), not inside a sentence ("spannende Aufgaben warten").
+    r"|\b(responsibilities|aufgaben(gebiet)?|tasks|the role|about the role|stellenbeschreibung)\s*:",
+    re.I)
+ROLE_START_WITHIN = 2500  # only skip an intro, never most of the posting
+
+
 def snippet(job: Job) -> str:
     text = job.description or job.tags
     text = re.sub(r"\s+", " ", text).strip()
+    m = ROLE_START.search(text, 1, ROLE_START_WITHIN)
+    if m and len(text) - m.start() >= 200:  # enough left to be worth showing
+        text = text[m.start():]
     if len(text) <= SNIPPET_LEN:
         return text
     cut = text[:SNIPPET_LEN].rsplit(" ", 1)[0]
@@ -174,7 +209,10 @@ def is_student_title(title: str) -> bool:
 
 
 def classify(job: Job) -> dict | None:
-    strong = f"{job.title} {job.tags}"  # title + reliable short context
+    # Title + reliable short context. Tags can't make a clearly non-tech title tech
+    # (aggregator categories like "AI" on a climate-consulting role).
+    non_tech = bool(NON_TECH_TAG_BLOCK.search(job.title)) and not _fields(job.title)
+    strong = job.title if non_tech else f"{job.title} {job.tags}"
 
     if EXCLUDE.search(job.title):
         return None
@@ -193,7 +231,7 @@ def classify(job: Job) -> dict | None:
     fields = _fields(strong)
     if (not fields and not NON_TECH_TITLE.search(job.title)
             and _field_hits(job.description) >= MIN_DESC_HITS):
-        fields = _fields(job.description)
+        fields = _desc_fields(job.description)
     if not fields:
         return None
     if HANDS_ON_TITLE.search(job.title) and not (_fields(job.title) & {"ai", "data", "software"}):
