@@ -362,3 +362,20 @@ test("on a phone the filters open from one button", async ({ page }) => {
   await expect(page.getByRole("button", { name: /Hide filters/ })).toContainText("1");
   await expect(count(page)).not.toHaveText(new RegExp(`^${TOTAL} jobs`));
 });
+
+test("track an application on a saved job, keep it after a reload and filter by it", async ({ page }) => {
+  await openBoard(page);
+  const first = page.locator('li[id^="row-"]').first();
+  await first.getByRole("button").first().click();
+  await expect(first.getByRole("combobox", { name: "Status" })).toHaveCount(0); // only for saved jobs
+  await first.getByRole("button", { name: "Save for later" }).click();
+  await first.getByRole("combobox", { name: "Status" }).selectOption("applied");
+  await expect(first.getByTestId("app-status")).toContainText("Applied");
+
+  await page.goto("/saved/");
+  await page.reload();
+  await expect(page.getByTestId("app-status")).toContainText("Applied");
+  await page.getByRole("button", { name: /^Applied 1/ }).click();
+  await expect(page.locator('li[id^="row-"]')).toHaveCount(1);
+  await page.getByRole("button", { name: /^Not applied/ }).waitFor({ state: "detached" }); // nothing else saved
+});

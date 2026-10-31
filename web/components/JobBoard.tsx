@@ -13,6 +13,7 @@ import {
 } from "@/lib/filters";
 import { filterEvents, track } from "@/lib/analytics";
 import { isNew, localDay, relativeTime, visitDayLabel } from "@/lib/format";
+import { useApplications } from "@/lib/useApplications";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useJobsFile } from "@/lib/useJobs";
 import { useLastVisit } from "@/lib/useLastVisit";
@@ -25,6 +26,7 @@ import { EmptyState, ErrorState, LoadingList } from "./States";
 export function JobBoard() {
   const { state, retry } = useJobsFile();
   const { isSaved, toggle } = useBookmarks();
+  const { applications, setStatus } = useApplications();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -263,6 +265,8 @@ export function JobBoard() {
                     open={filters.job === job.id}
                     onToggle={openJob}
                     saved={isSaved(job.id)}
+                    application={applications[job.id]}
+                    onStatus={setStatus}
                     onToggleSave={toggle}
                     showNew={(newMode === "since" && sinceCount < jobs.length) || (newMode === "week" && newCount < jobs.length)}
                     newSince={newMode === "since" ? sinceDay : null}

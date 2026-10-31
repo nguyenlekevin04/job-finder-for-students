@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { jobDate } from "@/lib/filters";
+import { STATUS_LABELS, STATUSES, useApplications, type AppStatus } from "@/lib/useApplications";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useJobsFile } from "@/lib/useJobs";
 import type { Job } from "@/lib/types";
@@ -17,6 +18,11 @@ export function SavedJobs() {
   // same button undoes a mis-tap and keeps focus. Gone on the next visit.
   const [removed, setRemoved] = useState<Record<string, Job>>({});
   const [announce, setAnnounce] = useState("");
+  const { applications, setStatus, persistent } = useApplications();
+  // "none" = saved but not applied yet; null = all.
+  const [show, setShow] = useState<AppStatus | "none" | null>(null);
+  const matches = (id: string, st: AppStatus | "none" | null) =>
+    st === null ? true : st === "none" ? !applications[id] : applications[id]?.status === st;
   const current = useMemo(
     () => (state.status === "ready" ? new Map(state.data.jobs.map((j) => [j.id, j])) : null),
     [state],
@@ -31,6 +37,9 @@ export function SavedJobs() {
     });
     return jobs.sort((a, b) => Number(a.closed) - Number(b.closed) || jobDate(b.job).localeCompare(jobDate(a.job)));
   }, [saved, removed, current]);
+
+  // A status filter whose last job changed status falls back to "All" instead of an empty list.
+  const shown = show !== null && list.some(({ job }) => matches(job.id, show)) ? show : null;
 
   const toggleSave = (job: Job) => {
     const wasSaved = job.id in saved;
@@ -74,8 +83,33 @@ export function SavedJobs() {
             </Link>
           </EmptyState>
         ) : (
+          <>
+          <div role="group" aria-label="Application status" className="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-[15px]">
+            {([null, "none", ...STATUSES] as const).map((st) => {
+              const n = list.filter(({ job }) => matches(job.id, st)).length;
+              if (st !== null && n === 0) return null;
+              return (
+                <button
+                  key={st ?? "all"}
+                  type="button"
+                  aria-pressed={shown === st}
+                  onClick={() => setShow(st)}
+                  className={`focus-ring hit rounded-sm border-b-2 pb-0.5 ${shown === st ? "border-ink font-semibold" : "border-transparent text-muted hover:text-ink"}`}
+                >
+                  {st === null ? "All" : st === "none" ? "Not applied" : STATUS_LABELS[st]} <span className="tabular-nums">{n}</span>
+                </button>
+              );
+            })}
+          </div>
+          {!persistent && (
+            <p role="note" className="mb-4 border-l-2 border-rule pl-3 text-sm text-muted">
+              Your browser blocks storage, so statuses are kept only until you close this tab.
+            </p>
+          )}
           <ol className="border-b-[1.5px] border-rule">
-            {list.map(({ job, closed, isSaved }) => (
+            {list
+              .filter(({ job }) => matches(job.id, shown))
+              .map(({ job, closed, isSaved }) => (
               <JobRow
                 key={job.id}
                 job={job}
@@ -84,9 +118,12 @@ export function SavedJobs() {
                 saved={isSaved}
                 onToggleSave={toggleSave}
                 closed={closed}
+                application={applications[job.id]}
+                onStatus={setStatus}
               />
             ))}
           </ol>
+          </>
         )}
       </div>
     </div>
