@@ -28,7 +28,19 @@ export interface Job {
   hoursMax?: number | null;
   payAmount?: number | null; // EUR, as stated
   payUnit?: "hour" | "month" | null;
+  germanLevel?: GermanLevel | null; // as the posting states it; null = not stated
 }
+
+/** "none" = no German needed, "basic" = B1–B2, "fluent" = C1 or better. */
+export type GermanLevel = "none" | "basic" | "fluent";
+export const GERMAN_LABELS: Record<GermanLevel, string> = {
+  none: "English OK",
+  basic: "German B1–B2",
+  fluent: "German C1+",
+};
+
+/** Job boards that list other companies' jobs; every other source is the employer itself. */
+export const AGGREGATORS = ["Arbeitsagentur", "Arbeitnow"];
 
 export interface SourceStatus {
   ok: boolean;
