@@ -428,3 +428,12 @@ test("switching the city updates the URL and the headline", async ({ page }) => 
   await page.reload();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Leipzig");
 });
+
+test("students can send feedback and report a wrong job", async ({ page }) => {
+  const job = fixture.jobs[0];
+  await openBoard(page);
+  await expect(page.getByRole("link", { name: "Send feedback" })).toHaveAttribute("href", /^mailto:.*subject=Feedback/);
+  await row(page, job.title).click();
+  const report = page.getByRole("link", { name: "Report a problem" });
+  await expect(report).toHaveAttribute("href", new RegExp(`^mailto:.*${job.id}`));
+});
