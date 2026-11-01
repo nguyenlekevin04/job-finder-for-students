@@ -100,7 +100,7 @@ const SECTIONS: [string, React.ReactNode][] = [
               To learn which parts of the board help students, we count visits with Umami (Umami Software, Inc., USA), a
               cookieless analytics service. It counts which pages are opened, the referring site, the browser and operating
               system, device type, screen size, language and approximate location (country, region, city), which filters are turned on (for example “Werkstudent” or “Up to 20 h/week”, never what you
-              type into search) and clicks on the Apply button with the job board the link goes to, that a search was saved (not which one) and that a deadline was added to a calendar.
+              type into search) and clicks on the Apply button with the job board the link goes to, that a search was saved (not which one) that a deadline was added to a calendar, and clicks on the feedback and report links.
             </p>
             <p>
               Umami sets no cookies and stores nothing in your browser. It doesn’t store your IP address; it only uses it,
@@ -120,6 +120,16 @@ const SECTIONS: [string, React.ReactNode][] = [
         This site sets no cookies and uses no {ANALYTICS_ON ? "other analytics, " : "analytics, "}tracking pixels,
         advertising or social media plugins. Links to job postings open the employer’s or job board’s site, where their
         own privacy policy applies.
+      </p>
+    </>,
+  ],
+  [
+    "Feedback by email",
+    <>
+      <p>
+        “Send feedback” and “Report a problem” open your own email app with our address. If you send the email, we
+        receive your address and what you write, use it only to answer and improve the board, and delete it when it’s
+        no longer needed. Legal basis: Art. 6 (1) (f) GDPR.
       </p>
     </>,
   ],

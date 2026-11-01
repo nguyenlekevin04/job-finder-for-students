@@ -14,7 +14,7 @@ import {
   type Filters,
 } from "@/lib/filters";
 import { filterEvents, track } from "@/lib/analytics";
-import { CITIES, CITY_LABELS, type City } from "@/lib/types";
+import { BOARD_LABELS, BOARDS, CITY_LABELS, type Board } from "@/lib/types";
 import { isNew, localDay, relativeTime, visitDayLabel } from "@/lib/format";
 import { useApplications } from "@/lib/useApplications";
 import { useBookmarks } from "@/lib/useBookmarks";
@@ -88,9 +88,9 @@ export function JobBoard() {
   const jobs = useMemo(() => allJobs.filter((j) => inCity(j, filters.city)), [allJobs, filters.city]);
   // A ?job= link to another city's job (a shared link, an old bookmark) opens that city's board.
   const elsewhere = filters.job ? allJobs.find((j) => j.id === filters.job && !inCity(j, filters.city)) : undefined;
-  if (elsewhere?.city) setFilters((f) => ({ ...f, city: elsewhere.city as City }));
+  if (elsewhere) setFilters((f) => ({ ...f, city: (elsewhere.remote ? "remote" : elsewhere.city || "dresden") as Board }));
   const cityCounts = useMemo(
-    () => Object.fromEntries(CITIES.map((c) => [c, allJobs.filter((j) => !j.remote && (j.city || "dresden") === c).length])),
+    () => Object.fromEntries(BOARDS.map((b) => [b, allJobs.filter((j) => inCity(j, b)).length])),
     [allJobs],
   );
   const index = useMemo(() => (jobs.length ? makeIndex(jobs) : null), [jobs]);
@@ -149,14 +149,14 @@ export function JobBoard() {
       {/* max-h + scroll so short screens can reach every filter; px/pb keep focus rings inside the scroll box */}
       <section className="lg:sticky lg:top-6 lg:-mx-1.5 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto lg:px-1.5 lg:pb-1.5 lg:[scrollbar-color:var(--c-line)_transparent] lg:[scrollbar-width:thin]">
         <h1 className="text-[34px] leading-[0.98] font-semibold tracking-[-0.05em] text-balance sm:text-[42px] xl:text-[48px]">
-          Student tech jobs, made in{" "}
+          Student tech jobs, {filters.city === "remote" ? "fully" : "made in"}{" "}
           <span className="font-serif text-[1.12em] font-normal tracking-[-0.02em] text-orange-text">
-            {CITY_LABELS[filters.city]}.
+            {filters.city === "remote" ? "remote." : `${CITY_LABELS[filters.city]}.`}
           </span>
         </h1>
         <p className="mt-3 text-[17px] leading-snug text-muted">Student jobs in AI, data and software. Updated daily.</p>
         <div role="group" aria-label="City" className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[15px]">
-          {CITIES.map((c) => (
+          {BOARDS.map((c) => (
             <button
               key={c}
               type="button"
@@ -166,7 +166,7 @@ export function JobBoard() {
                 filters.city === c ? "border-ink font-semibold" : "border-transparent text-muted hover:text-ink"
               }`}
             >
-              {CITY_LABELS[c]}
+              {BOARD_LABELS[c]}
               {data && <span className="ml-1 text-xs tabular-nums">{cityCounts[c]}</span>}
             </button>
           ))}

@@ -31,7 +31,6 @@ export function filterEvents(prev: Filters, next: Filters): EventData[] {
   for (const f of next.fields) if (!prev.fields.includes(f)) out.push({ name: "field", value: f });
   if (next.english && !prev.english) out.push({ name: "english" });
   if (next.german && !prev.german) out.push({ name: "german-b2" });
-  if (!next.remote && prev.remote) out.push({ name: "no-remote" });
   if (next.fresh && !prev.fresh) out.push({ name: "new-this-week" });
   if (next.hours && !prev.hours) out.push({ name: "hours" });
   if (next.since && next.since !== prev.since) out.push({ name: "since-last-visit" });

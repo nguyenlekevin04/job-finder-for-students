@@ -36,6 +36,11 @@ export const CITIES = ["dresden", "leipzig", "chemnitz", "berlin"] as const;
 export type City = (typeof CITIES)[number];
 export const CITY_LABELS: Record<City, string> = { dresden: "Dresden", leipzig: "Leipzig", chemnitz: "Chemnitz", berlin: "Berlin" };
 
+/** The boards a student can pick: one per city, plus remote jobs on their own. */
+export const BOARDS = [...CITIES, "remote"] as const;
+export type Board = (typeof BOARDS)[number];
+export const BOARD_LABELS: Record<Board, string> = { ...CITY_LABELS, remote: "Remote" };
+
 /** "none" = no German needed, "basic" = B1–B2, "fluent" = C1 or better. */
 export type GermanLevel = "none" | "basic" | "fluent";
 export const GERMAN_LABELS: Record<GermanLevel, string> = {

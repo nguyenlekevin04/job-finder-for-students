@@ -2,7 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import fixture from "./fixtures/jobs.json" with { type: "json" };
 
 // Release smoke test: the site built from e2e/fixtures/jobs.json (see e2e/build.mjs).
-const TOTAL = fixture.jobs.length;
+// The default board is Dresden: remote jobs have their own board.
+const TOTAL = fixture.jobs.filter((j) => !j.remote).length;
+const REMOTE = fixture.jobs.filter((j) => j.remote).length;
 const BOOKMARKS = "dsj:bookmarks:v1";
 
 const count = (page: Page) => page.getByTestId("results-count");
@@ -26,9 +28,9 @@ test("loads every job", async ({ page }) => {
 test("search narrows the list, syncs ?q= and clearing returns focus to the field", async ({ page }) => {
   await openBoard(page);
   const search = page.getByRole("searchbox", { name: "Search jobs" });
-  await search.fill("Backend");
+  await search.fill("Frontend");
   await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
-  await expect(page).toHaveURL(/[?&]q=Backend/);
+  await expect(page).toHaveURL(/[?&]q=Frontend/);
 
   await page.getByRole("button", { name: "Clear search" }).click();
   await expect(search).toBeFocused();
@@ -53,7 +55,6 @@ test("hours and pay show in the row and as facts when the posting states them", 
   const rowItem = (title: string) => page.locator("li", { has: row(page, title) });
   await openBoard(page);
   await expect(rowItem(ml.title).getByText("15–20 h/week · €15/h", { exact: true })).toBeVisible();
-  await expect(rowItem(backend.title).getByText("up to 20 h/week", { exact: true })).toBeVisible();
   await expect(rowItem(frontend.title).getByText("from 25 h/week", { exact: true })).toBeVisible();
   await expect(rowItem(thesis.title)).not.toContainText("h/week");
 
@@ -64,6 +65,9 @@ test("hours and pay show in the row and as facts when the posting states them", 
 
   await row(page, thesis.title).click();
   await expect(rowItem(thesis.title).locator("dt", { hasText: /^(Hours|Pay)$/ })).toHaveCount(0);
+
+  await openBoard(page, "/?city=remote"); // the remote job has its own board
+  await expect(rowItem(backend.title).getByText("up to 20 h/week", { exact: true })).toBeVisible();
 });
 
 test("on a phone the terms follow the type on its line", async ({ page }) => {
@@ -79,20 +83,19 @@ test("'Up to 20 h/week' keeps jobs stating at most 20 hours, syncs ?hours=20 and
   const note = () => page.getByText("Only jobs that state their hours.");
   await openBoard(page);
   await page.getByRole("button", { name: "More filters" }).click();
-  await expect(option()).toContainText("2"); // the count sup
+  await expect(option()).toContainText("1"); // the count sup (the other 20 h job is on the remote board)
   await expect(note()).toHaveCount(0);
 
   await option().click();
-  await expect(count(page)).toHaveText(new RegExp(`^2 of ${TOTAL} jobs`));
-  await expect(page.locator('li[id^="row-"]')).toHaveCount(2);
+  await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
+  await expect(page.locator('li[id^="row-"]')).toHaveCount(1);
   await expect(page.locator("#row-e2e-ml-werkstudent")).toBeVisible();
-  await expect(page.locator("#row-e2e-remote-backend")).toBeVisible();
   await expect(page).toHaveURL(/[?&]hours=20/);
   await expect(note()).toBeVisible();
   await expect(page.getByRole("button", { name: "Clear 1 filter" })).toBeVisible();
 
   await page.reload();
-  await expect(count(page)).toHaveText(new RegExp(`^2 of ${TOTAL} jobs`));
+  await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
   await expect(option()).toBeVisible(); // the panel opened itself
   await expect(option()).toHaveAttribute("aria-pressed", "true");
 
@@ -114,7 +117,7 @@ test("'Up to 20 h/week' is hidden while no job states its hours", async ({ page 
   await openBoard(page);
   await page.getByRole("button", { name: "More filters" }).click();
   const options = page.getByRole("group", { name: "Options" });
-  await expect(options.getByRole("button", { name: "Include remote" })).toBeVisible();
+  await expect(options.getByRole("button", { name: "English-friendly" })).toBeVisible();
   await expect(options.getByRole("button", { name: /^Up to 20 h\/week/ })).toHaveCount(0);
 });
 
@@ -427,4 +430,23 @@ test("switching the city updates the URL and the headline", async ({ page }) => 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Leipzig");
   await page.reload();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Leipzig");
+});
+
+test("students can send feedback and report a wrong job", async ({ page }) => {
+  const job = fixture.jobs[0];
+  await openBoard(page);
+  await expect(page.getByRole("link", { name: "Send feedback" })).toHaveAttribute("href", /^mailto:.*subject=Feedback/);
+  await row(page, job.title).click();
+  const report = page.getByRole("link", { name: "Report a problem" });
+  await expect(report).toHaveAttribute("href", new RegExp(`^mailto:.*${job.id}`));
+});
+
+test("remote jobs have their own board and never show on a city's", async ({ page }) => {
+  await openBoard(page);
+  await expect(page.locator("#row-e2e-remote-backend")).toHaveCount(0);
+  await page.getByRole("group", { name: "City" }).getByRole("button", { name: /^Remote/ }).click();
+  await expect(page).toHaveURL(/[?&]city=remote/);
+  await expect(count(page)).toHaveText(new RegExp(`^${REMOTE} jobs?`));
+  await expect(page.locator("#row-e2e-remote-backend")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("fully remote");
 });

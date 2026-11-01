@@ -2,6 +2,7 @@
 
 import { track } from "@/lib/analytics";
 import { jobDate } from "@/lib/filters";
+import { feedbackHref } from "@/lib/legal";
 import { deadlineIcs } from "@/lib/ics";
 import { daysUntil, formatDate, isNew, jobTerms, relativeDay } from "@/lib/format";
 import { AGGREGATORS, FIELD_LABELS, GERMAN_LABELS, TYPE_LABELS, type Job, type JobLink } from "@/lib/types";
@@ -177,6 +178,16 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
                   {saved ? "Remove from saved" : "Save for later"}
                 </button>
                 <ShareButton job={job} />
+                <a
+                  href={feedbackHref(
+                    `Problem with a job: ${job.title} (${job.id})`,
+                    "What's wrong (not a student job, closed, wrong details)?\n\n",
+                  )}
+                  onClick={() => track("report_job")}
+                  className="focus-ring hit link-u rounded text-muted hover:text-ink"
+                >
+                  Report a problem
+                </a>
               </>
             )}
             {saved && onStatus && (

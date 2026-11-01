@@ -18,3 +18,9 @@ export const OPERATOR = {
   city: env.city?.trim() || "[Postcode] Dresden",
   email: env.email?.trim() || "[email@example.com]",
 } as const;
+
+/** A mailto: link to the operator with a prefilled subject (and body), for feedback and reports. */
+export function feedbackHref(subject: string, body = ""): string {
+  const q = new URLSearchParams({ subject, ...(body ? { body } : {}) }).toString().replace(/\+/g, "%20");
+  return `mailto:${OPERATOR.email}?${q}`;
+}
