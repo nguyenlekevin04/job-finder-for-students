@@ -19,6 +19,15 @@ export function relativeDay(isoDay: string): string {
   return dateFmt.format(new Date(isoDay));
 }
 
+/** Posted this long ago, a date looks stale even when the job is open; say it's still open instead. */
+export const OLD_POST_DAYS = 60;
+
+/** The age shown in a row: "3 days ago", or for long-running postings "still open". */
+export function ageLabel(job: Job): string {
+  const day = job.postedAt ?? job.firstSeen;
+  return daysBetween(day) > OLD_POST_DAYS ? "still open" : relativeDay(day);
+}
+
 /** How long a job counts as "New": today is day 1, so 7 calendar days. */
 export const NEW_DAYS = 7;
 

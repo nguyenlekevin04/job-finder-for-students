@@ -23,7 +23,8 @@ sys.path.insert(0, str(ROOT))
 
 from fetcher.classify import FIELD_LABELS, classify  # noqa: E402
 from fetcher.sources import (  # noqa: E402
-    amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, hzdr, infineon, tu_dresden,
+    amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, greenhouse, hzdr, infineon,
+    smartrecruiters, tu_dresden,
 )
 from fetcher.availability import UNKNOWN, decide  # noqa: E402
 from fetcher.store import JsonFileStore, get_store  # noqa: E402
@@ -39,7 +40,7 @@ PRODUCTION_PROJECT_REF = "ywurtulsjybbdfzqfowq"
 # Direct employer sources come first: the first link of a merged job is its "Apply now"
 # button, and the employer's own page beats a job-board copy.
 SOURCES = [
-    tu_dresden, fraunhofer, hzdr, infineon, globalfoundries, bosch, amazon,
+    tu_dresden, fraunhofer, hzdr, infineon, globalfoundries, bosch, amazon, greenhouse, smartrecruiters,
     arbeitsagentur, arbeitnow,
 ]
 
@@ -55,6 +56,9 @@ LINK_HOSTS = {
     "GlobalFoundries": ("globalfoundries.wd1.myworkdayjobs.com",),
     "Bosch": ("jobs.smartrecruiters.com",),
     "Amazon": ("amazon.jobs",),
+    # Berlin employers' own job pages, hosted by their applicant tracking system.
+    "Greenhouse": ("job-boards.greenhouse.io",),
+    "SmartRecruiters": ("jobs.smartrecruiters.com",),
     "Arbeitsagentur": ("arbeitsagentur.de",),
     # Arbeitnow links to its country sites too (seen live: .fr, .ch, .nl, .co.uk).
     "Arbeitnow": ("arbeitnow.com", "arbeitnow.de", "arbeitnow.fr", "arbeitnow.ch", "arbeitnow.nl", "arbeitnow.co.uk"),

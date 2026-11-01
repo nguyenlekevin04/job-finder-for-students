@@ -86,3 +86,14 @@ describe("date helpers", () => {
     expect(visitDayLabel("garbage")).toBe("your last visit");
   });
 });
+
+describe("ageLabel", () => {
+  it("says a long-running posting is still open instead of showing an old date", async () => {
+    const { ageLabel } = await import("./format");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-01T10:00:00Z"));
+    expect(ageLabel({ postedAt: "2024-06-01", firstSeen: "2026-10-01" } as never)).toBe("still open");
+    expect(ageLabel({ postedAt: null, firstSeen: "2026-10-30" } as never)).toBe("2 days ago");
+    vi.useRealTimers();
+  });
+});
