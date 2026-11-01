@@ -1,18 +1,17 @@
 import { isNew, localDay } from "./format";
 import { search, type SearchIndex } from "./search";
 export { makeIndex } from "./search";
-import { ALL_FIELDS, ALL_TYPES, CITIES, type City, type Field, type Job, type JobType } from "./types";
+import { ALL_FIELDS, ALL_TYPES, BOARDS, type Board, type Field, type Job, type JobType } from "./types";
 
 export type Sort = "newest" | "company";
 
 export interface Filters {
-  city: City; // the board's city; remote jobs show in every city
+  city: Board; // a city's board (only jobs there) or "remote" (only remote jobs)
   q: string;
   types: JobType[];
   fields: Field[];
   english: boolean;
   german: boolean; // only jobs that state German B1–B2 or no German at all
-  remote: boolean; // include remote jobs
   fresh: boolean; // only jobs first seen in the last 7 days
   hours: boolean; // only jobs that state at most HOURS_LIMIT h/week
   since: string | null; // "YYYY-MM-DD": only jobs first seen after this day ("new since your last visit")
@@ -27,7 +26,6 @@ export const DEFAULT_FILTERS: Filters = {
   fields: [],
   english: false,
   german: false,
-  remote: true,
   fresh: false,
   hours: false,
   since: null,
@@ -55,13 +53,12 @@ function day(v: string | null): string | null {
 export function filtersFromParams(p: URLSearchParams): Filters {
   const city = p.get("city");
   return {
-    city: CITIES.includes(city as City) ? (city as City) : "dresden",
+    city: BOARDS.includes(city as Board) ? (city as Board) : "dresden",
     q: p.get("q") ?? "",
     types: list(p.get("type")).filter((t): t is JobType => ALL_TYPES.includes(t as JobType)),
     fields: list(p.get("field")).filter((f): f is Field => ALL_FIELDS.includes(f as Field)),
     english: p.get("en") === "1",
     german: p.get("de") === "b2",
-    remote: p.get("remote") !== "0",
     fresh: p.get("new") === "1",
     hours: p.get("hours") === String(HOURS_LIMIT),
     since: day(p.get("since")),
@@ -78,7 +75,6 @@ export function filtersToParams(f: Filters): URLSearchParams {
   if (f.fields.length) p.set("field", f.fields.join(","));
   if (f.english) p.set("en", "1");
   if (f.german) p.set("de", "b2");
-  if (!f.remote) p.set("remote", "0");
   if (f.fresh) p.set("new", "1");
   if (f.hours) p.set("hours", String(HOURS_LIMIT));
   if (f.since) p.set("since", f.since);
@@ -93,7 +89,6 @@ export function activeFilterCount(f: Filters): number {
     f.fields.length +
     (f.english ? 1 : 0) +
     (f.german ? 1 : 0) +
-    (f.remote ? 0 : 1) +
     (f.fresh ? 1 : 0) +
     (f.hours ? 1 : 0) +
     (f.since ? 1 : 0)
@@ -104,9 +99,9 @@ export function jobDate(job: Job): string {
   return job.postedAt ?? job.firstSeen;
 }
 
-/** On this city's board: jobs there, plus remote jobs (which the "Include remote" option controls). */
-export function inCity(job: Job, city: City): boolean {
-  return job.remote || (job.city || "dresden") === city;
+/** On this board: a city's own jobs, or on the "remote" board only remote jobs. */
+export function inCity(job: Job, board: Board): boolean {
+  return board === "remote" ? job.remote : !job.remote && (job.city || "dresden") === board;
 }
 
 /** The posting says German B1–B2 is enough, or that no German is needed. */
@@ -133,7 +128,6 @@ export function applyFilters(jobs: Job[], f: Filters, index: SearchIndex | null)
       (!f.english || j.englishFriendly) &&
       (!f.german || b2IsEnough(j)) &&
       inCity(j, f.city) &&
-      (f.remote || !j.remote) &&
       (!f.fresh || isNew(j.firstSeen)) &&
       (!f.hours || withinHours(j)) &&
       (!f.since || j.firstSeen > f.since)

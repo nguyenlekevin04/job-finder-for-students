@@ -30,11 +30,11 @@ describe("filterEvents", () => {
     expect(filterEvents(DEFAULT_FILTERS, f({ job: "abc" }))).toEqual([]);
   });
 
-  it("counts remote off, sort and the other toggles", () => {
+  it("counts the board, sort and the other toggles", () => {
     expect(
-      filterEvents(DEFAULT_FILTERS, f({ remote: false, fresh: true, hours: true, since: "2026-10-01", sort: "company" })),
+      filterEvents(DEFAULT_FILTERS, f({ city: "remote", fresh: true, hours: true, since: "2026-10-01", sort: "company" })),
     ).toEqual([
-      { name: "no-remote" },
+      { name: "city", value: "remote" },
       { name: "new-this-week" },
       { name: "hours" },
       { name: "since-last-visit" },
