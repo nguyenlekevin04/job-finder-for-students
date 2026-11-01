@@ -54,4 +54,14 @@ describe("search", () => {
     expect(find("metr")).toEqual(["tagged"]);
     expect(find("inf")).toEqual(["inf"]);
   });
+
+  it("ranks title matches before description matches", async () => {
+    const { applyFilters, DEFAULT_FILTERS } = await import("./filters");
+    const list = [
+      job("desc", "Thesis Photonics", ["hardware"], "Our backend team supports the lab."),
+      job("title", "Working Student Backend Development", ["software"]),
+    ].map((j, i) => ({ ...j, postedAt: i === 0 ? "2026-10-30" : "2026-10-01", firstSeen: "2026-10-01", city: "dresden" }) as Job);
+    const idx = makeIndex(list);
+    expect(applyFilters(list, { ...DEFAULT_FILTERS, q: "backend" }, idx).map((j) => j.id)).toEqual(["title", "desc"]);
+  });
 });

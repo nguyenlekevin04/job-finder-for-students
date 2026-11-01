@@ -393,8 +393,8 @@ test("a job-board posting says where Apply leads", async ({ page }) => {
 
 test("save a search, see it on the Saved page and open it again", async ({ page }) => {
   await openBoard(page, "/?type=thesis");
-  await page.getByRole("button", { name: "Save this search" }).click();
-  await expect(page.getByRole("button", { name: "Search saved ✓" })).toBeDisabled();
+  await page.getByRole("button", { name: "Save search" }).click();
+  await expect(page.getByRole("button", { name: "Saved ✓" })).toBeDisabled();
 
   await page.goto("/saved/");
   const link = page.getByRole("link", { name: "Thesis" });

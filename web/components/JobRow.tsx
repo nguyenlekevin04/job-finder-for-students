@@ -4,7 +4,7 @@ import { track } from "@/lib/analytics";
 import { jobDate } from "@/lib/filters";
 import { feedbackHref } from "@/lib/legal";
 import { deadlineIcs } from "@/lib/ics";
-import { daysUntil, formatDate, isNew, jobTerms, relativeDay } from "@/lib/format";
+import { ageLabel, daysUntil, formatDate, isNew, jobTerms } from "@/lib/format";
 import { AGGREGATORS, FIELD_LABELS, GERMAN_LABELS, TYPE_LABELS, type Job, type JobLink } from "@/lib/types";
 import { STATUS_LABELS, STATUSES, type AppStatus, type Application } from "@/lib/useApplications";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -76,7 +76,7 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
             {job.title}
           </span>
           <span className="mt-1.5 block text-[14.5px] text-muted">
-            <b className="font-semibold text-ink">{job.company}</b> · {jobPlace(job)} · {relativeDay(jobDate(job))}
+            <b className="font-semibold text-ink">{job.company}</b> · {jobPlace(job)} · {ageLabel(job)}
           </span>
           {application && (
             <span className="mt-1 block text-[13px] font-semibold text-ink" data-testid="app-status">

@@ -74,6 +74,13 @@ export function JobBoard() {
 
   const [filtersOpen, setFiltersOpen] = useState(false);
 
+  // The tab title names the board ("Student tech jobs in Berlin"), so a shared link doesn't read as Dresden-only.
+  useEffect(() => {
+    const prefix = process.env.NEXT_PUBLIC_DEPLOY_ENV === "staging" ? "[STAGING] " : "";
+    const where = filters.city === "remote" ? "Remote student tech jobs" : `Student tech jobs in ${CITY_LABELS[filters.city]}`;
+    document.title = `${prefix}${filters.city === "dresden" ? "dresden/jobs · " + where : where + " · dresden/jobs"}`;
+  }, [filters.city]);
+
   const update = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
   const reset = () => {
     setFilters((f) => ({ ...DEFAULT_FILTERS, job: f.job }));
@@ -218,6 +225,7 @@ export function JobBoard() {
             <FilterGroups
               filters={filters}
               jobs={jobs}
+              countWith={(patch) => applyFilters(jobs, { ...filters, ...patch, job: null }, index).length}
               onChange={update}
               onReset={reset}
               activeCount={active}
@@ -291,7 +299,7 @@ export function JobBoard() {
                     }}
                     className="focus-ring hit link-u rounded font-semibold text-ink disabled:no-underline disabled:opacity-70"
                   >
-                    {savedSearches.isSaved(searchKey(filters)) ? "Search saved ✓" : "Save this search"}
+                    {savedSearches.isSaved(searchKey(filters)) ? "Saved ✓" : "Save search"}
                   </button>
                 )}
                 <SortSelect value={filters.sort} onChange={(sort) => update({ sort })} />
