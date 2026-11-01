@@ -6,7 +6,8 @@ import { ALL_FIELDS, ALL_TYPES, FIELD_LABELS, TYPE_LABELS, type Job } from "@/li
 
 interface Props {
   filters: Filters;
-  jobs: Job[]; // all jobs, for the type counts
+  jobs: Job[]; // the board's jobs, to hide options that match nothing at all
+  countWith: (patch: Partial<Filters>) => number; // results if this option were applied to the current filters
   onChange: (patch: Partial<Filters>) => void;
   onReset: () => void;
   activeCount: number;
@@ -42,7 +43,7 @@ function Option({ on, onClick, count, children }: { on: boolean; onClick: () => 
   );
 }
 
-export function FilterGroups({ filters, jobs, onChange, onReset, activeCount, sinceMode }: Props) {
+export function FilterGroups({ filters, jobs, countWith, onChange, onReset, activeCount, sinceMode }: Props) {
   // Only the type row shows until "More filters" is opened. It opens by itself when one
   // of its filters is active (e.g. from a shared link) and then stays open, so an active
   // filter is never hidden and the panel doesn't jump. "Fresh this week" doesn't open it:
@@ -50,18 +51,18 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount, si
   const [more, setMore] = useState(false);
   const moreActive = filters.fields.length > 0 || filters.english || filters.german || filters.hours;
   if (moreActive && !more) setMore(true);
-  const count = (pred: (j: Job) => boolean) => jobs.filter(pred).length;
-  const hoursCount = count(withinHours);
-  // Options that would match nothing (or compete with the "since" ticket) hide, unless they're on.
-  const showHours = hoursCount > 0 || filters.hours;
-  const germanCount = count(b2IsEnough);
-  const showGerman = germanCount > 0 || filters.german;
+  // Counts follow the other active filters and the search ("Werkstudent 12" = 12 if you pick it now).
+  const hoursCount = countWith({ hours: true });
+  // Options no job on this board could match (or that compete with the "since" ticket) hide, unless they're on.
+  const showHours = jobs.some(withinHours) || filters.hours;
+  const germanCount = countWith({ german: true });
+  const showGerman = jobs.some(b2IsEnough) || filters.german;
   const showFresh = !sinceMode || filters.fresh;
 
   return (
     <div className="mt-2">
       <Group title="Type">
-        <Option on={filters.types.length === 0} onClick={() => onChange({ types: [] })} count={jobs.length}>
+        <Option on={filters.types.length === 0} onClick={() => onChange({ types: [] })} count={countWith({ types: [] })}>
           All
         </Option>
         {ALL_TYPES.map((t) => (
@@ -69,7 +70,7 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount, si
             key={t}
             on={filters.types.includes(t)}
             onClick={() => onChange({ types: toggle(filters.types, t) })}
-            count={count((j) => j.types.includes(t))}
+            count={countWith({ types: [t] })}
           >
             {TYPE_LABELS[t]}
           </Option>

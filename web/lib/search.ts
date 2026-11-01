@@ -54,6 +54,7 @@ const prefixRe = (term: string) => new RegExp(`(^|[^a-z0-9])${escape(fold(term))
 export interface SearchIndex {
   fuse: Fuse<Job>;
   text: Map<string, string>; // job id -> folded title, company, snippet and location
+  title: Map<string, string>; // job id -> folded title and company, to rank those matches first
 }
 
 export function makeIndex(jobs: Job[]): SearchIndex {
@@ -69,7 +70,23 @@ export function makeIndex(jobs: Job[]): SearchIndex {
     minMatchCharLength: 2,
   });
   const text = new Map(jobs.map((j) => [j.id, fold(`${j.title} ${j.company} ${j.snippet} ${j.location}`)]));
-  return { fuse, text };
+  const title = new Map(jobs.map((j) => [j.id, fold(`${j.title} ${j.company}`)]));
+  return { fuse, text, title };
+}
+
+function patterns(query: string) {
+  const group = SYNONYMS.find((g) => g.terms.some((t) => fold(t) === query));
+  // Synonym terms match whole words ("ml" must not hit "html"); anything else also matches the
+  // start of a word, so typing "Dre" or "pyt" already finds Dresden and Python.
+  return { group, res: group ? group.terms.map(wordRe) : [prefixRe(query)] };
+}
+
+/** Ids of the jobs whose title or company matches: these are listed first. */
+export function titleMatches(jobs: Job[], q: string, index: SearchIndex): Set<string> {
+  const query = fold(q);
+  if (!query) return new Set();
+  const { res } = patterns(query);
+  return new Set(jobs.filter((j) => res.some((re) => re.test(index.title.get(j.id) ?? ""))).map((j) => j.id));
 }
 
 /** Ids of the jobs that match the search. */
@@ -78,10 +95,7 @@ export function search(jobs: Job[], q: string, index: SearchIndex): Set<string> 
   const hits = new Set<string>();
   if (!query) return hits;
 
-  const group = SYNONYMS.find((g) => g.terms.some((t) => fold(t) === query));
-  // Synonym terms match whole words ("ml" must not hit "html"); anything else also matches the
-  // start of a word, so typing "Dre" or "pyt" already finds Dresden and Python.
-  const res = group ? group.terms.map(wordRe) : [prefixRe(query)];
+  const { group, res } = patterns(query);
   for (const j of jobs) {
     const text = index.text.get(j.id) ?? "";
     if (res.some((re) => re.test(text)) || (group?.field && j.fields.includes(group.field))) hits.add(j.id);

@@ -1,5 +1,5 @@
 import { isNew, localDay } from "./format";
-import { search, type SearchIndex } from "./search";
+import { search, titleMatches, type SearchIndex } from "./search";
 export { makeIndex } from "./search";
 import { ALL_FIELDS, ALL_TYPES, BOARDS, type Board, type Field, type Job, type JobType } from "./types";
 
@@ -132,9 +132,14 @@ export function applyFilters(jobs: Job[], f: Filters, index: SearchIndex | null)
       (!f.hours || withinHours(j)) &&
       (!f.since || j.firstSeen > f.since)
   );
-  return [...result].sort((a, b) =>
-    f.sort === "company"
-      ? a.company.localeCompare(b.company, "de") || a.title.localeCompare(b.title, "de")
-      : jobDate(b).localeCompare(jobDate(a)) || b.firstSeen.localeCompare(a.firstSeen),
+  // With a search, jobs whose title or company matches come first; the chosen sort applies within.
+  const top = q && index ? titleMatches(result, q, index) : null;
+  const rank = (j: Job) => (top?.has(j.id) ? 0 : 1);
+  return [...result].sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      (f.sort === "company"
+        ? a.company.localeCompare(b.company, "de") || a.title.localeCompare(b.title, "de")
+        : jobDate(b).localeCompare(jobDate(a)) || b.firstSeen.localeCompare(a.firstSeen)),
   );
 }
