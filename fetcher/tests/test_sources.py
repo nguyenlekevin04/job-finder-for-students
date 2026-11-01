@@ -185,3 +185,23 @@ def test_arbeitsagentur_sets_the_searched_city():
                                "stellenlokationen": [{"adresse": {"ort": "Markkleeberg"}}]}]}
     job = arbeitsagentur.parse(data, "leipzig")[0]
     assert job.city == "leipzig" and job.location == "Markkleeberg"
+
+
+def test_greenhouse_keeps_berlin_postings_with_text(fixture_text):
+    from fetcher.sources import greenhouse
+    jobs = greenhouse.parse(json.loads(fixture_text("greenhouse.json")), "getyourguide", "GetYourGuide")
+    assert len(jobs) == 4 and all(j.city == "berlin" and j.company == "GetYourGuide" for j in jobs)
+    assert all(j.url.startswith("https://job-boards.greenhouse.io/getyourguide/jobs/") for j in jobs)
+    assert all(j.description and "<" not in j.description and "&lt;" not in j.description for j in jobs)
+    assert all(j.posted_at and len(j.posted_at) == 10 for j in jobs)
+
+
+def test_smartrecruiters_keeps_berlin_only():
+    from fetcher.sources import smartrecruiters
+    data = {"content": [
+        {"id": "1", "name": "Working Student Data", "location": {"city": "Berlin"}, "releasedDate": "2026-10-20T10:00:00Z"},
+        {"id": "2", "name": "Working Student BI", "location": {"city": "Hamburg"}},
+    ]}
+    jobs = smartrecruiters.parse_list(data, "DeliveryHero", "Delivery Hero")
+    assert [j.source_id for j in jobs] == ["DeliveryHero:1"]
+    assert jobs[0].url == "https://jobs.smartrecruiters.com/DeliveryHero/1" and jobs[0].city == "berlin"
