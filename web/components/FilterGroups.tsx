@@ -48,7 +48,7 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount, si
   // filter is never hidden and the panel doesn't jump. "Fresh this week" doesn't open it:
   // the ticket in the list already shows that state.
   const [more, setMore] = useState(false);
-  const moreActive = filters.fields.length > 0 || filters.english || filters.german || !filters.remote || filters.hours;
+  const moreActive = filters.fields.length > 0 || filters.english || filters.german || filters.hours;
   if (moreActive && !more) setMore(true);
   const count = (pred: (j: Job) => boolean) => jobs.filter(pred).length;
   const hoursCount = count(withinHours);
@@ -95,9 +95,6 @@ export function FilterGroups({ filters, jobs, onChange, onReset, activeCount, si
               Up to {HOURS_LIMIT} h/week
             </Option>
           )}
-          <Option on={filters.remote} onClick={() => onChange({ remote: !filters.remote })}>
-            Include remote
-          </Option>
           <Option on={filters.english} onClick={() => onChange({ english: !filters.english })}>
             English-friendly
           </Option>

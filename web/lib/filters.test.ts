@@ -46,7 +46,6 @@ describe("URL <-> filters", () => {
       types: ["thesis", "internship"],
       fields: ["ai"],
       english: true,
-      remote: false,
       fresh: true,
       hours: true,
       since: "2026-10-27",
@@ -54,7 +53,7 @@ describe("URL <-> filters", () => {
       job: "abc123",
     });
     const qs = filtersToParams(all).toString();
-    expect(qs).toBe("q=python&type=thesis%2Cinternship&field=ai&en=1&remote=0&new=1&hours=20&since=2026-10-27&sort=company&job=abc123");
+    expect(qs).toBe("q=python&type=thesis%2Cinternship&field=ai&en=1&new=1&hours=20&since=2026-10-27&sort=company&job=abc123");
     expect(filtersFromParams(new URLSearchParams(qs))).toEqual(all);
   });
 
@@ -107,7 +106,7 @@ describe("URL <-> filters", () => {
 describe("activeFilterCount", () => {
   it("counts real filters but not search, sort or the open job", () => {
     expect(activeFilterCount(f({ q: "x", sort: "company", job: "abc" }))).toBe(0);
-    expect(activeFilterCount(f({ types: ["thesis"], fields: ["ai", "data"], english: true, remote: false, fresh: true }))).toBe(6);
+    expect(activeFilterCount(f({ types: ["thesis"], fields: ["ai", "data"], english: true, fresh: true }))).toBe(5);
     expect(activeFilterCount(f({ since: "2026-10-27" }))).toBe(1);
     expect(activeFilterCount(f({ hours: true }))).toBe(1);
   });
@@ -123,7 +122,7 @@ describe("applyFilters", () => {
   const jobs = [
     job({ id: "a", company: "Zeta", types: ["werkstudent"], fields: ["software"], postedAt: "2026-10-20" }),
     job({ id: "b", company: "Alpha", types: ["thesis"], fields: ["ai"], englishFriendly: true, postedAt: "2026-10-25" }),
-    job({ id: "c", company: "Mid", types: ["internship"], fields: ["data"], remote: true, firstSeen: "2026-10-28" }),
+    job({ id: "c", company: "Mid", types: ["internship"], fields: ["data"], firstSeen: "2026-10-28" }),
   ];
   const ids = (list: Job[]) => list.map((j) => j.id);
 
@@ -132,11 +131,10 @@ describe("applyFilters", () => {
     expect(ids(applyFilters(jobs, f({ sort: "company" }), null))).toEqual(["b", "c", "a"]);
   });
 
-  it("filters by type, field, English and remote", () => {
+  it("filters by type, field and English", () => {
     expect(ids(applyFilters(jobs, f({ types: ["thesis", "werkstudent"] }), null))).toEqual(["b", "a"]);
     expect(ids(applyFilters(jobs, f({ fields: ["data"] }), null))).toEqual(["c"]);
     expect(ids(applyFilters(jobs, f({ english: true }), null))).toEqual(["b"]);
-    expect(ids(applyFilters(jobs, f({ remote: false }), null))).toEqual(["b", "a"]);
   });
 
   it("'fresh' keeps only jobs first seen within the last 7 days", () => {
@@ -171,16 +169,17 @@ describe("applyFilters", () => {
     expect(ids(applyFilters(jobs, f({ job: "b" }), null))).toEqual(["c", "b", "a"]);
   });
 
-  it("shows a city's jobs plus remote ones; old data without a city counts as Dresden", () => {
+  it("shows only a city's own jobs, remote jobs on their own board; old data without a city is Dresden", () => {
     const list = [
       job({ id: "dd" }),
       job({ id: "dd2", city: "dresden" }),
       job({ id: "le", city: "leipzig" }),
       job({ id: "remote", city: "", remote: true }),
     ];
-    expect(ids(applyFilters(list, f(), null)).sort()).toEqual(["dd", "dd2", "remote"]);
-    expect(ids(applyFilters(list, f({ city: "leipzig" }), null)).sort()).toEqual(["le", "remote"]);
-    expect(ids(applyFilters(list, f({ city: "leipzig", remote: false }), null))).toEqual(["le"]);
+    expect(ids(applyFilters(list, f(), null)).sort()).toEqual(["dd", "dd2"]);
+    expect(ids(applyFilters(list, f({ city: "leipzig" }), null))).toEqual(["le"]);
+    expect(ids(applyFilters(list, f({ city: "remote" }), null))).toEqual(["remote"]);
+    expect(filtersFromParams(new URLSearchParams("city=remote")).city).toBe("remote");
     expect(filtersToParams(f({ city: "leipzig" })).get("city")).toBe("leipzig");
     expect(filtersFromParams(new URLSearchParams("city=paris")).city).toBe("dresden");
   });

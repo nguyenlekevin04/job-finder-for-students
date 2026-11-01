@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { track } from "@/lib/analytics";
+import { feedbackHref } from "@/lib/legal";
 import { useJobsFile } from "@/lib/useJobs";
 
 const SOURCE_LINKS: Record<string, string> = {
@@ -12,9 +14,9 @@ const SOURCE_LINKS: Record<string, string> = {
 };
 
 const STEPS = [
-  ["Collected every morning", "Job boards, employers, Fraunhofer, HZDR and TU Dresden are checked once a day. Jobs that have closed are removed the same morning."],
+  ["Collected every morning", "Job boards, employers and research institutes in Dresden, Leipzig, Chemnitz and Berlin are checked once a day. Jobs that have closed are removed the same morning."],
   ["Filtered for students", "Only Werkstudent roles, internships and thesis topics in AI, data, software and embedded systems make the cut."],
-  ["Saved in your browser", "Bookmarks stay on this device. There's no account and no tracking."],
+  ["Saved in your browser", "Saved jobs, searches and application status stay on this device. No account needed."],
 ];
 
 export function SiteFooter() {
@@ -36,6 +38,20 @@ export function SiteFooter() {
             </li>
           ))}
         </ol>
+
+        <div className="mt-10 rounded-[14px] border-[1.5px] border-rule px-5 py-4 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <p className="text-[15px] leading-snug">
+            <b className="font-semibold">Missing something?</b>{" "}
+            <span className="text-muted">Tell us what would make this board more useful for you. Every message is read.</span>
+          </p>
+          <a
+            href={feedbackHref("Feedback on the student job board")}
+            onClick={() => track("feedback")}
+            className="focus-ring mt-3 inline-flex shrink-0 rounded-[10px] bg-btn px-4 py-2.5 text-[15px] font-semibold tracking-[-0.02em] text-btn-ink hover:opacity-90 sm:mt-0"
+          >
+            Send feedback
+          </a>
+        </div>
 
         <div className="mt-12 flex flex-col gap-4 border-t border-line pt-6 text-sm text-muted md:flex-row md:items-start md:justify-between">
           <ul className="flex flex-wrap gap-x-5 gap-y-2" aria-label="Data sources">
