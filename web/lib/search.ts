@@ -39,6 +39,10 @@ export const SYNONYMS: Group[] = [
   { terms: ["softwareentwicklung", "software development", "software engineering", "software engineer"] },
   { terms: ["entwickler", "developer", "entwicklung", "development"] },
   { terms: ["embedded", "eingebettete systeme", "firmware"] },
+  {
+    field: "hardware",
+    terms: ["elektrotechnik", "electrical engineering", "e-technik", "etechnik", "elektronik", "electronics"],
+  },
   { terms: ["werkstudent", "working student"] },
   { terms: ["praktikum", "internship", "intern", "praktikant"] },
   { terms: ["abschlussarbeit", "thesis", "masterarbeit", "bachelorarbeit", "master thesis", "bachelor thesis"] },

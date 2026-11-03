@@ -36,6 +36,7 @@ QUERIES = [
     "Praktikum IT",
     "Praktikum Elektrotechnik",
     "Abschlussarbeit Informatik",
+    "Abschlussarbeit Elektrotechnik",
     "Masterarbeit",
     "Bachelorarbeit",
 ]
