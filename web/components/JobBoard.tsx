@@ -7,6 +7,7 @@ import {
   applyFilters,
   DEFAULT_FILTERS,
   filtersFromParams,
+  boardPath,
   filtersToParams,
   inCity,
   isExpired,
@@ -27,7 +28,7 @@ import { JobRow } from "./JobRow";
 import { NewTicket } from "./NewTicket";
 import { EmptyState, ErrorState, LoadingList } from "./States";
 
-export function JobBoard() {
+export function JobBoard({ home = "dresden" }: { home?: Board }) {
   const { state, retry } = useJobsFile();
   const { isSaved, toggle } = useBookmarks();
   const { applications, setStatus } = useApplications();
@@ -40,7 +41,7 @@ export function JobBoard() {
   // after, so a view can be shared. URL changes we didn't make (back/forward)
   // flow back into state.
   const paramStr = params.toString();
-  const [filters, setFilters] = useState<Filters>(() => filtersFromParams(new URLSearchParams(paramStr)));
+  const [filters, setFilters] = useState<Filters>(() => filtersFromParams(new URLSearchParams(paramStr), home));
   const [seenParams, setSeenParams] = useState(paramStr);
   // The query string we last pushed, until its URL arrives. Cleared then, so a
   // later back/forward to the same URL still restores filters.
@@ -48,15 +49,18 @@ export function JobBoard() {
   if (paramStr !== seenParams) {
     setSeenParams(paramStr);
     if (paramStr === pushed) setPushed(null);
-    else setFilters(filtersFromParams(new URLSearchParams(paramStr)));
+    else setFilters(filtersFromParams(new URLSearchParams(paramStr), home));
   }
 
+  // The board lives in the path (/berlin/), the other filters in the query string.
   useEffect(() => {
-    const qs = filtersToParams(filters).toString();
-    if (qs === paramStr) return;
+    const path = boardPath(filters.city);
+    const qs = filtersToParams(filters, filters.city).toString();
+    const samePath = pathname.replace(/\/?$/, "/") === path;
+    if (samePath && qs === paramStr) return;
     const t = setTimeout(() => {
       setPushed(qs);
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      router.replace(qs ? `${path}?${qs}` : path, { scroll: false });
     }, 250);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps

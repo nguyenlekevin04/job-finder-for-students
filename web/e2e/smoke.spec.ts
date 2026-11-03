@@ -426,7 +426,7 @@ test("the board can be installed as an app", async ({ page, request }) => {
 test("switching the city updates the URL and the headline", async ({ page }) => {
   await openBoard(page);
   await page.getByRole("group", { name: "City" }).getByRole("button", { name: /^Leipzig/ }).click();
-  await expect(page).toHaveURL(/[?&]city=leipzig/);
+  await expect(page).toHaveURL(/\/leipzig\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Leipzig");
   await page.reload();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Leipzig");
@@ -445,8 +445,20 @@ test("remote jobs have their own board and never show on a city's", async ({ pag
   await openBoard(page);
   await expect(page.locator("#row-e2e-remote-backend")).toHaveCount(0);
   await page.getByRole("group", { name: "City" }).getByRole("button", { name: /^Remote/ }).click();
-  await expect(page).toHaveURL(/[?&]city=remote/);
+  await expect(page).toHaveURL(/\/remote\/$/);
   await expect(count(page)).toHaveText(new RegExp(`^${REMOTE} jobs?`));
   await expect(page.locator("#row-e2e-remote-backend")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("fully remote");
+});
+
+test("each board has a short link with its own title and link preview", async ({ page }) => {
+  await page.goto("/berlin/");
+  await expect(count(page)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Berlin");
+  await expect(page).toHaveTitle(/Student tech jobs in Berlin/);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Student tech jobs in Berlin");
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /\/og\.png$/);
+  // An old ?city= link moves to the short link.
+  await page.goto("/?city=leipzig");
+  await expect(page).toHaveURL(/\/leipzig\/$/);
 });
