@@ -24,6 +24,7 @@ import { useJobsFile } from "@/lib/useJobs";
 import { useLastVisit } from "@/lib/useLastVisit";
 import { FilterGroups, SortSelect } from "./FilterGroups";
 import { SearchIcon, XIcon } from "./Icons";
+import { AlertButton } from "./AlertButton";
 import { JobRow } from "./JobRow";
 import { NewTicket } from "./NewTicket";
 import { EmptyState, ErrorState, LoadingList } from "./States";
@@ -308,6 +309,9 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
                 )}
                 <SortSelect value={filters.sort} onChange={(sort) => update({ sort })} />
               </span>
+            </div>
+            <div className="pb-3">
+              <AlertButton filters={filters} />
             </div>
             {jobs.length === 0 ? (
               <EmptyState title="No jobs yet">The list is filled every morning. Check back soon.</EmptyState>
