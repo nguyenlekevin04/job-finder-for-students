@@ -77,7 +77,7 @@ export const FIELD_LABELS: Record<Field, string> = {
   ai: "AI / ML",
   data: "Data",
   software: "Software",
-  hardware: "Embedded / HW",
+  hardware: "Electrical / Embedded",
   other: "Other CS",
 };
 

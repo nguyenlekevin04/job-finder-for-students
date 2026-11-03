@@ -121,7 +121,7 @@ FIELD_LABELS = {
     "ai": "AI / ML",
     "data": "Data",
     "software": "Software",
-    "hardware": "Embedded / Hardware",
+    "hardware": "Electrical / Embedded",
     "other": "Other CS",
 }
 
