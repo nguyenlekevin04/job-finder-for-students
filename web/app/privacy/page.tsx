@@ -100,7 +100,7 @@ const SECTIONS: [string, React.ReactNode][] = [
               To learn which parts of the board help students, we count visits with Umami (Umami Software, Inc., USA), a
               cookieless analytics service. It counts which pages are opened, the referring site, the browser and operating
               system, device type, screen size, language and approximate location (country, region, city), which filters are turned on (for example “Werkstudent” or “Up to 20 h/week”, never what you
-              type into search) and clicks on the Apply button with the job board the link goes to, that a search was saved (not which one) that a deadline was added to a calendar, clicks on the feedback and report links, and that alerts were turned on.
+              type into search) and clicks on the Apply button with the job board the link goes to, that a search was saved (not which one) that a deadline was added to a calendar, clicks on the feedback and report links, that alerts were turned on, clicks on “Read in English”, and that this week’s jobs were copied or shared (not which ones).
             </p>
             <p>
               Umami sets no cookies and stores nothing in your browser. It doesn’t store your IP address; it only uses it,
@@ -137,6 +137,16 @@ const SECTIONS: [string, React.ReactNode][] = [
         “Turn off” deletes the entry right away; it is also deleted when the push service tells us the address no longer
         works. You can block notifications for this site in your browser at any time. Legal basis: your consent, Art. 6
         (1) (a) GDPR, which you give by turning alerts on and can withdraw by turning them off.
+      </p>
+    </>,
+  ],
+  [
+    "Read in English",
+    <>
+      <p>
+        “Read in English” opens the original job posting in Google Translate (Google Ireland Ltd., Gordon House, Barrow
+        Street, Dublin 4, Ireland) in a new tab. Only when you click it, Google receives the posting’s address and the
+        data your browser sends with any request; Google’s privacy policy applies there. We send Google nothing about you.
       </p>
     </>,
   ],
@@ -197,7 +207,7 @@ export default function PrivacyPage() {
             <div className="mt-2 space-y-3 text-[16px] leading-relaxed text-ink">{body}</div>
           </section>
         ))}
-        <p className="mt-8 text-xs text-muted">Last updated 31 Oct 2026</p>
+        <p className="mt-8 text-xs text-muted">Last updated 3 Nov 2026</p>
       </div>
     </div>
   );

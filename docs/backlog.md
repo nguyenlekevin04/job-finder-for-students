@@ -35,6 +35,25 @@ Goal: a board a busy international student trusts and comes back to, as fast as 
 - ✅ **Ready to share** (S): short city links (`/berlin/` etc.), link preview cards, and a launch kit with posts and A4 QR posters (`docs/launch/`).
 - Later: thesis contact person (only HZDR lists names, no emails; needs a new column).
 
+### Next features (Otto, 2026-11-03, in this order)
+
+Goal: first real users. More jobs to find, faster decisions for international students, and things students pass on in course groups.
+
+1. **More Dresden employers** (M, build first): As a Dresden student, I want the startups and research institutes near me on the board, so that my filter isn't empty and I come back.
+   - Acceptance: at least 2 new complete-feed sources (e.g. Personio/JOIN-style ATS feeds of Dresden tech firms, Max Planck / Leibniz / DLR institutes in Dresden), each with fixtures, tests and `LINK_HOSTS`. Dresden open jobs rise by ≥ 25% after the first run. Classifier hand check: ≤ 1 wrong job in 20 from the new sources. No HiWi.
+2. **Read in English** (S): As an international student, I want a "Read in English" link on German postings, so that I can judge them without copy-pasting into a translator.
+   - Acceptance: shown only on jobs whose posting language is German, next to "Apply". Opens a machine translation of the original posting in a new tab (no API key, no cost, no job data sent from our site). Labelled "machine translation". Nothing new in analytics except a count of clicks, listed on the privacy page.
+3. **"Can I take this job?" guide** (S): As a non-EU student, I want one page on the rules for student jobs (20 h/week in term, 140 full / 280 half days for non-EU, Werkstudent vs Minijob vs mandatory internship), so that I don't apply for a job my visa doesn't allow.
+   - Acceptance: static page `/guide/`, linked from the hours filter and the footer, every rule linked to an official source (Bundesagentur, DAAD, Studentenwerk). Reads in under 2 minutes on a phone. Disclaimer "not legal advice", date of last check. Has its own link preview so it can be shared.
+4. **Closing soon** (S): As a student with little time, I want jobs that close within 7 days marked and sortable, so that I apply before it's too late.
+   - Acceptance: a "Closes in N days" badge on rows with a deadline ≤ 7 days away; a "Deadline soon" sort; the Saved page shows saved jobs closing within 7 days at the top. Jobs without a deadline never get the badge.
+5. **Share this week's jobs with my course group** (S): As a student, I want a "Copy for WhatsApp" button that copies the jobs new this week for my current filters as a short text list, so that I can post it in my course group.
+   - Acceptance: text has the board name, up to 10 jobs (title, company, short link) and the filtered board link; native share sheet on phones, clipboard elsewhere. No tracking parameters. Count of uses only (privacy page updated).
+
+Not now: "similar jobs" (too few jobs), shortlist sharing, deadline push reminders (wait for alert usage numbers).
+
+**Status (tech lead, 2026-11-03):** 2, 3 and 5 shipped (PR "Student tools"). 1 is parked: SAP, Telekom MMS and Vodafone block automated access (bot checks, 403), the Max Planck feed is capped at 30 posts with 1 in our cities, and the open ATS feeds found (Applied Materials, ZEISS, NXP on Workday; Wandelbots, SpiNNcloud on Personio; Staffbase on Greenhouse) hold about 1 student tech job today. The Arbeitsagentur already returns the ~67 Dresden student postings it has. Revisit when a student or company names a feed. 4 is parked: no job in the data has a deadline right now.
+
 **Open step (shareholder):** the `closed_jobs` table still has to be created in the **staging** project (URL contains `dszz`). Production has it. Until then staging runs without the closure memory and logs a warning.
 
 ## Next
@@ -60,7 +79,6 @@ Non-blocking findings; the tech lead decides the order. Most are small.
 
 - **Pages search engines can read** (M): per-job and per-company pages built at deploy time, so students find jobs on Google. Waits for serving the job list from the CDN (docs/capacity.md); today all jobs render in the browser only.
 - **RSS / calendar feed of deadlines** (S–M): few students use RSS; a static feed needs a rebuild or public storage after each fetch. After the CDN switch.
-- **Instant thesis alerts / push notifications** (M): weekly email first; instant only if students ask after MVP 6 (push needs a service worker and more security work).
 - **Thesis group, supervisor and contact email** (M): HZDR/Fraunhofer pages state them inconsistently, and publishing personal emails needs care; revisit after MVP 4 shows how reliable extraction is.
 - **Sync of saved jobs and status across devices** (L): needs login (see below); MVP keeps everything in the browser and alerts work without an account.
 - **Make the imprint easier to find** (S): it is in the footer and legally fine; not a student need.
@@ -94,6 +112,10 @@ Nothing here gets built until step 0 shows demand. Guiding rule: students never 
 4. **Free support and grants** (S, no revenue risk): ask dresden|exists (TU Dresden founder support) and the student councils (Fachschaftsräte) to share the board, and check whether a public-interest open-source grant would cover hosting. This adds students, which is what makes items 1 to 3 sellable.
 
 **Not doing:** display ads (AdSense etc.: they need a cookie banner under §25 TDDDG and break "no tracking", and earn a few euros a month at our size); a paid tier or paid alerts for students; selling or sharing usage data; employer branding pages (they need far more traffic first; TU Dresden sells profiles for €975+ with the university's name behind it). **Later, only on request:** affiliate links for international students (blocked account, health insurance), each labelled.
+
+## Done (2026-11-03)
+
+- **Daily job alerts by web push:** board + types + fields, at most one push a day, no email or account; verified on iPhone.
 
 ## Done (sprint 5)
 

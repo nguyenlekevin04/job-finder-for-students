@@ -25,6 +25,7 @@ import { useLastVisit } from "@/lib/useLastVisit";
 import { FilterGroups, SortSelect } from "./FilterGroups";
 import { SearchIcon, XIcon } from "./Icons";
 import { AlertButton } from "./AlertButton";
+import { DigestButton } from "./DigestButton";
 import { JobRow } from "./JobRow";
 import { NewTicket } from "./NewTicket";
 import { EmptyState, ErrorState, LoadingList } from "./States";
@@ -107,6 +108,11 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
   );
   const index = useMemo(() => (jobs.length ? makeIndex(jobs) : null), [jobs]);
   const results = useMemo(() => applyFilters(jobs, filters, index), [jobs, filters, index]);
+  // "Share this week's jobs" covers the board and its filters, not the search text or "since" view.
+  const digest = useMemo(
+    () => applyFilters(jobs, { ...filters, q: "", since: null, fresh: true }, index),
+    [jobs, filters, index],
+  );
   const newCount = useMemo(() => jobs.filter((j) => isNew(j.firstSeen)).length, [jobs]);
   const active = activeFilterCount(filters);
 
@@ -340,6 +346,7 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
                 ))}
               </ol>
             )}
+            <DigestButton jobs={digest} filters={filters} />
           </>
         )}
       </section>

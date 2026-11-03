@@ -78,7 +78,10 @@ export function SiteFooter() {
           </p>
         </div>
 
-        <nav aria-label="Legal" className="mt-6 flex gap-5 text-sm text-muted">
+        <nav aria-label="More" className="mt-6 flex gap-5 text-sm text-muted">
+          <Link href="/guide/" className="focus-ring hit rounded hover:text-ink hover:underline">
+            Work rules
+          </Link>
           <Link href="/imprint/" className="focus-ring hit rounded hover:text-ink hover:underline">
             Imprint
           </Link>

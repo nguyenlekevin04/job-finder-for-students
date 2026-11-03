@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { b2IsEnough, HOURS_LIMIT, withinHours, type Filters, type Sort } from "@/lib/filters";
 import { ALL_FIELDS, ALL_TYPES, FIELD_LABELS, TYPE_LABELS, type Job } from "@/lib/types";
@@ -120,6 +121,14 @@ export function FilterGroups({ filters, jobs, countWith, onChange, onReset, acti
                 : filters.german
                   ? "Only jobs that state their German level."
                   : ""}
+          </p>
+        )}
+        {showHours && (
+          <p className="mt-2 text-xs text-muted">
+            International student?{" "}
+            <Link href="/guide/" className="focus-ring link-u rounded hover:text-ink">
+              How much you may work
+            </Link>
           </p>
         )}
       </div>
