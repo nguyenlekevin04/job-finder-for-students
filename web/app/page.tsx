@@ -7,7 +7,7 @@ import { LoadingList } from "@/components/States";
 export default function Home() {
   return (
     <Suspense fallback={<div className="pt-40"><LoadingList /></div>}>
-      <JobBoard />
+      <JobBoard home="dresden" />
     </Suspense>
   );
 }
