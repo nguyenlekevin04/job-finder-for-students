@@ -52,6 +52,8 @@ Goal: first real users. More jobs to find, faster decisions for international st
 
 Not now: "similar jobs" (too few jobs), shortlist sharing, deadline push reminders (wait for alert usage numbers).
 
+**Status (tech lead, 2026-11-03):** 2, 3 and 5 shipped (PR "Student tools"). 1 is parked: SAP, Telekom MMS and Vodafone block automated access (bot checks, 403), the Max Planck feed is capped at 30 posts with 1 in our cities, and the open ATS feeds found (Applied Materials, ZEISS, NXP on Workday; Wandelbots, SpiNNcloud on Personio; Staffbase on Greenhouse) hold about 1 student tech job today. The Arbeitsagentur already returns the ~67 Dresden student postings it has. Revisit when a student or company names a feed. 4 is parked: no job in the data has a deadline right now.
+
 **Open step (shareholder):** the `closed_jobs` table still has to be created in the **staging** project (URL contains `dszz`). Production has it. Until then staging runs without the closure memory and logs a warning.
 
 ## Next
