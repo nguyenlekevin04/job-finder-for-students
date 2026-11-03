@@ -4,3 +4,4 @@
 requests==2.33.0
 beautifulsoup4==4.12.3
 pytest==9.0.3
+pywebpush==2.0.3

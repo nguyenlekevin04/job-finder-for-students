@@ -27,6 +27,7 @@ from fetcher.sources import (  # noqa: E402
     smartrecruiters, tu_dresden,
 )
 from fetcher.availability import UNKNOWN, decide  # noqa: E402
+from fetcher.push import send_alerts  # noqa: E402
 from fetcher.store import JsonFileStore, get_store  # noqa: E402
 from fetcher.terms import extract_terms  # noqa: E402
 
@@ -355,6 +356,15 @@ def main(argv: list[str] | None = None) -> int:
     if result.closed_add or result.rejected:
         print(f"Employer closures: {len(result.closed_add)} remembered; "
               f"{len(result.rejected)} job-board copies of closed jobs skipped")
+
+    # Job alerts (production only: needs VAPID_PRIVATE_KEY). Never fails the run.
+    if os.environ.get("VAPID_PRIVATE_KEY") and not isinstance(store, JsonFileStore):
+        try:
+            counts = send_alerts(result.jobs, today, os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_ROLE_KEY"])
+            print(f"Alerts: {counts.get('sent', 0)} sent, {counts.get('removed', 0)} expired subscriptions removed, "
+                  f"{counts.get('failed', 0)} failed")
+        except Exception as err:
+            print(f"::warning title=Alerts not sent::{redact(str(err))}")
 
     problems = health_problems(status) + result.problems
     if problems:
