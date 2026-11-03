@@ -57,6 +57,8 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ALLOW_PRODUCTION_WRITE: "1"
           ACCEPT_REMOVALS: ${{ inputs.accept_removals }}
+          # Signs the job alerts (web push); production only, so staging never notifies anyone.
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
         run: python fetcher/main.py --require-db
 
       - name: Fetch jobs into the staging database

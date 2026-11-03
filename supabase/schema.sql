@@ -72,3 +72,64 @@ create policy "Anyone can read fetch runs" on public.fetch_runs
 grant select on public.jobs, public.fetch_runs to anon, authenticated;
 revoke insert, update, delete, truncate on public.jobs, public.fetch_runs from anon, authenticated;
 grant all on public.jobs, public.fetch_runs to service_role;
+
+-- ---------------------------------------------------------------- Push alerts --
+-- One browser push subscription per device, with the search it wants alerts for
+-- (board + types + fields). Nobody can read or change the table directly; visitors
+-- only call subscribe_push / unsubscribe_push, which validate everything. The daily
+-- fetch (service_role) reads it and sends at most one notification per day.
+create table if not exists public.push_subscriptions (
+  endpoint   text primary key,             -- the browser's push URL; secret, only its owner knows it
+  p256dh     text not null,
+  auth       text not null,
+  board      text not null check (board in ('dresden', 'leipzig', 'chemnitz', 'berlin', 'remote')),
+  types      text[] not null default '{}',
+  fields     text[] not null default '{}',
+  created_at timestamptz not null default now(),
+  last_sent  date
+);
+-- A sign-up counts only once a real "Alerts are on" push reached it (fetcher/push.py), so fake
+-- sign-ups can't fill the table: unconfirmed rows have their own small cap and are gone within a day.
+alter table public.push_subscriptions add column if not exists confirmed boolean not null default false;
+alter table public.push_subscriptions enable row level security;
+revoke all on public.push_subscriptions from anon, authenticated;
+grant all on public.push_subscriptions to service_role;
+
+create or replace function public.subscribe_push(
+  p_endpoint text, p_p256dh text, p_auth text, p_board text, p_types text[], p_fields text[]
+) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  -- Only the big browser push services, no whitespace or control characters; anything else
+  -- could make the sender call arbitrary URLs.
+  if p_endpoint is null or length(p_endpoint) > 1000 or p_endpoint ~ '[[:cntrl:][:space:]]' or p_endpoint !~
+     '^https://(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|wns2-[a-z0-9]+\.notify\.windows\.com)/' then
+    raise exception 'invalid endpoint';
+  end if;
+  -- Browser keys are base64url: p256dh is 87 characters, auth 22.
+  if p_p256dh !~ '^[A-Za-z0-9_-]{80,100}$' or p_auth !~ '^[A-Za-z0-9_-]{16,32}$' then
+    raise exception 'invalid keys';
+  end if;
+  if p_board not in ('dresden', 'leipzig', 'chemnitz', 'berlin', 'remote') then raise exception 'invalid board'; end if;
+  if cardinality(coalesce(p_types, '{}')) > 3 or cardinality(coalesce(p_fields, '{}')) > 5 then raise exception 'too many filters'; end if;
+  if not (coalesce(p_types, '{}') <@ array['werkstudent', 'internship', 'thesis']) then raise exception 'invalid types'; end if;
+  if not (coalesce(p_fields, '{}') <@ array['ai', 'data', 'software', 'hardware', 'other']) then raise exception 'invalid fields'; end if;
+  if (select count(*) from public.push_subscriptions where confirmed) >= 20000 then raise exception 'full'; end if;
+  if (select count(*) from public.push_subscriptions where not confirmed) >= 2000 then raise exception 'busy'; end if;
+  insert into public.push_subscriptions (endpoint, p256dh, auth, board, types, fields)
+  values (p_endpoint, p_p256dh, p_auth, p_board,
+          array(select distinct unnest(coalesce(p_types, '{}'))), array(select distinct unnest(coalesce(p_fields, '{}'))))
+  on conflict (endpoint) do update
+    set p256dh = excluded.p256dh, auth = excluded.auth, board = excluded.board,
+        types = excluded.types, fields = excluded.fields;
+end $$;
+
+create or replace function public.unsubscribe_push(p_endpoint text) returns void
+language sql security definer set search_path = '' as $$
+  delete from public.push_subscriptions where endpoint = p_endpoint;
+$$;
+
+revoke all on function public.subscribe_push(text, text, text, text, text[], text[]) from public;
+revoke all on function public.unsubscribe_push(text) from public;
+grant execute on function public.subscribe_push(text, text, text, text, text[], text[]) to anon, authenticated;
+grant execute on function public.unsubscribe_push(text) to anon, authenticated;
