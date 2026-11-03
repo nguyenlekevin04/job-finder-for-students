@@ -4,6 +4,7 @@ import { track } from "@/lib/analytics";
 import { jobDate } from "@/lib/filters";
 import { feedbackHref } from "@/lib/legal";
 import { deadlineIcs } from "@/lib/ics";
+import { isGermanPosting, translateUrl } from "@/lib/share";
 import { ageLabel, daysUntil, formatDate, isNew, jobTerms } from "@/lib/format";
 import { AGGREGATORS, FIELD_LABELS, GERMAN_LABELS, TYPE_LABELS, type Job, type JobLink } from "@/lib/types";
 import { STATUS_LABELS, STATUSES, type AppStatus, type Application } from "@/lib/useApplications";
@@ -125,6 +126,21 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
             <Fact label="Field">{job.fields.map((f) => FIELD_LABELS[f]).join(", ")}</Fact>
             <Fact label="Language">
               {job.germanLevel ? GERMAN_LABELS[job.germanLevel] : job.englishFriendly ? "English OK" : "Posting in German"}
+              {!closed && isGermanPosting(job) && (
+                <>
+                  {" "}
+                  <a
+                    href={translateUrl(primary.url)}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => track("translate")}
+                    title="Opens the original posting in Google Translate (machine translation)"
+                    className="focus-ring link-u rounded whitespace-nowrap text-muted hover:text-ink"
+                  >
+                    Read in English
+                  </a>
+                </>
+              )}
             </Fact>
             <Fact label={job.postedAt ? "Posted" : "Found"}>{formatDate(jobDate(job))}</Fact>
             {/* A closed job's deadline means nothing any more. */}

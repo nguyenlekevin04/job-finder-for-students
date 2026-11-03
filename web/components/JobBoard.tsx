@@ -25,6 +25,7 @@ import { useLastVisit } from "@/lib/useLastVisit";
 import { FilterGroups, SortSelect } from "./FilterGroups";
 import { SearchIcon, XIcon } from "./Icons";
 import { AlertButton } from "./AlertButton";
+import { DigestButton } from "./DigestButton";
 import { JobRow } from "./JobRow";
 import { NewTicket } from "./NewTicket";
 import { EmptyState, ErrorState, LoadingList } from "./States";
@@ -340,6 +341,7 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
                 ))}
               </ol>
             )}
+            <DigestButton jobs={results} filters={filters} />
           </>
         )}
       </section>

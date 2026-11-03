@@ -219,7 +219,7 @@ test("?job= for an unknown job shows a notice that Dismiss clears", async ({ pag
   await expect(page).not.toHaveURL(/job=/);
 });
 
-for (const path of ["/", "/saved/", "/imprint/", "/privacy/"]) {
+for (const path of ["/", "/saved/", "/imprint/", "/privacy/", "/guide/"]) {
   test(`no console errors on ${path}`, async ({ page }) => {
     const errors: string[] = [];
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
@@ -337,7 +337,7 @@ test("an impossible ?since= date is ignored instead of crashing the board", asyn
 
 test("the footer links to the imprint and privacy pages", async ({ page }) => {
   await openBoard(page);
-  const legal = page.getByRole("navigation", { name: "Legal" });
+  const legal = page.getByRole("navigation", { name: "More" });
   await legal.getByRole("link", { name: "Imprint" }).click();
   await expect(page).toHaveURL(/\/imprint\/$/);
   await expect(page).toHaveTitle("Imprint · dresden/jobs");
@@ -461,4 +461,41 @@ test("each board has a short link with its own title and link preview", async ({
   // An old ?city= link moves to the short link.
   await page.goto("/?city=leipzig");
   await expect(page).toHaveURL(/\/leipzig\/$/);
+});
+
+test("the work-rules guide opens from the footer and links back to jobs up to 20 h", async ({ page }) => {
+  await openBoard(page);
+  await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Work rules" }).click();
+  await expect(page).toHaveURL(/\/guide\/$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Can I take this job?");
+  await expect(page.locator('a[href^="https://www.gesetze-im-internet.de/"]')).toHaveCount(2);
+  await page.getByRole("link", { name: "Show jobs up to 20 h/week" }).click();
+  await expect(page).toHaveURL(/[?&]hours=20/);
+});
+
+test("German postings offer Read in English through Google Translate", async ({ page }) => {
+  const [ml, data] = fixture.jobs;
+  await openBoard(page);
+  await row(page, ml.title).click();
+  const link = page.getByRole("link", { name: "Read in English" });
+  await expect(link).toHaveAttribute(
+    "href",
+    `https://translate.google.com/translate?sl=de&tl=en&u=${encodeURIComponent(ml.links[0].url)}`,
+  );
+  await expect(link).toHaveAttribute("target", "_blank");
+  await row(page, data.title).click(); // English-friendly: no link
+  await expect(page.getByRole("link", { name: "Read in English" })).toHaveCount(0);
+});
+
+test("Copy this week's jobs copies the new jobs with links", async ({ page, context, baseURL }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseURL });
+  const [ml] = fixture.jobs;
+  await openBoard(page);
+  await page.getByRole("button", { name: "Copy this week's jobs" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Copied" })).toBeVisible();
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text.split("\n")[0]).toBe("New student tech jobs in Dresden this week:");
+  expect(text).toContain(`• ${ml.title} – ${ml.company}`);
+  expect(text).toContain(`${baseURL}/?job=${encodeURIComponent(ml.id)}`);
+  expect(text).toContain(`All new jobs: ${baseURL}/?new=1`);
 });
