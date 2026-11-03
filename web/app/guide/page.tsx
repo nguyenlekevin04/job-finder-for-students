@@ -51,14 +51,14 @@ const SECTIONS: [string, React.ReactNode][] = [
       <ul className="list-disc space-y-1 pl-5">
         <li>
           <b>Werkstudent at up to 20 h/week fits.</b> During the lecture period a week of up to 20 hours counts as 2.5 days,
-          however you split the hours. A whole year of that is 130 days.
+          however you split the hours (§ 16b (3) sentence 3 no. 2). A whole year of that is 130 days.
         </li>
         <li>
           <b>Jobs at your university</b> (student or research assistant, HiWi) don’t count towards the 140 days.
         </li>
         <li>
-          <b>Voluntary internships count</b>, even unpaid ones. Whether a <b>mandatory internship</b> from your study
-          regulations counts is handled differently by universities, so ask your international office first.
+          <b>Voluntary internships count</b>, even unpaid ones. A <b>mandatory internship</b> from your study regulations
+          usually doesn’t, but confirm it with your international office first.
         </li>
         <li>More than that needs approval from the immigration office (Ausländerbehörde).</li>
       </ul>
