@@ -32,6 +32,7 @@ Goal: a board a busy international student trusts and comes back to, as fast as 
 - ✅ **Feedback channel** (S): "Send feedback" box above the footer and "Report a problem" on every job (mailto to the operator, prefilled subject with the job id).
 - ✅ **Berlin employers directly** (S): Greenhouse (HelloFresh, GetYourGuide, N26, Raisin, Trade Republic, commercetools, Wolt, Contentful) and SmartRecruiters (Delivery Hero, Vattenfall) career pages, linked straight to the employer. Few student roles today; more companies can be added to `COMPANIES`.
 - ✅ **Trust fixes from the Berlin test** (S): tab title per city, "still open" for long-running postings, title matches first in search, counts that follow the filters, Remote as its own board.
+- ✅ **Ready to share** (S): short city links (`/berlin/` etc.), link preview cards, and a launch kit with posts and A4 QR posters (`docs/launch/`).
 - Later: thesis contact person (only HZDR lists names, no emails; needs a new column).
 
 **Open step (shareholder):** the `closed_jobs` table still has to be created in the **staging** project (URL contains `dszz`). Production has it. Until then staging runs without the closure memory and logs a warning.
