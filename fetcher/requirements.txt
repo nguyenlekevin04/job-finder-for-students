@@ -5,3 +5,5 @@ requests==2.33.0
 beautifulsoup4==4.12.3
 pytest==9.0.3
 pywebpush==2.0.3
+# Needed by aiohttp on Python 3.12 (CI); the lock is compiled on 3.13, which has it built in.
+typing_extensions==4.12.2
