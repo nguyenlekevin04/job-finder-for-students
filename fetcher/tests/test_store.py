@@ -169,3 +169,34 @@ def test_closed_pages_past_the_row_cap():
     s = Paged()
     assert len(SupabaseStore("https://x.supabase.co", "sb_secret_x", session=s).closed()) == 1500
     assert [c["offset"] for c in s.calls] == ["0", "1000"]
+
+
+def test_missing_optional_columns_are_skipped_with_a_warning(capsys):
+    class OldDb(FakeSession):
+        """A database without the city and german_level columns."""
+        def request(self, method, url, params=None, headers=None, data=None, **kw):
+            body = json.loads(data) if data else None
+            select = (params or {}).get("select", "")
+            if url.endswith("/jobs") and method == "GET" and "city" in select:
+                return FakeResponse(method, url, status=400, body={"code": "42703", "message": "column jobs.city does not exist"})
+            if url.endswith("/jobs") and method == "POST" and body and "german_level" in body[0]:
+                return FakeResponse(method, url, status=400,
+                                    body={"code": "PGRST204", "message": "Could not find the 'german_level' column of 'jobs' in the schema cache"})
+            return super().request(method, url, params=params, headers=headers, data=data, **kw)
+
+    store = SupabaseStore("https://x.supabase.co", "sb_secret_x", session=OldDb())
+    store.previous()
+    store.save([{**job("a"), "firstSeen": "2026-11-01", "lastSeen": "2026-11-03"}], set(), {}, "t")
+    posted = [c for c in store.session.calls if c["method"] == "POST" and c["url"].endswith("/jobs")]
+    assert "city" not in posted[-1]["body"][0] and "german_level" not in posted[-1]["body"][0]
+    assert "title" in posted[-1]["body"][0]
+    assert capsys.readouterr().out.count("::warning title=Column missing::") == 2
+
+
+def test_a_missing_required_column_still_fails():
+    class Broken(FakeSession):
+        def request(self, method, url, **kw):
+            return FakeResponse(method, url, status=400, body={"code": "42703", "message": "column jobs.title does not exist"})
+    import pytest
+    with pytest.raises(RuntimeError):
+        SupabaseStore("https://x.supabase.co", "sb_secret_x", session=Broken()).previous()
