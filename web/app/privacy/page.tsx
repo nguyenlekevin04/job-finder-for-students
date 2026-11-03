@@ -100,7 +100,7 @@ const SECTIONS: [string, React.ReactNode][] = [
               To learn which parts of the board help students, we count visits with Umami (Umami Software, Inc., USA), a
               cookieless analytics service. It counts which pages are opened, the referring site, the browser and operating
               system, device type, screen size, language and approximate location (country, region, city), which filters are turned on (for example “Werkstudent” or “Up to 20 h/week”, never what you
-              type into search) and clicks on the Apply button with the job board the link goes to, that a search was saved (not which one) that a deadline was added to a calendar, and clicks on the feedback and report links.
+              type into search) and clicks on the Apply button with the job board the link goes to, that a search was saved (not which one) that a deadline was added to a calendar, clicks on the feedback and report links, and that alerts were turned on.
             </p>
             <p>
               Umami sets no cookies and stores nothing in your browser. It doesn’t store your IP address; it only uses it,
@@ -120,6 +120,23 @@ const SECTIONS: [string, React.ReactNode][] = [
         This site sets no cookies and uses no {ANALYTICS_ON ? "other analytics, " : "analytics, "}tracking pixels,
         advertising or social media plugins. Links to job postings open the employer’s or job board’s site, where their
         own privacy policy applies.
+      </p>
+    </>,
+  ],
+  [
+    "Job alerts (push notifications)",
+    <>
+      <p>
+        If you turn on “Get daily alerts”, your browser creates a push address at its push service (Google, Mozilla,
+        Apple or Microsoft, depending on the browser) and we store it in our database at Supabase together with two
+        technical keys, the board, job types and fields you chose, and the date of the last alert. Once a day, if new
+        jobs match, we send one notification through that push service. We store no name, no email and nothing else
+        about you.
+      </p>
+      <p>
+        “Turn off” deletes the entry right away; it is also deleted when the push service tells us the address no longer
+        works. You can block notifications for this site in your browser at any time. Legal basis: your consent, Art. 6
+        (1) (a) GDPR, which you give by turning alerts on and can withdraw by turning them off.
       </p>
     </>,
   ],

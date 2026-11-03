@@ -22,7 +22,19 @@ export const metadata: Metadata = {
     template: `${titlePrefix}%s · dresden/jobs`,
   },
   description:
-    "Werkstudent, internship and thesis positions in AI, ML and Computer Science around Dresden – collected daily from several job sources.",
+    "Werkstudent jobs, internships and theses in AI, data and software in Dresden, Leipzig, Chemnitz and Berlin. Updated daily, no account needed.",
+  // Link previews in WhatsApp, Discord, LinkedIn and co. Board pages override title and description.
+  metadataBase: new URL("https://dresden-jobs.vercel.app"),
+  openGraph: {
+    type: "website",
+    siteName: "dresden/jobs",
+    title: "Student tech jobs in Dresden, Leipzig, Chemnitz and Berlin",
+    description: "Werkstudent jobs, internships and theses in AI, data and software. Updated daily, no account needed.",
+    url: "/",
+    locale: "en_US",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "dresden/jobs: student tech jobs, updated daily" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/og.png"] },
   // Opens like an app from the iPhone home screen (the manifest covers Android).
   appleWebApp: { capable: true, title: "dresden/jobs", statusBarStyle: "default" },
   // Keep the staging site out of search results so students only ever find production.

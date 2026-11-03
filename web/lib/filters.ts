@@ -50,10 +50,16 @@ function day(v: string | null): string | null {
 }
 
 // URL <-> filters, so a filtered view can be bookmarked or shared.
-export function filtersFromParams(p: URLSearchParams): Filters {
+/** The page of a board: "/" for Dresden, "/berlin/" etc. for the others. */
+export function boardPath(board: Board): string {
+  return board === "dresden" ? "/" : `/${board}/`;
+}
+
+// `home` is the board the page itself shows (/berlin/ = berlin); a ?city= in the URL wins over it.
+export function filtersFromParams(p: URLSearchParams, home: Board = "dresden"): Filters {
   const city = p.get("city");
   return {
-    city: BOARDS.includes(city as Board) ? (city as Board) : "dresden",
+    city: BOARDS.includes(city as Board) ? (city as Board) : home,
     q: p.get("q") ?? "",
     types: list(p.get("type")).filter((t): t is JobType => ALL_TYPES.includes(t as JobType)),
     fields: list(p.get("field")).filter((f): f is Field => ALL_FIELDS.includes(f as Field)),
@@ -67,9 +73,10 @@ export function filtersFromParams(p: URLSearchParams): Filters {
   };
 }
 
-export function filtersToParams(f: Filters): URLSearchParams {
+/** Filters as a query string. `home` = the board the page shows, so its city isn't repeated. */
+export function filtersToParams(f: Filters, home: Board = "dresden"): URLSearchParams {
   const p = new URLSearchParams();
-  if (f.city !== "dresden") p.set("city", f.city);
+  if (f.city !== home) p.set("city", f.city);
   if (f.q.trim()) p.set("q", f.q.trim());
   if (f.types.length) p.set("type", f.types.join(","));
   if (f.fields.length) p.set("field", f.fields.join(","));

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -48,8 +49,28 @@ COLUMNS = {
 }
 
 
-def to_row(job: dict) -> dict:
-    return {col: job.get(key) for key, col in COLUMNS.items()}
+# Columns added after the first schema. A database that hasn't run the newer lines of
+# schema.sql yet (e.g. staging) still works: the fetcher drops these columns and warns.
+OPTIONAL_COLUMNS = {"hours_min", "hours_max", "pay_amount", "pay_unit", "german_level", "city"}
+
+
+def to_row(job: dict, columns: dict[str, str] = COLUMNS) -> dict:
+    return {col: job.get(key) for key, col in columns.items()}
+
+
+def missing_column(res: requests.Response) -> str | None:
+    """The optional column a PostgREST error says doesn't exist, if that's the error."""
+    if res.status_code != 400:
+        return None
+    try:
+        body = res.json()
+    except ValueError:
+        return None
+    if body.get("code") not in ("42703", "PGRST204"):
+        return None
+    m = re.search(r"column (?:\w+\.)?(\w+) does not exist|'(\w+)' column", body.get("message") or "")
+    col = m and (m.group(1) or m.group(2))
+    return col if col in OPTIONAL_COLUMNS else None
 
 
 # ------------------------------------------------------------------ Supabase --
@@ -65,6 +86,17 @@ class SupabaseStore:
         # Legacy keys are JWTs and also go in Authorization; new "sb_secret_" keys don't.
         if key.startswith("eyJ"):
             self.session.headers["Authorization"] = f"Bearer {key}"
+        self.columns = dict(COLUMNS)  # minus optional columns this database doesn't have yet
+
+    def _drop(self, res: requests.Response) -> bool:
+        """Forget a missing optional column (and warn); True if the request should be retried."""
+        col = missing_column(res)
+        if not col or col not in self.columns.values():
+            return False
+        self.columns = {k: c for k, c in self.columns.items() if c != col}
+        print(f"::warning title=Column missing::{col} isn't in this database yet; run supabase/schema.sql. "
+              "Saving without it.")
+        return True
 
     def _check(self, res: requests.Response) -> requests.Response:
         if not res.ok:
@@ -73,15 +105,18 @@ class SupabaseStore:
 
     def previous(self) -> dict[str, dict]:
         """Every stored job, keyed by id, with the same field names as jobs.json."""
-        select = ",".join(key if key == col else f"{key}:{col}" for key, col in COLUMNS.items())
         jobs: dict[str, dict] = {}
         offset, page = 0, 1000  # Supabase caps each response (1000 rows by default)
         while True:
-            res = self._check(self.session.get(
+            select = ",".join(key if key == col else f"{key}:{col}" for key, col in self.columns.items())
+            res = self.session.get(
                 f"{self.base}/jobs",
                 params={"select": select, "order": "id", "limit": str(page), "offset": str(offset)},
                 timeout=30,
-            ))
+            )
+            if self._drop(res):
+                continue
+            self._check(res)
             rows = res.json()
             jobs.update({r["id"]: r for r in rows})
             if len(rows) < page:
@@ -124,15 +159,20 @@ class SupabaseStore:
         ))
 
     def save(self, jobs: list[dict], removed: set[str], status: dict, generated_at: str) -> int:
-        rows = [to_row(j) for j in jobs]
-        for i in range(0, len(rows), BATCH):
-            self._check(self.session.post(
+        i = 0
+        while i < len(jobs):
+            rows = [to_row(j, self.columns) for j in jobs[i:i + BATCH]]
+            res = self.session.post(
                 f"{self.base}/jobs",
                 params={"on_conflict": "id"},
                 headers={"Prefer": "resolution=merge-duplicates,return=minimal"},
-                data=json.dumps(rows[i:i + BATCH], ensure_ascii=False).encode(),
+                data=json.dumps(rows, ensure_ascii=False).encode(),
                 timeout=60,
-            ))
+            )
+            if self._drop(res):
+                continue  # the same batch again, without that column
+            self._check(res)
+            i += BATCH
         # Closed jobs (see availability.py) are deleted by id.
         gone = sorted(removed)
         for i in range(0, len(gone), 100):
