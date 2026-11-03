@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from urllib.parse import urlencode
 
 import requests
@@ -19,7 +20,11 @@ import requests
 SITE = "https://dresden-jobs.vercel.app"
 BOARD_NAMES = {"dresden": "Dresden", "leipzig": "Leipzig", "chemnitz": "Chemnitz", "berlin": "Berlin", "remote": "remote"}
 TYPE_NAMES = {"werkstudent": "Werkstudent", "internship": "internship", "thesis": "thesis"}
-GONE = {403, 404, 410}
+# The push service says the subscription is gone (404/410), not ours (403) or malformed (400);
+# -1 = it couldn't be sent at all (bad keys, unknown host). All of these are deleted.
+GONE = {-1, 400, 403, 404, 410}
+TIME_BUDGET = 15 * 60  # seconds; a slow push service must not hold up the Action
+WELCOME = {"title": "Alerts are on", "body": "You'll get one notification a day when new jobs match.", "url": "/"}
 
 
 def on_board(job: dict, board: str) -> bool:
@@ -82,7 +87,7 @@ class PushStore:
         rows, offset = [], 0
         while True:
             res = self.session.get(self.base, params={
-                "select": "endpoint,p256dh,auth,board,types,fields,last_sent", "order": "endpoint",
+                "select": "endpoint,p256dh,auth,board,types,fields,last_sent,confirmed", "order": "endpoint",
                 "limit": "1000", "offset": str(offset)}, timeout=30)
             res.raise_for_status()
             page = res.json()
@@ -94,6 +99,10 @@ class PushStore:
     def sent(self, endpoint: str, today: str) -> None:
         self.session.patch(self.base, params={"endpoint": f"eq.{endpoint}"},
                            data=json.dumps({"last_sent": today}), timeout=30).raise_for_status()
+
+    def confirm(self, endpoint: str) -> None:
+        self.session.patch(self.base, params={"endpoint": f"eq.{endpoint}"},
+                           data=json.dumps({"confirmed": True}), timeout=30).raise_for_status()
 
     def delete(self, endpoint: str) -> None:
         self.session.delete(self.base, params={"endpoint": f"eq.{endpoint}"}, timeout=30).raise_for_status()
@@ -116,12 +125,36 @@ def send_alerts(jobs: list[dict], today: str, base: str, key: str, store: PushSt
                     json.dumps(payload), vapid_private_key=vapid, vapid_claims={"sub": SITE}, ttl=86400, timeout=15)
                 return res.status_code
             except WebPushException as err:
-                return err.response.status_code if err.response is not None else 0
+                return err.response.status_code if err.response is not None else -1
+            except Exception:  # bad keys, unknown host, …: one broken row must not stop everyone's alerts
+                return -1
+
+    def safe_send(sub: dict, payload: dict) -> int:
+        try:
+            return send(sub, payload)
+        except Exception:
+            return -1
 
     new_jobs = [j for j in jobs if j.get("firstSeen") == today]
-    counts = {"sent": 0, "removed": 0, "failed": 0}
-    for sub, payload in due(store.all(), new_jobs, today):
-        status = send(sub, payload)
+    counts = {"sent": 0, "confirmed": 0, "removed": 0, "failed": 0}
+    deadline = time.monotonic() + TIME_BUDGET
+    subs = store.all()
+    # New sign-ups first get "Alerts are on". Only a real browser receives it; anything else is
+    # deleted, so fake sign-ups can't pile up (Kevin, 2026-11-03).
+    for sub in [s for s in subs if not s.get("confirmed")]:
+        if time.monotonic() > deadline:
+            break
+        status = safe_send(sub, WELCOME)
+        if 200 <= status < 300:
+            store.confirm(sub["endpoint"])
+            counts["confirmed"] += 1
+        else:
+            store.delete(sub["endpoint"])
+            counts["removed"] += 1
+    for sub, payload in due([s for s in subs if s.get("confirmed")], new_jobs, today):
+        if time.monotonic() > deadline:
+            break
+        status = safe_send(sub, payload)
         if 200 <= status < 300:
             store.sent(sub["endpoint"], today)
             counts["sent"] += 1

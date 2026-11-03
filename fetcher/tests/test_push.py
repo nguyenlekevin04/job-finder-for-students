@@ -9,20 +9,23 @@ def job(jid, city="berlin", types=("werkstudent",), fields=("ai",), first=TODAY,
             "firstSeen": first, "remote": remote}
 
 
-def sub(endpoint, board="berlin", types=(), fields=(), last_sent=None):
+def sub(endpoint, board="berlin", types=(), fields=(), last_sent=None, confirmed=True):
     return {"endpoint": endpoint, "p256dh": "k", "auth": "a", "board": board, "types": list(types),
-            "fields": list(fields), "last_sent": last_sent}
+            "fields": list(fields), "last_sent": last_sent, "confirmed": confirmed}
 
 
 class FakeStore:
     def __init__(self, subs):
-        self.subs, self.sent_to, self.deleted = subs, [], []
+        self.subs, self.sent_to, self.deleted, self.confirmed = subs, [], [], []
 
     def all(self):
         return self.subs
 
     def sent(self, endpoint, today):
         self.sent_to.append(endpoint)
+
+    def confirm(self, endpoint):
+        self.confirmed.append(endpoint)
 
     def delete(self, endpoint):
         self.deleted.append(endpoint)
@@ -43,7 +46,7 @@ def test_only_new_jobs_and_at_most_once_a_day(monkeypatch):
     payloads = []
     counts = push.send_alerts([job("a"), job("b", first="2026-11-01")], TODAY, "", "", store=store,
                               send=lambda s, p: payloads.append((s["endpoint"], p)) or 201)
-    assert counts == {"sent": 1, "removed": 0, "failed": 0}
+    assert counts == {"sent": 1, "confirmed": 0, "removed": 0, "failed": 0}
     assert store.sent_to == ["fresh"]
     endpoint, payload = payloads[0]
     assert payload["title"] == "1 new student job in Berlin"
@@ -55,7 +58,7 @@ def test_gone_subscriptions_are_removed_and_errors_counted(monkeypatch):
     store = FakeStore([sub("gone"), sub("broken")])
     status = {"gone": 410, "broken": 500}
     counts = push.send_alerts([job("a")], TODAY, "", "", store=store, send=lambda s, p: status[s["endpoint"]])
-    assert counts == {"sent": 0, "removed": 1, "failed": 1}
+    assert counts == {"sent": 0, "confirmed": 0, "removed": 1, "failed": 1}
     assert store.deleted == ["gone"] and store.sent_to == []
 
 
@@ -69,3 +72,29 @@ def test_message_wording():
     assert m["title"] == "5 new thesis jobs remote"
     assert m["body"].endswith("…")
     assert "type=thesis" in m["url"] and "field=ai" in m["url"] and m["url"].startswith("https://dresden-jobs.vercel.app/remote/")
+
+
+def test_one_broken_subscription_never_stops_the_others(monkeypatch):
+    monkeypatch.setenv("VAPID_PRIVATE_KEY", "test")
+    store = FakeStore([sub("0-broken"), sub("1-real"), sub("2-bad-request")])
+
+    def send(s, p):
+        if s["endpoint"] == "0-broken":
+            raise ValueError("Unsupported elliptic curve point type")
+        return 400 if s["endpoint"] == "2-bad-request" else 201
+
+    counts = push.send_alerts([job("a")], TODAY, "", "", store=store, send=send)
+    assert store.sent_to == ["1-real"] and sorted(store.deleted) == ["0-broken", "2-bad-request"]
+    assert counts["sent"] == 1 and counts["removed"] == 2
+
+
+def test_new_signups_must_receive_the_welcome_before_they_count(monkeypatch):
+    monkeypatch.setenv("VAPID_PRIVATE_KEY", "test")
+    store = FakeStore([sub("real", confirmed=False), sub("fake", confirmed=False)])
+    sent = []
+    counts = push.send_alerts([job("a")], TODAY, "", "", store=store,
+                              send=lambda s, p: sent.append((s["endpoint"], p["title"])) or (201 if s["endpoint"] == "real" else 404))
+    assert store.confirmed == ["real"] and store.deleted == ["fake"]
+    assert ("real", "Alerts are on") in sent
+    assert not any(title != "Alerts are on" for _, title in sent)  # job alerts start with the next run
+    assert counts["confirmed"] == 1 and counts["removed"] == 1

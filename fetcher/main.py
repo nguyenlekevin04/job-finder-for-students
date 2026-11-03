@@ -361,10 +361,11 @@ def main(argv: list[str] | None = None) -> int:
     if os.environ.get("VAPID_PRIVATE_KEY") and not isinstance(store, JsonFileStore):
         try:
             counts = send_alerts(result.jobs, today, os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_ROLE_KEY"])
-            print(f"Alerts: {counts.get('sent', 0)} sent, {counts.get('removed', 0)} expired subscriptions removed, "
-                  f"{counts.get('failed', 0)} failed")
+            print(f"Alerts: {counts.get('sent', 0)} sent, {counts.get('confirmed', 0)} new confirmed, "
+                  f"{counts.get('removed', 0)} removed, {counts.get('failed', 0)} failed")
         except Exception as err:
-            print(f"::warning title=Alerts not sent::{redact(str(err))}")
+            # Only the error type: the text can hold a subscriber's push URL, and the logs are public.
+            print(f"::warning title=Alerts not sent::{type(err).__name__}")
 
     problems = health_problems(status) + result.problems
     if problems:

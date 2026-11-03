@@ -24,9 +24,12 @@ self.addEventListener("notificationclick", (event) => {
   const target = new URL(event.notification.data?.url || "/", self.location.origin);
   const url = target.origin === self.location.origin ? target.href : self.location.origin + "/";
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+    // navigate() works only on tabs this worker controls; otherwise open a new one.
+    self.clients.matchAll({ type: "window" }).then((wins) => {
       const open = wins.find((w) => w.url.startsWith(self.location.origin));
-      return open ? open.navigate(url).then((w) => w && w.focus()) : self.clients.openWindow(url);
+      return open
+        ? open.navigate(url).then((w) => (w ? w.focus() : self.clients.openWindow(url)), () => self.clients.openWindow(url))
+        : self.clients.openWindow(url);
     }),
   );
 });
