@@ -272,6 +272,18 @@ def test_business_informatics_jobs_are_kept(title, tags):
     ("Werkstudent Strategy Consulting (m/w/d)", ""),
     ("Werkstudent Corporate Governance (m/w/d)", ""),
     ("Praktikant prüfungsnahe Beratung - Assurance (Financial Services) (w/m/d)", "Betriebswirt/in (Hochschule)"),
+    # Code review 2026-11-05: "it" inside Kredit/Credit/Audit, or a tool name, must not rescue office roles.
+    ("Werkstudent Kreditrisikomanagement (m/w/d)", ""),
+    ("Werkstudent Credit Risk Management", ""),
+    ("Werkstudent Kreditberatung", ""),
+    ("Werkstudent Audit Consulting", ""),
+    ("Werkstudent Buchhaltung (SAP)", ""),
+    ("Werkstudent Controlling mit SAP", ""),
+    ("Werkstudent Einkauf SAP", ""),
+    ("Werkstudent CRM Marketing", ""),
+    ("Werkstudent Sales Salesforce", ""),
+    ("Werkstudent HR Digital Transformation", ""),
+    ("Werkstudent Business Analyst Finance", ""),
 ])
 def test_other_consulting_and_governance_stays_out(title, tags):
     assert classify(job(title, tags=tags)) is None

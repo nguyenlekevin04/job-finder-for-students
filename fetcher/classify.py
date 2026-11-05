@@ -67,15 +67,15 @@ FIELD_PATTERNS: dict[str, re.Pattern] = {
     # is not enough: strategy, tax or HR consulting stays out (user, 2026-11-05).
     "business": re.compile(
         r"wirtschaftsinformatik|business informatics|information systems|\bwinfo\b"
-        r"|(it|sap|erp|crm|tech|technology|digital|technologie|prozess|process|data)[- ]?(consult\w*|berat\w*)"
+        r"|\b(it|sap|erp|crm|tech|technology|digital|technologie|prozess|process|data)[- ]?(consult\w*|berat\w*)"
         r"|\bsap\b|\bs/4 ?hana|\berp\b|\bcrm\b|salesforce|servicenow|microsoft dynamics|\bdynamics 365|power platform"
-        r"|(it|data|daten|security|cyber)[- ]?governance|governance,? risk|\bgrc\b|it[- ]?compliance|it[- ]?audit"
-        r"|it[- ]?revision|\bisms\b|informationssicherheitsmanagement|it[- ]?risk|it[- ]?risiko"
-        r"|it[- ]?projekt\w*|it[- ]?project|it[- ]?strateg\w*|enterprise architect\w*|unternehmensarchitektur"
+        r"|\b(it|data|daten|security|cyber)[- ]?governance|governance,? risk|\bgrc\b|\bit[- ]?compliance|\bit[- ]?audit"
+        r"|\bit[- ]?revision|\bisms\b|informationssicherheitsmanagement|\bit[- ]?risk|\bit[- ]?risiko"
+        r"|\bit[- ]?projekt\w*|\bit[- ]?project|\bit[- ]?strateg\w*|enterprise architect\w*|unternehmensarchitektur"
         # Not bare "Prozessmanagement": BA tags it on manufacturing roles ("Fertigungs- und Prozessmanagement").
         r"|geschäftsprozess\w*|business process\w*|process mining|\bbpmn?\b"
         r"|prozessdigitalisierung|digitale transformation|digital transformation|requirements engineer\w*"
-        r"|anforderungsmanagement|it[- ]?business[- ]?analy\w*|business analyst",
+        r"|anforderungsmanagement|\bit[- ]?business[- ]?analy\w*|business analyst",
         re.I),
     "other": re.compile(
         r"it[- ]?security|cyber[- ]?security|it-sicherheit|informationssicherheit|\bhpc\b"
@@ -106,6 +106,12 @@ NON_TECH_TAG_BLOCK = re.compile(
     r"|back ?office|climate|klima\w*|nachhaltig\w*|sustainab\w*|tax|steuer\w*|treasury|assurance|audit|prüfung"
     r"|fördermittel\w*|growth|gtm|go-to-market|business development|versicherungsmathematik|kommunikation"
     r"|flottenmanagement|venture\w*|funding|payments?|reconciliations?)\b",
+    re.I)
+# Consulting, audit or governance that is IT work itself. Narrower than the "business" field: a tool
+# name in the title (SAP, CRM, Salesforce) must not rescue accounting, sales or HR roles.
+IT_OFFICE_TITLE = re.compile(
+    r"wirtschaftsinformatik|\b(it|sap|erp|tech|technology|technologie|digital)[- ]?(consult|berat)\w*"
+    r"|\bit[- ]?(governance|audit|compliance|revision|risk|risiko)\w*|\b(data|cyber|security)[- ]?governance",
     re.I)
 # A title that names hands-on tech work keeps the job even next to a word above
 # ("Data Engineer im Controlling", "Softwareentwicklung Steuer-Tools").
@@ -246,7 +252,7 @@ def classify(job: Job) -> dict | None:
     # (Berlin, 2026-10-31: "HR-Administration … & KI", "Recruiting & HR Operations - IT-Business").
     # Consulting, audit or governance that names IT work is business informatics, not an office role.
     if NON_TECH_TAG_BLOCK.search(job.title) and not (STRONG_TECH_TITLE.search(job.title) or BI_WORD.search(job.title)
-                                                    or FIELD_PATTERNS["business"].search(job.title)):
+                                                    or IT_OFFICE_TITLE.search(job.title)):
         return None
 
     # Type: from title or source category; description only as a fallback for
