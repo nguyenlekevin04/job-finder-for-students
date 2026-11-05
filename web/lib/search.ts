@@ -43,6 +43,15 @@ export const SYNONYMS: Group[] = [
     field: "hardware",
     terms: ["elektrotechnik", "electrical engineering", "e-technik", "etechnik", "elektronik", "electronics"],
   },
+  {
+    field: "business",
+    terms: [
+      "wirtschaftsinformatik", "business informatics", "information systems", "it consulting", "it-consulting",
+      "it beratung", "it-beratung", "sap", "erp", "it governance", "it-governance", "process mining",
+    ],
+  },
+  { terms: ["consulting", "beratung", "berater", "consultant"] },
+  { terms: ["governance", "compliance"] },
   { terms: ["werkstudent", "working student"] },
   { terms: ["praktikum", "internship", "intern", "praktikant"] },
   { terms: ["abschlussarbeit", "thesis", "masterarbeit", "bachelorarbeit", "master thesis", "bachelor thesis"] },

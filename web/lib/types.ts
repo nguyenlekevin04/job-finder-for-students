@@ -1,5 +1,5 @@
 export type JobType = "werkstudent" | "internship" | "thesis";
-export type Field = "ai" | "data" | "software" | "hardware" | "other";
+export type Field = "ai" | "data" | "software" | "hardware" | "business" | "other";
 
 export interface JobLink {
   source: string;
@@ -78,6 +78,7 @@ export const FIELD_LABELS: Record<Field, string> = {
   data: "Data",
   software: "Software",
   hardware: "Electrical / Embedded",
+  business: "Business IT",
   other: "Other CS",
 };
 
