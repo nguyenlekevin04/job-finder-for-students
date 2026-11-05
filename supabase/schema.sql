@@ -111,9 +111,9 @@ begin
     raise exception 'invalid keys';
   end if;
   if p_board not in ('dresden', 'leipzig', 'chemnitz', 'berlin', 'remote') then raise exception 'invalid board'; end if;
-  if cardinality(coalesce(p_types, '{}')) > 3 or cardinality(coalesce(p_fields, '{}')) > 5 then raise exception 'too many filters'; end if;
+  if cardinality(coalesce(p_types, '{}')) > 3 or cardinality(coalesce(p_fields, '{}')) > 6 then raise exception 'too many filters'; end if;
   if not (coalesce(p_types, '{}') <@ array['werkstudent', 'internship', 'thesis']) then raise exception 'invalid types'; end if;
-  if not (coalesce(p_fields, '{}') <@ array['ai', 'data', 'software', 'hardware', 'other']) then raise exception 'invalid fields'; end if;
+  if not (coalesce(p_fields, '{}') <@ array['ai', 'data', 'software', 'hardware', 'business', 'other']) then raise exception 'invalid fields'; end if;
   if (select count(*) from public.push_subscriptions where confirmed) >= 20000 then raise exception 'full'; end if;
   if (select count(*) from public.push_subscriptions where not confirmed) >= 2000 then raise exception 'busy'; end if;
   insert into public.push_subscriptions (endpoint, p256dh, auth, board, types, fields)

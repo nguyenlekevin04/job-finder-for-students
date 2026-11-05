@@ -35,6 +35,18 @@ describe("search", () => {
     expect(filter.every((id) => hits.includes(id))).toBe(true);
   });
 
+  it("finds Business IT jobs by Wirtschaftsinformatik, SAP or IT consulting", () => {
+    const list = [
+      job("sap", "Werkstudent SAP Entwicklung", ["software", "business"]),
+      job("gov", "Working Student IT Governance", ["business"]),
+      job("ml", "Werkstudent Machine Learning", ["ai"]),
+    ];
+    const idx = makeIndex(list);
+    for (const q of ["Wirtschaftsinformatik", "SAP", "IT Consulting", "erp"]) {
+      expect([...search(list, q, idx)].sort()).toEqual(["gov", "sap"]);
+    }
+  });
+
   it("matches short terms as whole words only", () => {
     expect(find("ml")).not.toContain("web"); // "HTML"
   });

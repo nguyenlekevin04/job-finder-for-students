@@ -241,3 +241,43 @@ def test_tech_work_in_office_departments_stays(title):
 
 def test_personalisierung_is_not_a_personnel_role():
     assert classify(job("Werkstudent Personalisierung und Recommender Systems", tags="Informatiker/in")) is not None
+
+
+# Business informatics (Wirtschaftsinformatik), added 2026-11-05: IT consulting, SAP/ERP,
+# IT governance and process work are in; tax, strategy and plain consulting stay out.
+@pytest.mark.parametrize("title, tags", [
+    ("Werkstudent IT Consulting & Cloud Integration - SAP CI Umfeld (Mensch*)", ""),
+    ("Werkstudent IT Beratung (Financial Services) (w/m/d)", ""),
+    ("Bachelorarbeit / Masterarbeit IT Consulting", ""),
+    ("Werkstudent:in SAP Entwicklung (m/w/d)", ""),
+    ("Working Student IT Governance & Compliance (f/m/d)", ""),
+    ("Praktikum Data Governance (m/w/d)", ""),
+    ("Werkstudent IT-Audit (m/w/d)", ""),
+    ("Werkstudent Process Mining / Celonis (m/w/d)", ""),
+    ("Praktikum Digitalisierung von Geschäftsprozessen", ""),
+    ("Werkstudent Digital Consulting (m/w/d)", ""),
+    ("Werkstudent (m/w/d) Wirtschaftsinformatik", ""),
+    ("Werkstudent ERP-Einführung (m/w/d)", ""),
+    ("Werkstudent (m/w/d) im Projektteam", "Wirtschaftsinformatiker/in (Hochschule)"),
+])
+def test_business_informatics_jobs_are_kept(title, tags):
+    tags_ = classify(job(title, tags=tags))
+    assert tags_ is not None, title
+    assert "business" in tags_["fields"]
+
+
+@pytest.mark.parametrize("title, tags", [
+    ("Praktikant (m/w/d) Management Consulting Reise", "Unternehmensberater/in"),
+    ("Werkstudent Steuerberatung / TAX (w/m/d)", "Jurist/in"),
+    ("Werkstudent Strategy Consulting (m/w/d)", ""),
+    ("Werkstudent Corporate Governance (m/w/d)", ""),
+    ("Praktikant prüfungsnahe Beratung - Assurance (Financial Services) (w/m/d)", "Betriebswirt/in (Hochschule)"),
+])
+def test_other_consulting_and_governance_stays_out(title, tags):
+    assert classify(job(title, tags=tags)) is None
+
+
+def test_manufacturing_process_tag_is_not_business_it():
+    j = job("Werkstudent Entwicklung, experimentelle Validierung eines Schnelltests",
+            tags="Fachwirt/in - Fertigungs- und Prozessmanagement")
+    assert classify(j) is None

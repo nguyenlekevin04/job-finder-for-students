@@ -62,11 +62,26 @@ FIELD_PATTERNS: dict[str, re.Pattern] = {
         r"|robotik|robotics|roboter|mechatronik|mechatronics|firmware|signalverarbeitung|signal processing"
         r"|informationstechnik|nachrichtentechnik|schaltungsentw|circuit design|integrated circuit",
         re.I),
+    # Business informatics (Wirtschaftsinformatik): IT consulting, SAP/ERP/CRM, IT governance and
+    # compliance, process management, IT project management. Plain "consulting" or "governance"
+    # is not enough: strategy, tax or HR consulting stays out (user, 2026-11-05).
+    "business": re.compile(
+        r"wirtschaftsinformatik|business informatics|information systems|\bwinfo\b"
+        r"|(it|sap|erp|crm|tech|technology|digital|technologie|prozess|process|data)[- ]?(consult\w*|berat\w*)"
+        r"|\bsap\b|\bs/4 ?hana|\berp\b|\bcrm\b|salesforce|servicenow|microsoft dynamics|\bdynamics 365|power platform"
+        r"|(it|data|daten|security|cyber)[- ]?governance|governance,? risk|\bgrc\b|it[- ]?compliance|it[- ]?audit"
+        r"|it[- ]?revision|\bisms\b|informationssicherheitsmanagement|it[- ]?risk|it[- ]?risiko"
+        r"|it[- ]?projekt\w*|it[- ]?project|it[- ]?strateg\w*|enterprise architect\w*|unternehmensarchitektur"
+        # Not bare "Prozessmanagement": BA tags it on manufacturing roles ("Fertigungs- und Prozessmanagement").
+        r"|geschäftsprozess\w*|business process\w*|process mining|\bbpmn?\b"
+        r"|prozessdigitalisierung|digitale transformation|digital transformation|requirements engineer\w*"
+        r"|anforderungsmanagement|it[- ]?business[- ]?analy\w*|business analyst",
+        re.I),
     "other": re.compile(
         r"it[- ]?security|cyber[- ]?security|it-sicherheit|informationssicherheit|\bhpc\b"
         r"|high[- ]performance computing|quantum computing|quantencomput|computational|bioinformatik"
-        r"|wirtschaftsinformatik|systemadministr|netzwerktechn|network engineer|it[- ]support"
-        r"|it[- ]administr|it[- ]infrastru|it[- ]consult|it[- ]projekt|\bsap\b",
+        r"|systemadministr|netzwerktechn|network engineer|it[- ]support"
+        r"|it[- ]administr|it[- ]infrastru",
         re.I),
 }
 # "IT" only as a capitalised word, so "it" in English sentences doesn't count.
@@ -122,6 +137,7 @@ FIELD_LABELS = {
     "data": "Data",
     "software": "Software",
     "hardware": "Electrical / Embedded",
+    "business": "Business IT",
     "other": "Other CS",
 }
 
@@ -228,7 +244,9 @@ def classify(job: Job) -> dict | None:
         return None
     # Office roles (HR, tax, consulting, sales…) that merely mention AI or IT are not tech jobs
     # (Berlin, 2026-10-31: "HR-Administration … & KI", "Recruiting & HR Operations - IT-Business").
-    if NON_TECH_TAG_BLOCK.search(job.title) and not (STRONG_TECH_TITLE.search(job.title) or BI_WORD.search(job.title)):
+    # Consulting, audit or governance that names IT work is business informatics, not an office role.
+    if NON_TECH_TAG_BLOCK.search(job.title) and not (STRONG_TECH_TITLE.search(job.title) or BI_WORD.search(job.title)
+                                                    or FIELD_PATTERNS["business"].search(job.title)):
         return None
 
     # Type: from title or source category; description only as a fallback for
