@@ -23,8 +23,8 @@ sys.path.insert(0, str(ROOT))
 
 from fetcher.classify import FIELD_LABELS, classify  # noqa: E402
 from fetcher.sources import (  # noqa: E402
-    amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, greenhouse, hzdr, infineon,
-    smartrecruiters, tu_dresden,
+    amazon, arbeitnow, arbeitsagentur, bosch, deloitte, fraunhofer, globalfoundries, greenhouse, hzdr, infineon,
+    pwc, smartrecruiters, tu_dresden,
 )
 from fetcher.availability import UNKNOWN, decide  # noqa: E402
 from fetcher.push import send_alerts  # noqa: E402
@@ -42,7 +42,7 @@ PRODUCTION_PROJECT_REF = "ywurtulsjybbdfzqfowq"
 # button, and the employer's own page beats a job-board copy.
 SOURCES = [
     tu_dresden, fraunhofer, hzdr, infineon, globalfoundries, bosch, amazon, greenhouse, smartrecruiters,
-    arbeitsagentur, arbeitnow,
+    deloitte, pwc, arbeitsagentur, arbeitnow,
 ]
 
 # Hosts each source's posting links may point to (the host or a subdomain of it), taken
@@ -60,6 +60,8 @@ LINK_HOSTS = {
     # Berlin employers' own job pages, hosted by their applicant tracking system.
     "Greenhouse": ("job-boards.greenhouse.io",),
     "SmartRecruiters": ("jobs.smartrecruiters.com",),
+    "Deloitte": ("job.deloitte.com",),
+    "PwC": ("jobs.pwc.de",),
     "Arbeitsagentur": ("arbeitsagentur.de",),
     # Arbeitnow links to its country sites too (seen live: .fr, .ch, .nl, .co.uk).
     "Arbeitnow": ("arbeitnow.com", "arbeitnow.de", "arbeitnow.fr", "arbeitnow.ch", "arbeitnow.nl", "arbeitnow.co.uk"),

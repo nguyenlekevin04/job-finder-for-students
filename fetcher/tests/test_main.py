@@ -8,8 +8,8 @@ from fetcher import main
 from fetcher.store import JsonFileStore
 from fetcher.models import Job
 from fetcher.sources import (
-    amazon, arbeitnow, arbeitsagentur, bosch, fraunhofer, globalfoundries, greenhouse, hzdr, infineon,
-    smartrecruiters, tu_dresden,
+    amazon, arbeitnow, arbeitsagentur, bosch, deloitte, fraunhofer, globalfoundries, greenhouse, hzdr, infineon,
+    pwc, smartrecruiters, tu_dresden,
 )
 
 
@@ -168,6 +168,8 @@ def test_every_fixture_link_passes_safe_link(fixture_text):
         *greenhouse.parse(load("greenhouse.json"), "getyourguide", "GetYourGuide"),
         *smartrecruiters.parse_list({"content": [
             {"id": "1", "name": "Working Student", "location": {"city": "Berlin"}}]}, "DeliveryHero", "Delivery Hero"),
+        *deloitte.parse_list(fixture_text("deloitte_list.html")),
+        *filter(None, map(pwc.to_job, pwc.parse_search(fixture_text("pwc_search.html"))[1])),
     ]
     assert {j.source for j in parsed} == {s.NAME for s in main.SOURCES}
     assert [j.url for j in parsed if not main.safe_link(j.source, j.url)] == []
