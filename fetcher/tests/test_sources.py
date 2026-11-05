@@ -205,3 +205,52 @@ def test_smartrecruiters_keeps_berlin_only():
     jobs = smartrecruiters.parse_list(data, "DeliveryHero", "Delivery Hero")
     assert [j.source_id for j in jobs] == ["DeliveryHero:1"]
     assert jobs[0].url == "https://jobs.smartrecruiters.com/DeliveryHero/1" and jobs[0].city == "berlin"
+
+
+def test_smartrecruiters_reads_other_board_cities():
+    from fetcher.sources import smartrecruiters
+    data = {"content": [
+        {"id": "7", "name": "Working Student (f/m/d) Cloud", "location": {"city": "Dresden"}},
+        {"id": "8", "name": "Working Student Data", "location": {"city": "Walldorf"}},
+    ]}
+    jobs = smartrecruiters.parse_list(data, "SAPITBusinessSysteme", "SAP", "dresden")
+    assert [(j.source_id, j.city, j.location, j.company) for j in jobs] == [
+        ("SAPITBusinessSysteme:7", "dresden", "Dresden", "SAP")]
+
+
+def test_deloitte_list_has_titles_and_board_cities(fixture_text):
+    from fetcher.sources import deloitte
+    jobs = deloitte.parse_list(fixture_text("deloitte_list.html"))
+    assert len(jobs) == 10
+    audit = jobs[0]
+    assert audit.title == "Praktikant Audit (m/w/d)"
+    assert audit.url.startswith("https://job.deloitte.com/job-praktikant-audit-mwd-_")
+    assert audit.city == "dresden"  # first board city in CITIES order
+    assert audit.location == "Dresden, Leipzig, Berlin"
+    assert any(j.city == "" and j.location == "" for j in jobs)  # only cities outside our boards
+    assert all("&amp;" not in j.title for j in jobs)
+
+
+def test_deloitte_detail_reads_jobposting_data(fixture_text):
+    from fetcher.sources import deloitte
+    desc, posted = deloitte.parse_detail(fixture_text("deloitte_job.html"))
+    assert posted == "2026-10-27"
+    assert desc.startswith("Du willst im Bereich Consulting") and "<" not in desc
+    assert deloitte.parse_detail("<html></html>") == ("", None)
+
+
+def test_pwc_keeps_student_posts_in_board_cities(fixture_text):
+    from fetcher.sources import pwc
+    total, postings = pwc.parse_search(fixture_text("pwc_search.html"))
+    assert total == 369 and len(postings) == 10
+    jobs = [j for j in map(pwc.to_job, postings) if j]
+    assert [j.source_id for j in jobs] == ["1527"]  # Düsseldorf-only and non-student posts are skipped
+    j = jobs[0]
+    assert j.url == "https://jobs.pwc.de/de/de/job/1527" and j.city == "berlin" and j.location == "Berlin"
+    assert j.posted_at and len(j.posted_at) == 10 and j.description
+
+
+def test_pwc_detail_has_the_full_description(fixture_text):
+    from fetcher.sources import pwc
+    desc = pwc.parse_detail(fixture_text("pwc_job.html"))
+    assert len(desc) > 1000 and "<" not in desc
