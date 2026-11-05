@@ -254,3 +254,33 @@ def test_pwc_detail_has_the_full_description(fixture_text):
     from fetcher.sources import pwc
     desc = pwc.parse_detail(fixture_text("pwc_job.html"))
     assert len(desc) > 1000 and "<" not in desc
+
+
+def test_deloitte_raises_instead_of_returning_a_short_list(monkeypatch, fixture_text):
+    import pytest
+    from fetcher.sources import deloitte
+    pages = {1: fixture_text("deloitte_list.html"), 2: "<html>Too many requests</html>"}
+    monkeypatch.setattr(deloitte, "get_text", lambda url, params=None: pages[params["page"]])
+    monkeypatch.setattr(deloitte.time, "sleep", lambda s: None)
+    with pytest.raises(RuntimeError, match="added no postings"):
+        deloitte.fetch()
+
+
+def test_pwc_rereads_when_a_posting_shifted_and_fails_if_still_short(monkeypatch):
+    import pytest
+    from fetcher.sources import pwc
+
+    def page(ids, total):
+        jobs = [{"jobId": i, "title": f"Job {i}", "multi_location": ["Hamburg, DEU"]} for i in ids]
+        return '<script>phApp.ddo = {"eagerLoadRefineSearch": {"totalHits": %d, "data": {"jobs": %s}}}; phApp.x</script>' % (
+            total, __import__("json").dumps(jobs))
+
+    calls = []
+    def short(url, params=None):
+        calls.append(params["from"])
+        return page(list(range(params["from"], params["from"] + 10))[:9], 20)  # always one missing per page
+    monkeypatch.setattr(pwc, "get_text", short)
+    monkeypatch.setattr(pwc.time, "sleep", lambda s: None)
+    with pytest.raises(RuntimeError, match="feed ended early"):
+        pwc.fetch()
+    assert calls == [0, 10, 0, 10]  # read twice before giving up

@@ -22,7 +22,6 @@ NAME = "PwC"
 SITE = "https://jobs.pwc.de/de/de"
 PAGE = 10  # the site's page size
 MAX_PAGES = 100
-FEED_SLACK = 3  # postings that may close while paging
 STUDENT_LEVEL = "Praktikum, Werkstudium"
 
 DDO = re.compile(r"phApp\.ddo\s*=\s*(\{.*?\});\s*phApp", re.S)
@@ -70,24 +69,34 @@ def parse_detail(text: str) -> str:
     return clean_text(job.get("description"))[:4000]
 
 
-def fetch() -> list[Job]:
-    jobs: dict[str, Job] = {}
-    total = rows = 0
+def _read_all(jobs: dict[str, Job], seen: set[str]) -> int:
+    """One pass over every search page; returns the reported total."""
+    total = 0
     for page in range(MAX_PAGES):
         hits, postings = parse_search(get_text(f"{SITE}/search-results", params={"from": page * PAGE, "s": 1}))
         total = total or hits
-        rows += len(postings)
         for p in postings:
+            seen.add(str(p.get("jobId")))
             job = to_job(p)
             if job:
                 jobs[job.source_id] = job
-        if not postings or rows >= total:
-            break
+        if not postings or (page + 1) * PAGE >= total:
+            return total
         time.sleep(0.3)
-    else:  # a cut-off list would make the missing postings count as closed
-        raise RuntimeError(f"{NAME}: more than {MAX_PAGES * PAGE} postings; raise MAX_PAGES")
-    if not total or rows < total - FEED_SLACK:
-        raise RuntimeError(f"{NAME}: feed ended early: got {rows} of {total}")
+    # a cut-off list would make the missing postings count as closed
+    raise RuntimeError(f"{NAME}: more than {MAX_PAGES * PAGE} postings; raise MAX_PAGES")
+
+
+def fetch() -> list[Job]:
+    jobs: dict[str, Job] = {}
+    seen: set[str] = set()
+    total = _read_all(jobs, seen)
+    if len(seen) < total:
+        # Paging is by offset: a posting closing mid-run shifts the rest, so one can be skipped.
+        # A second pass fills the gap; still short means the list really is incomplete.
+        total = _read_all(jobs, seen)
+    if not total or len(seen) < total:
+        raise RuntimeError(f"{NAME}: feed ended early: got {len(seen)} of {total}")
     for job in jobs.values():
         if classify(job) is not None:
             # A failure fails the source, so its postings count as unknown, not closed.

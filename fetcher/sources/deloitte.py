@@ -84,8 +84,10 @@ def fetch() -> list[Job]:
         new = [j for j in found if j.source_id not in by_id]
         for j in new:
             by_id[j.source_id] = j
-        if not new:  # a repeated page also ends the list
-            break
+        if not new:
+            # The real end is a 404. An empty or repeated page before it (rate limit, changed
+            # markup) would cut the list short and make open postings look closed.
+            raise RuntimeError(f"{NAME}: page {page} added no postings before the end of the list")
         time.sleep(0.4)
     else:  # a cut-off list would make the missing postings count as closed
         raise RuntimeError(f"{NAME}: more than {MAX_PAGES} pages; raise MAX_PAGES")
