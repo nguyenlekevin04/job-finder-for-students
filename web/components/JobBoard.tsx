@@ -37,6 +37,16 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
   const { isHidden, hide, unhide } = useHidden();
   const [showHidden, setShowHidden] = useState(false);
   const [justHidden, setJustHidden] = useState<string | null>(null); // for "Undo"
+  // Hiding a job or opening "All jobs at …" removes the button that had focus: move it to what replaced it.
+  const undoRef = useRef<HTMLButtonElement>(null);
+  const companyRef = useRef<HTMLParagraphElement>(null);
+  const focusNext = useRef<"undo" | "company" | null>(null);
+  useEffect(() => {
+    // Runs after every render; acts once, right after the click's re-render.
+    if (!focusNext.current) return;
+    (focusNext.current === "undo" ? undoRef : companyRef).current?.focus();
+    focusNext.current = null;
+  });
   const { applications, setStatus } = useApplications();
   const savedSearches = useSavedSearches();
   const router = useRouter();
@@ -104,6 +114,7 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
     }
     hide(id);
     setJustHidden(id);
+    focusNext.current = "undo";
     setFilters((f) => (f.job === id ? { ...f, job: null } : f));
     track("hide_job");
   };
@@ -112,7 +123,10 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
     if (!isSaved(job.id)) unhide(job.id);
     toggle(job);
   };
-  const showCompany = (company: string) => setFilters((f) => ({ ...f, company, job: null }));
+  const showCompany = (company: string) => {
+    setFilters((f) => ({ ...f, company, job: null }));
+    focusNext.current = "company";
+  };
 
   const data = state.status === "ready" ? state.data : null;
   // Jobs past their deadline leave the board everywhere: list, counts and search.
@@ -353,9 +367,14 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
               <AlertButton filters={filters} />
             </div>
             {filters.company && (
-              <p className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-l-2 border-orange pl-3 text-sm" data-testid="company-filter">
+              <p
+                ref={companyRef}
+                tabIndex={-1}
+                className="focus-ring mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-sm border-l-2 border-orange pl-3 text-sm"
+                data-testid="company-filter"
+              >
                 <span>
-                  <b className="font-semibold">{matching.length}</b> {matching.length === 1 ? "job" : "jobs"} at{" "}
+                  <b className="font-semibold">{results.length}</b> {results.length === 1 ? "job" : "jobs"} at{" "}
                   <b className="font-semibold">{filters.company}</b>
                 </span>
                 {companyElsewhere.map(([b, n]) => (
@@ -368,21 +387,25 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
                 </button>
               </p>
             )}
-            {justHidden && isHidden(justHidden) && (
-              <p role="status" className="mb-4 flex flex-wrap items-baseline gap-x-3 border-l-2 border-rule pl-3 text-sm text-muted">
-                Hidden. You won’t see this job here again.
-                <button
-                  type="button"
-                  onClick={() => {
-                    unhide(justHidden);
-                    setJustHidden(null);
-                  }}
-                  className="focus-ring hit link-u rounded text-ink"
-                >
-                  Undo
-                </button>
-              </p>
-            )}
+            {/* Always mounted, so screen readers announce the text when it appears. */}
+            <div role="status">
+              {justHidden && isHidden(justHidden) && (
+                <p className="mb-4 flex flex-wrap items-baseline gap-x-3 border-l-2 border-rule pl-3 text-sm text-muted">
+                  Hidden. You won’t see this job here again.
+                  <button
+                    ref={undoRef}
+                    type="button"
+                    onClick={() => {
+                      unhide(justHidden);
+                      setJustHidden(null);
+                    }}
+                    className="focus-ring hit link-u rounded text-ink"
+                  >
+                    Undo
+                  </button>
+                </p>
+              )}
+            </div>
             {jobs.length === 0 ? (
               <EmptyState title="No jobs yet">The list is filled every morning. Check back soon.</EmptyState>
             ) : results.length === 0 ? (

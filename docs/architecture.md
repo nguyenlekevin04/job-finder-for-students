@@ -91,8 +91,8 @@ flowchart LR
 
 - **Static export** (`output: "export"`, `trailingSlash: true`). No server features: no route handlers, server actions, rewrites or image optimisation.
 - **Data:** `useJobs` loads the job list and the latest `fetch_runs` row once per page load and caches it module-wide. `NEXT_PUBLIC_*` values are inlined at build time, so a changed setting needs a redeploy.
-- **State lives in the URL** (`lib/filters.ts`): `q` (search), `type`, `field`, `en` (English-friendly), `remote=0` (exclude remote), `new` (fresh this week), `hours`, `since`, `sort` and the open job (`job`). Component state is the source of truth and is mirrored to the URL after 250 ms.
-- **State in the browser only** (no accounts, no cookies): bookmarks (`dsj:bookmarks:v1`, whole job objects so closed jobs still show), theme (`dsj:theme`), last visit (`dsj:lastVisit`: newest job seen and visit times; a new visit starts after 30 minutes without a page load).
+- **State lives in the URL** (`lib/filters.ts`): the board in the path (`/berlin/`, `/remote/`; old `city` links redirect), `q` (search), `type`, `field`, `en` (English-friendly), `de` (German B2 is enough), `new` (fresh this week), `hours`, `since`, `sort`, `company` (one employer) and the open job (`job`). Component state is the source of truth and is mirrored to the URL after 250 ms.
+- **State in the browser only** (no accounts, no cookies): bookmarks (`dsj:bookmarks:v1`, whole job objects so closed jobs still show), application status (`dsj:applications:v1`), saved searches (`dsj:searches:v1`), hidden jobs (`dsj:hidden:v1`), theme (`dsj:theme`), last visit (`dsj:lastVisit`: newest job seen and visit times; a new visit starts after 30 minutes without a page load).
 - **Design system:** CSS variables in `app/globals.css` exposed as Tailwind tokens; dark mode via a `.dark` class set before paint.
 - **Usage counts** (`lib/analytics.ts`): Umami Cloud, cookieless, tracker served from our own pinned copy, loaded only when `NEXT_PUBLIC_UMAMI_WEBSITE_ID` is set at build time (Vercel Production only, so staging, PRs and local builds send nothing). Page views without query strings or hashes, Do Not Track respected. Events: `filter` (which filter was turned on, via `filterEvents()`; a search counts as `search`, never its text) and `apply` (the link's source). No job ids or free text are ever sent.
 - **Legal pages:** operator name, address and email come from Vercel environment variables (`NEXT_PUBLIC_OPERATOR_*`), never from the repo. The pages are noindex.
@@ -113,6 +113,7 @@ flowchart LR
 | `snippet` | up to 700 characters of the description |
 | `hours_min`, `hours_max`, `pay_amount`, `pay_unit` | only when the posting states them |
 | `city` | the board's city (`dresden`, `leipzig`, `chemnitz`, `berlin`); empty for remote-only postings |
+| `cities` | every board city the job names, primary first (a job open in Leipzig and Berlin is on both boards); empty in rows saved before 2026-11-06, which means just `city` |
 | `german_level` | `none` / `basic` (B1–B2) / `fluent` (C1+), only when the posting states it (`terms.extract_german`) |
 
 **`fetch_runs`**: one row per daily run with the job count and per-source status (`ok`, `count`, `error`, `skipped`, `rejected`, `links: {open, closed, unknown, moved}`). It is public, so errors pass through `redact()`, which strips URL query strings.

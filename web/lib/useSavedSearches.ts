@@ -75,6 +75,7 @@ export function searchLabel(qs: string): string {
     f.hours && "Up to 20 h/week",
     f.fresh && "This week",
     f.q.trim() && `“${f.q.trim()}”`,
+    f.company && `at ${f.company}`,
   ].filter(Boolean) as string[];
   return parts.join(" · ") || "All jobs";
 }

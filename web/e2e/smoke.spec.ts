@@ -515,6 +515,7 @@ test("All jobs at a company filters by employer, syncs the URL and clears", asyn
   await row(page, ml.title).click();
   await page.getByRole("button", { name: `All jobs at ${ml.company}` }).click();
   await expect(page.getByTestId("company-filter")).toContainText(`1 job at ${ml.company}`);
+  await expect(page.getByTestId("company-filter")).toBeFocused();
   await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
   await expect(page).toHaveURL(new RegExp(`company=${encodeURIComponent(ml.company).replace(/%20/g, "\\+")}`));
   await page.reload();
@@ -530,6 +531,7 @@ test("Not for me hides a job, Undo and Show bring it back, and it survives a rel
   await row(page, data.title).click();
   await page.getByRole("button", { name: "Not for me" }).click();
   await expect(page.locator(`#row-${data.id}`)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Undo" })).toBeFocused();
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(page.locator(`#row-${data.id}`)).toBeVisible();
 

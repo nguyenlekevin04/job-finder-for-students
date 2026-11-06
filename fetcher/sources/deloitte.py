@@ -30,7 +30,6 @@ ROW = re.compile(r'<li class="job-list-item-josi ')
 LINK = re.compile(r'href="(/job-[a-z0-9-]+-_(\d+))"[^>]*>([^<]+)</a>')
 CITY = re.compile(r'href="/search\?city=[^"]+"[^>]*>([^<]+)</a>')
 LD_JSON = re.compile(r'<script type="application/ld\+json">(.*?)</script>', re.S)
-BY_NAME = {name.lower(): key for key, name in CITIES.items()}
 
 
 def parse_list(text: str) -> list[Job]:
