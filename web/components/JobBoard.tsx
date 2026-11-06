@@ -15,10 +15,11 @@ import {
   type Filters,
 } from "@/lib/filters";
 import { filterEvents, track } from "@/lib/analytics";
-import { BOARD_LABELS, BOARDS, CITY_LABELS, type Board } from "@/lib/types";
+import { BOARD_LABELS, BOARDS, CITY_LABELS, type Board, type Job } from "@/lib/types";
 import { isNew, localDay, relativeTime, visitDayLabel } from "@/lib/format";
 import { useApplications } from "@/lib/useApplications";
 import { useBookmarks } from "@/lib/useBookmarks";
+import { useHidden } from "@/lib/useHidden";
 import { isSearch, searchKey, useSavedSearches } from "@/lib/useSavedSearches";
 import { useJobsFile } from "@/lib/useJobs";
 import { useLastVisit } from "@/lib/useLastVisit";
@@ -33,6 +34,9 @@ import { EmptyState, ErrorState, LoadingList } from "./States";
 export function JobBoard({ home = "dresden" }: { home?: Board }) {
   const { state, retry } = useJobsFile();
   const { isSaved, toggle } = useBookmarks();
+  const { isHidden, hide, unhide } = useHidden();
+  const [showHidden, setShowHidden] = useState(false);
+  const [justHidden, setJustHidden] = useState<string | null>(null); // for "Undo"
   const { applications, setStatus } = useApplications();
   const savedSearches = useSavedSearches();
   const router = useRouter();
@@ -89,10 +93,26 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
 
   const update = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
   const reset = () => {
-    setFilters((f) => ({ ...DEFAULT_FILTERS, job: f.job }));
+    setFilters((f) => ({ ...DEFAULT_FILTERS, city: f.city, job: f.job }));
     searchRef.current?.focus(); // the Clear button disappears; keep keyboard users in place
   };
   const openJob = (id: string) => setFilters((f) => ({ ...f, job: f.job === id ? null : id }));
+  const hideJob = (id: string) => {
+    if (isHidden(id)) {
+      unhide(id);
+      return;
+    }
+    hide(id);
+    setJustHidden(id);
+    setFilters((f) => (f.job === id ? { ...f, job: null } : f));
+    track("hide_job");
+  };
+  // Saving a job you hid means you changed your mind: it comes back.
+  const toggleSave = (job: Job) => {
+    if (!isSaved(job.id)) unhide(job.id);
+    toggle(job);
+  };
+  const showCompany = (company: string) => setFilters((f) => ({ ...f, company, job: null }));
 
   const data = state.status === "ready" ? state.data : null;
   // Jobs past their deadline leave the board everywhere: list, counts and search.
@@ -107,7 +127,20 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
     [allJobs],
   );
   const index = useMemo(() => (jobs.length ? makeIndex(jobs) : null), [jobs]);
-  const results = useMemo(() => applyFilters(jobs, filters, index), [jobs, filters, index]);
+  const matching = useMemo(() => applyFilters(jobs, filters, index), [jobs, filters, index]);
+  // "Not for me" jobs leave the list (a shared link to one still opens it) until "show" is on.
+  const hiddenCount = matching.filter((j) => isHidden(j.id) && j.id !== filters.job).length;
+  const results = showHidden ? matching : matching.filter((j) => !isHidden(j.id) || j.id === filters.job);
+  // "All jobs at …": the same employer's jobs on the other boards.
+  const companyElsewhere = useMemo(
+    () =>
+      filters.company
+        ? BOARDS.filter((b) => b !== filters.city)
+            .map((b) => [b, allJobs.filter((j) => j.company === filters.company && inCity(j, b)).length] as const)
+            .filter(([, n]) => n > 0)
+        : [],
+    [allJobs, filters.company, filters.city],
+  );
   // "Share this week's jobs" covers the board and its filters, not the search text or "since" view.
   const digest = useMemo(
     () => applyFilters(jobs, { ...filters, q: "", since: null, fresh: true }, index),
@@ -319,6 +352,37 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
             <div className="pb-3">
               <AlertButton filters={filters} />
             </div>
+            {filters.company && (
+              <p className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-l-2 border-orange pl-3 text-sm" data-testid="company-filter">
+                <span>
+                  <b className="font-semibold">{matching.length}</b> {matching.length === 1 ? "job" : "jobs"} at{" "}
+                  <b className="font-semibold">{filters.company}</b>
+                </span>
+                {companyElsewhere.map(([b, n]) => (
+                  <button key={b} type="button" onClick={() => update({ city: b })} className="focus-ring hit link-u rounded text-muted hover:text-ink">
+                    +{n} in {BOARD_LABELS[b]}
+                  </button>
+                ))}
+                <button type="button" onClick={() => update({ company: null })} className="focus-ring hit link-u rounded text-muted hover:text-ink">
+                  All companies
+                </button>
+              </p>
+            )}
+            {justHidden && isHidden(justHidden) && (
+              <p role="status" className="mb-4 flex flex-wrap items-baseline gap-x-3 border-l-2 border-rule pl-3 text-sm text-muted">
+                Hidden. You won’t see this job here again.
+                <button
+                  type="button"
+                  onClick={() => {
+                    unhide(justHidden);
+                    setJustHidden(null);
+                  }}
+                  className="focus-ring hit link-u rounded text-ink"
+                >
+                  Undo
+                </button>
+              </p>
+            )}
             {jobs.length === 0 ? (
               <EmptyState title="No jobs yet">The list is filled every morning. Check back soon.</EmptyState>
             ) : results.length === 0 ? (
@@ -339,12 +403,23 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
                     saved={isSaved(job.id)}
                     application={applications[job.id]}
                     onStatus={setStatus}
-                    onToggleSave={toggle}
+                    onToggleSave={toggleSave}
+                    onCompany={filters.company === job.company ? undefined : showCompany}
+                    onHide={hideJob}
+                    hidden={isHidden(job.id)}
                     showNew={(newMode === "since" && sinceCount < jobs.length) || (newMode === "week" && newCount < jobs.length)}
                     newSince={newMode === "since" ? sinceDay : null}
                   />
                 ))}
               </ol>
+            )}
+            {(hiddenCount > 0 || showHidden) && (
+              <p className="mt-4 text-[13px] text-muted">
+                {showHidden ? "Showing jobs you hid." : `${hiddenCount} hidden ${hiddenCount === 1 ? "job" : "jobs"}.`}{" "}
+                <button type="button" onClick={() => setShowHidden((v) => !v)} className="focus-ring hit link-u rounded text-ink">
+                  {showHidden ? "Hide them again" : "Show"}
+                </button>
+              </p>
             )}
             <DigestButton jobs={digest} filters={filters} />
           </>

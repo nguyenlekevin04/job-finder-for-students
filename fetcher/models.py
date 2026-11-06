@@ -1,7 +1,7 @@
 """Data shape shared by every source."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # The cities the board covers: key -> name as job sites spell it. Dresden is the default.
 CITIES = {"dresden": "Dresden", "leipzig": "Leipzig", "chemnitz": "Chemnitz", "berlin": "Berlin"}
@@ -19,6 +19,8 @@ class Job:
     location: str = "Dresden"
     # The board's city, a key of CITIES. Empty for remote-only postings.
     city: str = "dresden"
+    # Every board city the posting names, when it names several ("Leipzig, Berlin"); empty = just `city`.
+    cities: list[str] = field(default_factory=list)
     remote: bool = False
     posted_at: str | None = None  # YYYY-MM-DD
     deadline: str | None = None  # YYYY-MM-DD

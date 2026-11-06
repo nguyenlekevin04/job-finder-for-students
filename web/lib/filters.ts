@@ -1,7 +1,7 @@
 import { isNew, localDay } from "./format";
 import { search, titleMatches, type SearchIndex } from "./search";
 export { makeIndex } from "./search";
-import { ALL_FIELDS, ALL_TYPES, BOARDS, type Board, type Field, type Job, type JobType } from "./types";
+import { ALL_FIELDS, ALL_TYPES, BOARDS, type Board, type City, type Field, type Job, type JobType } from "./types";
 
 export type Sort = "newest" | "company";
 
@@ -16,6 +16,7 @@ export interface Filters {
   hours: boolean; // only jobs that state at most HOURS_LIMIT h/week
   since: string | null; // "YYYY-MM-DD": only jobs first seen after this day ("new since your last visit")
   sort: Sort;
+  company: string | null; // only this employer's jobs (exact name, from "All jobs at …")
   job: string | null; // the expanded job; not a filter, but shared through the URL
 }
 
@@ -30,6 +31,7 @@ export const DEFAULT_FILTERS: Filters = {
   hours: false,
   since: null,
   sort: "newest",
+  company: null,
   job: null,
 };
 
@@ -69,6 +71,7 @@ export function filtersFromParams(p: URLSearchParams, home: Board = "dresden"): 
     hours: p.get("hours") === String(HOURS_LIMIT),
     since: day(p.get("since")),
     sort: p.get("sort") === "company" ? "company" : "newest",
+    company: p.get("company")?.trim().slice(0, 200) || null,
     job: p.get("job") || null,
   };
 }
@@ -86,6 +89,7 @@ export function filtersToParams(f: Filters, home: Board = "dresden"): URLSearchP
   if (f.hours) p.set("hours", String(HOURS_LIMIT));
   if (f.since) p.set("since", f.since);
   if (f.sort !== "newest") p.set("sort", f.sort);
+  if (f.company) p.set("company", f.company);
   if (f.job) p.set("job", f.job);
   return p;
 }
@@ -98,7 +102,8 @@ export function activeFilterCount(f: Filters): number {
     (f.german ? 1 : 0) +
     (f.fresh ? 1 : 0) +
     (f.hours ? 1 : 0) +
-    (f.since ? 1 : 0)
+    (f.since ? 1 : 0) +
+    (f.company ? 1 : 0)
   );
 }
 
@@ -106,9 +111,14 @@ export function jobDate(job: Job): string {
   return job.postedAt ?? job.firstSeen;
 }
 
-/** On this board: a city's own jobs, or on the "remote" board only remote jobs. */
+/** The boards of a non-remote job: every city it names (data saved before `cities` has only `city`). */
+export function jobCities(job: Job): City[] {
+  return job.cities?.length ? job.cities : [(job.city || "dresden") as City];
+}
+
+/** On this board: a job open in this city (also when it names others), or on "remote" only remote jobs. */
 export function inCity(job: Job, board: Board): boolean {
-  return board === "remote" ? job.remote : !job.remote && (job.city || "dresden") === board;
+  return board === "remote" ? job.remote : !job.remote && jobCities(job).includes(board as City);
 }
 
 /** The posting says German B1–B2 is enough, or that no German is needed. */
@@ -137,7 +147,8 @@ export function applyFilters(jobs: Job[], f: Filters, index: SearchIndex | null)
       inCity(j, f.city) &&
       (!f.fresh || isNew(j.firstSeen)) &&
       (!f.hours || withinHours(j)) &&
-      (!f.since || j.firstSeen > f.since)
+      (!f.since || j.firstSeen > f.since) &&
+      (!f.company || j.company === f.company)
   );
   // With a search, jobs whose title or company matches come first; the chosen sort applies within.
   const top = q && index ? titleMatches(result, q, index) : null;

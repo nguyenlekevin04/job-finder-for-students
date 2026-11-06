@@ -98,3 +98,11 @@ def test_new_signups_must_receive_the_welcome_before_they_count(monkeypatch):
     assert ("real", "Alerts are on") in sent
     assert not any(title != "Alerts are on" for _, title in sent)  # job alerts start with the next run
     assert counts["confirmed"] == 1 and counts["removed"] == 1
+
+
+def test_a_multi_city_job_is_on_each_of_its_boards():
+    from fetcher.push import on_board
+    job = {"city": "leipzig", "cities": ["leipzig", "berlin"]}
+    assert on_board(job, "leipzig") and on_board(job, "berlin") and not on_board(job, "dresden")
+    assert on_board({"city": "dresden"}, "dresden")  # saved before cities existed
+    assert not on_board({"city": "", "cities": [], "remote": True}, "berlin")

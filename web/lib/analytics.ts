@@ -35,6 +35,7 @@ export function filterEvents(prev: Filters, next: Filters): EventData[] {
   if (next.hours && !prev.hours) out.push({ name: "hours" });
   if (next.since && next.since !== prev.since) out.push({ name: "since-last-visit" });
   if (next.sort !== prev.sort) out.push({ name: "sort", value: next.sort });
+  if (next.company && next.company !== prev.company) out.push({ name: "company" }); // that it was used, never which
   if (next.q.trim() && !prev.q.trim()) out.push({ name: "search" }); // that a search ran, never the text
   return out;
 }

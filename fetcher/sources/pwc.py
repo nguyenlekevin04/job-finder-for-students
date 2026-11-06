@@ -59,6 +59,7 @@ def to_job(p: dict) -> Job | None:
         url=f"{SITE}/job/{p['jobId']}",
         location=", ".join(CITIES[k] for k in ours),
         city=ours[0],
+        cities=ours,
         posted_at=to_day(p.get("postedDate")),
         description=clean_text(p.get("descriptionTeaser")),
     )

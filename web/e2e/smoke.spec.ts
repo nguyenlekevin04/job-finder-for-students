@@ -499,3 +499,49 @@ test("Copy this week's jobs copies the new jobs with links", async ({ page, cont
   expect(text).toContain(`${baseURL}/?job=${encodeURIComponent(ml.id)}`);
   expect(text).toContain(`All new jobs: ${baseURL}/?new=1`);
 });
+
+test("a job open in two cities shows on both boards and names both", async ({ page }) => {
+  await openBoard(page, "/leipzig/");
+  await expect(count(page)).toHaveText(/^1 job/);
+  const chip = page.locator("#row-e2e-thesis-chip");
+  await expect(chip).toContainText("Dresden, Leipzig");
+  await openBoard(page);
+  await expect(page.locator("#row-e2e-thesis-chip")).toBeVisible();
+});
+
+test("All jobs at a company filters by employer, syncs the URL and clears", async ({ page }) => {
+  const [ml] = fixture.jobs;
+  await openBoard(page);
+  await row(page, ml.title).click();
+  await page.getByRole("button", { name: `All jobs at ${ml.company}` }).click();
+  await expect(page.getByTestId("company-filter")).toContainText(`1 job at ${ml.company}`);
+  await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
+  await expect(page).toHaveURL(new RegExp(`company=${encodeURIComponent(ml.company).replace(/%20/g, "\\+")}`));
+  await page.reload();
+  await expect(page.getByTestId("company-filter")).toBeVisible();
+  await page.getByRole("button", { name: "All companies" }).click();
+  await expect(count(page)).toHaveText(new RegExp(`^${TOTAL} jobs`));
+  await expect(page).not.toHaveURL(/company=/);
+});
+
+test("Not for me hides a job, Undo and Show bring it back, and it survives a reload", async ({ page }) => {
+  const [, data] = fixture.jobs;
+  await openBoard(page);
+  await row(page, data.title).click();
+  await page.getByRole("button", { name: "Not for me" }).click();
+  await expect(page.locator(`#row-${data.id}`)).toHaveCount(0);
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.locator(`#row-${data.id}`)).toBeVisible();
+
+  await row(page, data.title).click();
+  await page.getByRole("button", { name: "Not for me" }).click();
+  await page.reload();
+  await expect(page.locator(`#row-${data.id}`)).toHaveCount(0);
+  await expect(page.getByText("1 hidden job.")).toBeVisible();
+  await page.getByRole("button", { name: "Show", exact: true }).click();
+  await expect(page.locator(`#row-${data.id}`)).toBeVisible();
+  await row(page, data.title).click();
+  await page.getByRole("button", { name: "Show again" }).click();
+  await page.getByRole("button", { name: "Hide them again" }).click();
+  await expect(page.locator(`#row-${data.id}`)).toBeVisible();
+});

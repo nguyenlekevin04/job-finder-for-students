@@ -35,7 +35,21 @@ Goal: a board a busy international student trusts and comes back to, as fast as 
 - ✅ **Ready to share** (S): short city links (`/berlin/` etc.), link preview cards, and a launch kit with posts and A4 QR posters (`docs/launch/`).
 - Later: thesis contact person (only HZDR lists names, no emails; needs a new column).
 
-### Next features (Otto, 2026-11-03, in this order)
+### Sprint picks (Otto, 2026-11-06, in this order)
+
+Goal: first real users. With ~143 jobs from Big 4, SAP and Berlin employers, students need to find every job meant for them and narrow the list fast.
+
+1. **Multi-city jobs on every board they name** (S, build first): As a Leipzig student, I want a "Leipzig, Berlin" posting on my board too, so that I don't miss jobs that are open in my city.
+   - Acceptance: a job whose posting lists several board cities appears on each of those boards and counts in each board's number. It is still one job (one id, one bookmark, one "New" badge). The row shows the city of the board you are on (e.g. "Leipzig +1"). Push alerts for a city include it (`fetcher/push.py` follows the same rule as `inCity()`). Test: a PwC/Deloitte fixture with "Leipzig, Berlin" shows on `/leipzig/` and `/berlin/`.
+   - Notes: whether this needs a `cities` column is the tech lead's call.
+2. **All jobs at this company** (S): As a student who likes an employer (Deloitte, SAP, Fraunhofer), I want to tap the company name and see all its jobs, so that I can compare roles and share one link.
+   - Acceptance: the company name in the open job (and row, if Iris agrees) links to the board filtered to that company (`?company=…`, shareable, survives reload, counts as an active filter and clears with "Clear filters"). Shows "N jobs at Deloitte" on the current board, plus "+M in other cities" linking there when there are any. Matches the company name exactly as shown (no fuzzy match). Analytics: count of uses only, never the company name; privacy page updated.
+3. **"Not for me": hide a job** (S): As a student who checks the board every few days, I want to hide jobs I've ruled out, so that I only scan jobs I haven't judged yet.
+   - Acceptance: "Not for me" on the open job hides it from the board; a short "Hidden. Undo" notice appears. A "N hidden, show" link at the end of the list brings them back. Stored in localStorage only (like bookmarks), survives a reload, works with storage blocked (no crash, just no hiding). Saving a job un-hides it. Count of uses only in analytics; privacy page lists the new localStorage key.
+
+Not now (2026-11-06): employer logos (third-party images or a logo store, CSP and privacy cost, little help to decide); "similar jobs" (company link + filters cover it at 143 jobs); company pages for Google (wait for the CDN switch, see Later).
+
+### Next features (Otto, 2026-11-03, in this order; 2, 3, 5 ✅ shipped, 1 and 4 ⏸ parked)
 
 Goal: first real users. More jobs to find, faster decisions for international students, and things students pass on in course groups.
 
@@ -82,7 +96,7 @@ Non-blocking findings; the tech lead decides the order. Most are small.
 - **Thesis group, supervisor and contact email** (M): HZDR/Fraunhofer pages state them inconsistently, and publishing personal emails needs care; revisit after MVP 4 shows how reliable extraction is.
 - **Sync of saved jobs and status across devices** (L): needs login (see below); MVP keeps everything in the browser and alerts work without an account.
 - **Make the imprint easier to find** (S): it is in the footer and legally fine; not a student need.
-- **Company pages** (M): little value at today's ~100 jobs from a few dozen employers; the company filter/search covers it.
+- **Company pages** (M): static per-company pages for Google; wait for the CDN switch. The in-board company filter (Now, 2026-11-06) covers students' need.
 
 - **Login / accounts** (L): As a student, I want my saved jobs on my phone and my laptop, so that I don't lose them. Waits: bookmarks in the browser cover the need today. Accounts bring privacy, security and support costs. Look at it again only if students ask for sync. Lena (2026-10-31) wants it only for alerts and sync, via magic link or Google, never a password/CV/profile, and saving must never need an account; MVP 6 covers alerts without it.
   - **Technical preconditions (tech lead, fixed before any build):**
@@ -112,6 +126,12 @@ Nothing here gets built until step 0 shows demand. Guiding rule: students never 
 4. **Free support and grants** (S, no revenue risk): ask dresden|exists (TU Dresden founder support) and the student councils (Fachschaftsräte) to share the board, and check whether a public-interest open-source grant would cover hosting. This adds students, which is what makes items 1 to 3 sellable.
 
 **Not doing:** display ads (AdSense etc.: they need a cookie banner under §25 TDDDG and break "no tracking", and earn a few euros a month at our size); a paid tier or paid alerts for students; selling or sharing usage data; employer branding pages (they need far more traffic first; TU Dresden sells profiles for €975+ with the university's name behind it). **Later, only on request:** affiliate links for international students (blocked account, health insurance), each labelled.
+
+## Done (2026-11-06)
+
+- **Student tools** (PR #58): "Read in English" on German postings, `/guide/` work rules for non-EU students, "Copy for WhatsApp" of this week's jobs.
+- **Business IT field** (PR #59): Wirtschaftsinformatik roles (IT consulting, SAP/ERP, IT governance, business processes).
+- **Big 4 and SAP** (PR #60): Deloitte and PwC across Germany, SAP in Dresden and Berlin.
 
 ## Done (2026-11-03)
 

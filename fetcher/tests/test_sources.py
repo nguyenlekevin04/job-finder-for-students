@@ -227,6 +227,7 @@ def test_deloitte_list_has_titles_and_board_cities(fixture_text):
     assert audit.url.startswith("https://job.deloitte.com/job-praktikant-audit-mwd-_")
     assert audit.city == "dresden"  # first board city in CITIES order
     assert audit.location == "Dresden, Leipzig, Berlin"
+    assert audit.cities == ["dresden", "leipzig", "berlin"]
     assert any(j.city == "" and j.location == "" for j in jobs)  # only cities outside our boards
     assert all("&amp;" not in j.title for j in jobs)
 
