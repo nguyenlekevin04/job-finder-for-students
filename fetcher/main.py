@@ -221,6 +221,11 @@ def run_sources() -> tuple[list, dict]:
     return raw, status
 
 
+def board_cities(known: list[str], r) -> list[str]:
+    """known plus the posting's board cities, in order, without repeats; remote-only adds none."""
+    return list(dict.fromkeys([*known, *(c for c in [r.city, *r.cities] if c)]))
+
+
 def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
     """Classify and merge duplicates. Returns id -> job dict.
 
@@ -254,6 +259,8 @@ def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
             if not j["snippet"] and tags["snippet"]:
                 # Flag and snippet come from the same posting.
                 j["snippet"], j["englishFriendly"] = tags["snippet"], tags["englishFriendly"]
+            # The same job posted for several cities shows on each of their boards.
+            j["cities"] = board_cities(j["cities"], r)
             # Hours and pay come only from the first posting: a later copy could invent them.
             j["fields"] = sorted(set(j["fields"]) | set(tags["fields"]), key=list(FIELD_LABELS).index)
             continue
@@ -263,6 +270,7 @@ def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
             "company": r.company.strip(),
             "location": r.location,
             "city": r.city,
+            "cities": board_cities([], r),
             "remote": r.remote,
             **{k: tags[k] for k in ("type", "types", "fields", "englishFriendly")},
             "postedAt": posted_at,

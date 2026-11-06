@@ -409,3 +409,19 @@ def test_longer_arbeitsagentur_title_is_a_different_role():
     short = "Working Student Machine Learning for Process Control"
     jobs = main.build_jobs([gf(short), ba(short), ba(short + " and Yield")])
     assert len(jobs) == 2
+
+
+def test_a_job_posted_for_several_cities_keeps_all_of_them():
+    leipzig = raw("Werkstudent Softwareentwicklung (m/w/d)", source="A")
+    leipzig.city = "leipzig"
+    berlin = raw("Werkstudent Softwareentwicklung (m/w/d)", source="B")
+    berlin.city = "berlin"
+    multi = raw("Werkstudent Data Analytics (m/w/d)", source="A")
+    multi.city, multi.cities = "leipzig", ["leipzig", "berlin"]
+    remote = raw("Werkstudent Backend Development (m/w/d)", source="A")
+    remote.city, remote.remote = "", True
+    jobs = {j["title"]: j for j in main.build_jobs([leipzig, berlin, multi, remote]).values()}
+    assert jobs["Werkstudent Softwareentwicklung (m/w/d)"]["cities"] == ["leipzig", "berlin"]
+    assert jobs["Werkstudent Softwareentwicklung (m/w/d)"]["city"] == "leipzig"
+    assert jobs["Werkstudent Data Analytics (m/w/d)"]["cities"] == ["leipzig", "berlin"]
+    assert jobs["Werkstudent Backend Development (m/w/d)"]["cities"] == []

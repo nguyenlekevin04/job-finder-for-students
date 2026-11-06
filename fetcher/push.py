@@ -31,7 +31,7 @@ def on_board(job: dict, board: str) -> bool:
     """Same rule as the website's inCity(): a city's own jobs, or only remote jobs on "remote"."""
     if board == "remote":
         return bool(job.get("remote"))
-    return not job.get("remote") and (job.get("city") or "dresden") == board
+    return not job.get("remote") and board in (job.get("cities") or [job.get("city") or "dresden"])
 
 
 def matches(job: dict, sub: dict) -> bool:

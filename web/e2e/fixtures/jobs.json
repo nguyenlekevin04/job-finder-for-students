@@ -2,7 +2,10 @@
   "generatedAt": "2026-01-20T06:00:00+00:00",
   "count": 6,
   "sources": {
-    "fixture": { "ok": true, "count": 6 }
+    "fixture": {
+      "ok": true,
+      "count": 6
+    }
   },
   "jobs": [
     {
@@ -12,14 +15,23 @@
       "location": "Dresden",
       "remote": false,
       "type": "werkstudent",
-      "types": ["werkstudent"],
-      "fields": ["ai"],
+      "types": [
+        "werkstudent"
+      ],
+      "fields": [
+        "ai"
+      ],
       "englishFriendly": false,
       "postedAt": "2026-01-19",
       "deadline": "2099-06-30",
       "firstSeen": "2026-01-19",
       "lastSeen": "2026-01-20",
-      "links": [{ "source": "Elbe Robotics", "url": "https://jobs.example.com/elbe-robotics/ml-werkstudent" }],
+      "links": [
+        {
+          "source": "Elbe Robotics",
+          "url": "https://jobs.example.com/elbe-robotics/ml-werkstudent"
+        }
+      ],
       "snippet": "Train and evaluate computer vision models for warehouse robots.",
       "hoursMin": 15,
       "hoursMax": 20,
@@ -33,14 +45,23 @@
       "location": "Dresden",
       "remote": false,
       "type": "internship",
-      "types": ["internship"],
-      "fields": ["data"],
+      "types": [
+        "internship"
+      ],
+      "fields": [
+        "data"
+      ],
       "englishFriendly": true,
       "postedAt": "2026-01-18",
       "deadline": null,
       "firstSeen": "2026-01-18",
       "lastSeen": "2026-01-20",
-      "links": [{ "source": "Arbeitnow", "url": "https://www.example.org/jobs/data-analytics-internship" }],
+      "links": [
+        {
+          "source": "Arbeitnow",
+          "url": "https://www.example.org/jobs/data-analytics-internship"
+        }
+      ],
       "snippet": "Build dashboards for grid load forecasting. English-speaking team."
     },
     {
@@ -50,15 +71,29 @@
       "location": "Dresden",
       "remote": false,
       "type": "thesis",
-      "types": ["thesis"],
-      "fields": ["hardware"],
+      "types": [
+        "thesis"
+      ],
+      "fields": [
+        "hardware"
+      ],
       "englishFriendly": false,
       "postedAt": "2026-01-17",
       "deadline": null,
       "firstSeen": "2026-01-17",
       "lastSeen": "2026-01-20",
-      "links": [{ "source": "Silicon Saxony Labs", "url": "https://careers.example.net/thesis-chip-verification" }],
-      "snippet": "Formal verification of a RISC-V core."
+      "links": [
+        {
+          "source": "Silicon Saxony Labs",
+          "url": "https://careers.example.net/thesis-chip-verification"
+        }
+      ],
+      "snippet": "Formal verification of a RISC-V core.",
+      "city": "dresden",
+      "cities": [
+        "dresden",
+        "leipzig"
+      ]
     },
     {
       "id": "e2e-remote-backend",
@@ -67,14 +102,23 @@
       "location": "Remote",
       "remote": true,
       "type": "werkstudent",
-      "types": ["werkstudent"],
-      "fields": ["software"],
+      "types": [
+        "werkstudent"
+      ],
+      "fields": [
+        "software"
+      ],
       "englishFriendly": false,
       "postedAt": "2026-01-16",
       "deadline": null,
       "firstSeen": "2026-01-16",
       "lastSeen": "2026-01-20",
-      "links": [{ "source": "Cloudhaus", "url": "https://jobs.example.com/cloudhaus/backend" }],
+      "links": [
+        {
+          "source": "Cloudhaus",
+          "url": "https://jobs.example.com/cloudhaus/backend"
+        }
+      ],
       "snippet": "Python and Postgres services for a SaaS product, fully remote in Germany.",
       "hoursMin": null,
       "hoursMax": 20
@@ -86,14 +130,23 @@
       "location": "Dresden",
       "remote": false,
       "type": "internship",
-      "types": ["internship"],
-      "fields": ["other"],
+      "types": [
+        "internship"
+      ],
+      "fields": [
+        "other"
+      ],
       "englishFriendly": false,
       "postedAt": "2026-01-15",
       "deadline": null,
       "firstSeen": "2026-01-15",
       "lastSeen": "2026-01-20",
-      "links": [{ "source": "Neustadt Systems", "url": "https://www.example.org/jobs/it-security-internship" }],
+      "links": [
+        {
+          "source": "Neustadt Systems",
+          "url": "https://www.example.org/jobs/it-security-internship"
+        }
+      ],
       "snippet": "Penetration testing and hardening of internal tools."
     },
     {
@@ -103,14 +156,23 @@
       "location": "Dresden",
       "remote": false,
       "type": "werkstudent",
-      "types": ["werkstudent"],
-      "fields": ["software"],
+      "types": [
+        "werkstudent"
+      ],
+      "fields": [
+        "software"
+      ],
       "englishFriendly": false,
       "postedAt": "2026-01-14",
       "deadline": null,
       "firstSeen": "2026-01-14",
       "lastSeen": "2026-01-20",
-      "links": [{ "source": "Pixelwerk", "url": "https://careers.example.net/pixelwerk/frontend" }],
+      "links": [
+        {
+          "source": "Pixelwerk",
+          "url": "https://careers.example.net/pixelwerk/frontend"
+        }
+      ],
       "snippet": "React and TypeScript for a design tool.",
       "hoursMin": 25
     }

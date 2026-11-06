@@ -33,6 +33,8 @@ alter table public.jobs add column if not exists german_level text check (german
 
 -- The board's city (a key of fetcher.models.CITIES); empty for remote-only postings.
 alter table public.jobs add column if not exists city text not null default 'dresden';
+-- Every board city the job names (a job open in Leipzig and Berlin shows on both boards).
+alter table public.jobs add column if not exists cities text[] not null default '{}';
 
 -- No query needs this index: stale rows are deleted by id.
 drop index if exists public.jobs_last_seen_idx;

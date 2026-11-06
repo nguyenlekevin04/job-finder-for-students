@@ -30,6 +30,7 @@ export interface Job {
   payUnit?: "hour" | "month" | null;
   germanLevel?: GermanLevel | null; // as the posting states it; null = not stated
   city?: City | ""; // "" for remote-only postings; missing in data saved before cities = Dresden
+  cities?: City[]; // every board city the job names; empty/missing = just `city`
 }
 
 export const CITIES = ["dresden", "leipzig", "chemnitz", "berlin"] as const;

@@ -30,6 +30,7 @@ COLUMNS = {
     "company": "company",
     "location": "location",
     "city": "city",
+    "cities": "cities",
     "remote": "remote",
     "type": "type",
     "types": "types",
@@ -51,11 +52,14 @@ COLUMNS = {
 
 # Columns added after the first schema. A database that hasn't run the newer lines of
 # schema.sql yet (e.g. staging) still works: the fetcher drops these columns and warns.
-OPTIONAL_COLUMNS = {"hours_min", "hours_max", "pay_amount", "pay_unit", "german_level", "city"}
+OPTIONAL_COLUMNS = {"hours_min", "hours_max", "pay_amount", "pay_unit", "german_level", "city", "cities"}
 
 
 def to_row(job: dict, columns: dict[str, str] = COLUMNS) -> dict:
-    return {col: job.get(key) for key, col in columns.items()}
+    row = {col: job.get(key) for key, col in columns.items()}
+    if "cities" in row and row["cities"] is None:  # jobs saved before the column existed
+        row["cities"] = []
+    return row
 
 
 def missing_column(res: requests.Response) -> str | None:

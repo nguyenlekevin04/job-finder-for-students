@@ -50,10 +50,13 @@ describe("URL <-> filters", () => {
       hours: true,
       since: "2026-10-27",
       sort: "company",
+      company: "Deloitte",
       job: "abc123",
     });
     const qs = filtersToParams(all).toString();
-    expect(qs).toBe("q=python&type=thesis%2Cinternship&field=ai&en=1&new=1&hours=20&since=2026-10-27&sort=company&job=abc123");
+    expect(qs).toBe(
+      "q=python&type=thesis%2Cinternship&field=ai&en=1&new=1&hours=20&since=2026-10-27&sort=company&company=Deloitte&job=abc123",
+    );
     expect(filtersFromParams(new URLSearchParams(qs))).toEqual(all);
   });
 
@@ -182,6 +185,20 @@ describe("applyFilters", () => {
     expect(filtersFromParams(new URLSearchParams("city=remote")).city).toBe("remote");
     expect(filtersToParams(f({ city: "leipzig" })).get("city")).toBe("leipzig");
     expect(filtersFromParams(new URLSearchParams("city=paris")).city).toBe("dresden");
+  });
+
+  it("shows a job on every board city it names", () => {
+    const list = [job({ id: "multi", city: "leipzig", cities: ["leipzig", "berlin"] }), job({ id: "be", city: "berlin" })];
+    expect(ids(applyFilters(list, f({ city: "leipzig" }), null))).toEqual(["multi"]);
+    expect(ids(applyFilters(list, f({ city: "berlin" }), null)).sort()).toEqual(["be", "multi"]);
+    expect(ids(applyFilters(list, f(), null))).toEqual([]);
+  });
+
+  it("'company' keeps only that employer's jobs (exact name) and counts as a filter", () => {
+    const list = [job({ id: "d", company: "Deloitte" }), job({ id: "dd", company: "Deloitte Digital" })];
+    expect(ids(applyFilters(list, f({ company: "Deloitte" }), null))).toEqual(["d"]);
+    expect(activeFilterCount(f({ company: "Deloitte" }))).toBe(1);
+    expect(filtersFromParams(new URLSearchParams("company=%20%20")).company).toBeNull();
   });
 
   it("treats a job as expired only after its deadline day", () => {

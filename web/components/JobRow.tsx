@@ -6,7 +6,7 @@ import { feedbackHref } from "@/lib/legal";
 import { deadlineIcs } from "@/lib/ics";
 import { isGermanPosting, translateUrl } from "@/lib/share";
 import { ageLabel, daysUntil, formatDate, isNew, jobTerms } from "@/lib/format";
-import { AGGREGATORS, FIELD_LABELS, GERMAN_LABELS, TYPE_LABELS, type Job, type JobLink } from "@/lib/types";
+import { AGGREGATORS, CITY_LABELS, FIELD_LABELS, GERMAN_LABELS, TYPE_LABELS, type Job, type JobLink } from "@/lib/types";
 import { STATUS_LABELS, STATUSES, type AppStatus, type Application } from "@/lib/useApplications";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowUpRightIcon, StarIcon } from "./Icons";
@@ -22,6 +22,9 @@ interface Props {
   newSince?: string | null; // "YYYY-MM-DD": "New" means first seen after this day instead of this week
   application?: Application | null; // application status, for saved jobs
   onStatus?: (id: string, status: AppStatus | null) => void; // set where the status can be changed
+  onCompany?: (company: string) => void; // "All jobs at …", on the board only
+  onHide?: (id: string) => void; // "Not for me", on the board only
+  hidden?: boolean; // shown while "show hidden" is on: offers "Show again" instead
 }
 
 function downloadDeadline(job: Job) {
@@ -47,11 +50,15 @@ function applyLabel(link: JobLink): string {
 }
 
 function jobPlace(job: Job): string {
+  // A job open in several board cities lists them all, so a Leipzig student sees "Leipzig".
+  if (!job.remote && (job.cities?.length ?? 0) > 1) return job.cities!.map((c) => CITY_LABELS[c]).join(", ");
   if (!job.remote) return job.location;
   return job.location && !/remote/i.test(job.location) ? `Remote · ${job.location}` : "Remote";
 }
 
-export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showNew = true, newSince, application, onStatus }: Props) {
+export function JobRow({
+  job, open, onToggle, saved, onToggleSave, closed, showNew = true, newSince, application, onStatus, onCompany, onHide, hidden,
+}: Props) {
   const fresh = showNew && !closed && (newSince ? job.firstSeen > newSince : isNew(job.firstSeen));
   const primary = job.links[0];
   const deadlineDays = job.deadline ? daysUntil(job.deadline) : null;
@@ -194,6 +201,16 @@ export function JobRow({ job, open, onToggle, saved, onToggleSave, closed, showN
                   {saved ? "Remove from saved" : "Save for later"}
                 </button>
                 <ShareButton job={job} />
+                {onCompany && (
+                  <button type="button" onClick={() => onCompany(job.company)} className="focus-ring hit link-u rounded">
+                    All jobs at {job.company}
+                  </button>
+                )}
+                {onHide && (
+                  <button type="button" onClick={() => onHide(job.id)} className="focus-ring hit link-u rounded text-muted hover:text-ink">
+                    {hidden ? "Show again" : "Not for me"}
+                  </button>
+                )}
                 <a
                   href={feedbackHref(
                     `Problem with a job: ${job.title} (${job.id})`,

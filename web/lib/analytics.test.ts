@@ -42,3 +42,9 @@ describe("filterEvents", () => {
     ]);
   });
 });
+
+describe("company filter event", () => {
+  it("counts that it was used, never the company", () => {
+    expect(filterEvents(DEFAULT_FILTERS, { ...DEFAULT_FILTERS, company: "SAP" })).toEqual([{ name: "company" }]);
+  });
+});
