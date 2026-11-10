@@ -45,6 +45,7 @@ Goal: first real users. Most boards are small (Chemnitz ~5, Leipzig ~14, Remote 
    - Acceptance: the fetcher extracts the documents a posting names (German and English terms, e.g. Lebenslauf, Anschreiben, Notenspiegel, Immatrikulationsbescheinigung, Zeugnisse) from the full description; shown in the open job as a short "Send:" list with English names, only when stated, never guessed. Hand check of 30 postings: 0 wrong documents. Tested with fixtures like `extract_german`.
    - Gate: tech lead first counts how many current postings name any document. Under 25% → drop this story and tell me; don't build it for a handful of jobs.
    - Notes: a new column → schema, `COLUMNS`, types and `JOB_SELECT` in sync.
+   - **Gate result (tech lead, 2026-11-10): dropped.** A live run found 22 of 112 jobs (20%) naming any document, below the 25% bar. Arbeitsagentur jobs (56, half the board) carry no description at all; employer feeds do better (Infineon 5/5, GlobalFoundries 4/5, Deloitte 5/9, Fraunhofer 5/15). Revisit if the Arbeitsagentur detail text becomes available.
 
 Not now (2026-11-10): pay/hours at a glance (data isn't there: hours stated on ~15% of jobs, pay on ~0; a better layout doesn't fix missing facts); compare saved jobs (students save a few jobs and compare on a phone, the Saved page already lists the facts); weekly digest page (`?since=`, "Copy for WhatsApp" and push cover it); keyboard shortcuts and print/PDF (our users are on phones; nobody asked). Still not now: employer logos, "similar jobs", company pages for Google (CDN switch first).
 
