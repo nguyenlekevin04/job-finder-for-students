@@ -104,7 +104,7 @@ const SECTIONS: [string, React.ReactNode][] = [
               To learn which parts of the board help students, we count visits with Umami (Umami Software, Inc., USA), a
               cookieless analytics service. It counts which pages are opened, the referring site, the browser and operating
               system, device type, screen size, language and approximate location (country, region, city), which filters are turned on (for example “Werkstudent” or “Up to 20 h/week”, never what you
-              type into search) and clicks on the Apply button with the job board the link goes to, that a search was saved (not which one) that a deadline was added to a calendar, clicks on the feedback and report links, that alerts were turned on, clicks on “Read in English”, that this week’s jobs were copied or shared (not which ones), that a job was hidden (not which one) and that the “All jobs at …” filter was used (not for which company).
+              type into search) and clicks on the Apply button with the job board the link goes to, that a search was saved (not which one) that a deadline was added to a calendar, clicks on the feedback and report links, that alerts were turned on, clicks on “Read in English”, that this week’s jobs were copied or shared (not which ones), that a job was hidden (not which one), that the “All jobs at …” filter was used (not for which company) and that a suggestion under a short list was used (not which one).
             </p>
             <p>
               Umami sets no cookies and stores nothing in your browser. It doesn’t store your IP address; it only uses it,
@@ -211,7 +211,7 @@ export default function PrivacyPage() {
             <div className="mt-2 space-y-3 text-[16px] leading-relaxed text-ink">{body}</div>
           </section>
         ))}
-        <p className="mt-8 text-xs text-muted">Last updated 6 Nov 2026</p>
+        <p className="mt-8 text-xs text-muted">Last updated 10 Nov 2026</p>
       </div>
     </div>
   );

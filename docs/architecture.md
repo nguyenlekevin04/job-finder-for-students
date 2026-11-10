@@ -73,7 +73,7 @@ flowchart TD
 5. **Dedupe and merge.** `job_id()` = the first 12 hex characters of the sha1 of normalized title and company. The first (highest-priority) posting keeps title, snippet, dates, language, hours and pay; later copies add their link and their field tags, and fill an empty snippet or posting date. Arbeitsagentur's cut-off GlobalFoundries titles merge into the employer's job (`truncated_twin`).
 6. **Availability** (`availability.py`, pure). See section 4.
 7. **Save** (`store.py`). `SupabaseStore` upserts by id, deletes closed ids and writes a `fetch_runs` row. Without Supabase variables, `JsonFileStore` writes `web/public/jobs.json` for local development.
-8. **Health alarm.** A source that failed, returned nothing (unless it sets `MAY_BE_EMPTY`, today only Amazon; disabled sources are skipped), had links rejected, lost all its jobs, or tripped the removal guard makes the run exit with code 3; GitHub emails the owner.
+8. **Health alarm.** A source that failed, returned nothing (unless it sets `MAY_BE_EMPTY`, today only Amazon; disabled sources are skipped), had links rejected, lost all of its 2+ jobs (`EMPTIED_MIN_JOBS`), or tripped the removal guard makes the run exit with code 3; GitHub emails the owner.
 
 ### 2.2 Website (`web/`)
 
@@ -138,7 +138,7 @@ Every link of every job gets a state, then every job a verdict.
 
 **Verdict:** any open link keeps the job (`last_seen` = today). The employer is authoritative: if a job's first link is from a complete feed and closed, the job closes even if an aggregator still lists a copy. All links closed removes the job. A link that now belongs to another of today's jobs (a renamed title, a copy merged into its employer posting) is **moved**: it removes its old job like a closed link, but isn't counted as a closure by the guard or in `fetch_runs` link stats (`open` / `closed` / `unknown` / `moved`). Otherwise the job is unconfirmed and stays for 2 days after it was last confirmed open. An employer closure is remembered for 30 days (`closed_jobs`), so a job-board copy with the same title can't come back as "New".
 
-**Guard:** if a source's own closed links would remove at least 3 and more than half of its jobs in one run, those jobs stay and the alarm fires. A real mass closure is approved once by running "Update jobs" with `accept_removals=<Source>`. A source losing all its jobs in one run also raises the alarm.
+**Guard:** if a source's own closed links would remove at least 3 and more than half of its jobs in one run, those jobs stay and the alarm fires. A real mass closure is approved once by running "Update jobs" with `accept_removals=<Source>`. A source losing all of its jobs in one run also raises the alarm when it had at least `EMPTIED_MIN_JOBS` (2); losing a single job is ordinary.
 
 ## 5. Environments and delivery
 

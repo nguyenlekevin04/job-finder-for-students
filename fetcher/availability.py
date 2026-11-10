@@ -47,6 +47,8 @@ UNCONFIRMED_DAYS = 2  # keep a job this long after its last confirmation when no
 GUARD_SHARE = 0.5  # never remove more than this share of one source's jobs in one run
 GUARD_MIN_JOBS = 3  # below this many jobs a source is too small for the share rule
 GUARD_MIN_REMOVALS = 3  # removing fewer jobs than this at once never trips the guard
+# A source losing its only job is ordinary (Amazon, 2026-11-09); losing all of 2+ in one run is worth a look.
+EMPTIED_MIN_JOBS = 2
 TOMBSTONE_DAYS = 30  # how long an employer closure blocks aggregator copies of the same job
 
 Checker = Callable[[str, str], str]  # (source name, url) -> state
@@ -178,7 +180,7 @@ def decide(
         had = [jid for jid, j in previous.items() if any(l["source"] == src for l in j.get("links", []))]
         still_listed = any(verdicts[jid] != CLOSED and any(l["source"] == src for l in j["links"])
                            for jid, j in candidates.items())
-        if not still_listed and all(jid in removed and jid not in expired and (src, CLOSED) in link_states[jid]
+        if len(had) >= EMPTIED_MIN_JOBS and not still_listed and all(jid in removed and jid not in expired and (src, CLOSED) in link_states[jid]
                                     for jid in had):
             problems.append(f"{src}: all {len(had)} of its jobs closed in one run; "
                             "check the source if that's unexpected.")

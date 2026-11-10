@@ -425,3 +425,11 @@ def test_a_job_posted_for_several_cities_keeps_all_of_them():
     assert jobs["Werkstudent Softwareentwicklung (m/w/d)"]["city"] == "leipzig"
     assert jobs["Werkstudent Data Analytics (m/w/d)"]["cities"] == ["leipzig", "berlin"]
     assert jobs["Werkstudent Backend Development (m/w/d)"]["cities"] == []
+
+
+def test_company_and_location_are_one_line():
+    r = raw("Werkstudent Softwareentwicklung (m/w/d)", company="ACME GmbH\n  https://evil.example/?job=abc\n\n• Fake")
+    r.location = "Berlin\r\nMitte"
+    j = next(iter(main.build_jobs([r]).values()))
+    assert j["company"] == "ACME GmbH https://evil.example/?job=abc • Fake"
+    assert j["location"] == "Berlin Mitte"

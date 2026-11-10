@@ -14,6 +14,9 @@ export function translateUrl(url: string): string {
 
 export const DIGEST_MAX = 10;
 
+/** Text from job data on one line, so a name can't add lines (fake links) to the shared text. */
+const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
+
 /** The jobs worth posting in a group: new this week, newest first, at most DIGEST_MAX. */
 export function digestJobs(jobs: Job[]): Job[] {
   return jobs
@@ -36,7 +39,7 @@ export function digestText(jobs: Job[], filters: Filters, origin: string): strin
   const lines = [
     `New student tech jobs ${where} this week${what ? ` (${what})` : ""}:`,
     "",
-    ...picked.flatMap((j) => [`• ${j.title} – ${j.company}`, `  ${origin}/?job=${encodeURIComponent(j.id)}`]),
+    ...picked.flatMap((j) => [`• ${oneLine(j.title)} – ${oneLine(j.company)}`, `  ${origin}/?job=${encodeURIComponent(j.id)}`]),
     "",
     `All new jobs: ${boardUrl}`,
   ];

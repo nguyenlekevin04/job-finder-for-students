@@ -2,6 +2,25 @@
 
 Results of `/hackerattack` runs (Kevin, `.claude/agents/kevin.md`). Newest first. Each entry: scope, findings with severity and status, and what held.
 
+## 2026-11-10: attack #4, sprint changes since push alerts
+
+**Scope:** `git log 262a9a4..HEAD` (18 commits): Deloitte, PwC and SAP sources, `jobs.cities`, `subscribe_push` with `business`, `?company=`, hidden jobs (`dsj:hidden:v1`), "Never a dead end" suggestions, "Read in English", the share digest.
+
+**Verdict:** database and new link parsing held. One low injection into the share digest; staging has drifted from `schema.sql`.
+
+| # | Severity | Finding | Status |
+|---|---|---|---|
+| 1 | Low | A job board employer name with line breaks (Arbeitnow `company_name`, Arbeitsagentur `firma`) is stored as is (`fetcher/main.py` `"company": r.company.strip()`) and `digestText()` (`web/lib/share.ts`) copies it into the shared text, so it can add a fake job line with a phishing link to the WhatsApp/Discord digest | Open: squeeze whitespace in company (and location) in `build_jobs`, and in `digestText` |
+| 2 | Medium (process) | Staging lacks `jobs.cities`, `closed_jobs`, `push_subscriptions` and `subscribe_push` (PostgREST 42703/PGRST205/PGRST202). Previews can't test multi-city boards or alerts, and the `business` field change can't be checked on staging | Open: apply `supabase/schema.sql` to staging |
+| 3 | Info | `?company=` puts up to 200 characters of any text in the banner ("0 jobs at …") on our domain (React escapes it: text only) | Accepted, or show the banner only when the company has jobs |
+| 4 | Info | A tampered `dsj:hidden:v1` with over 500 non-string values makes "Not for me" throw (`capHidden` `localeCompare`); self-only | Open: keep only string values in `read()` |
+
+**Tried and held:** anon insert/update/delete on `jobs`, insert on `fetch_runs` (staging 401/42501); production anon read of `push_subscriptions`/`closed_jobs` (401), OpenAPI (401); every production link is https on its source's `LINK_HOSTS` host (Deloitte, PwC included); Deloitte and PwC URLs are built from a fixed host, so a crafted id only changes the path; HTML in titles reaches only React text (no new `dangerouslySetInnerHTML`); `translateUrl` encodes a `safe_link`-checked URL; `?city=__proto__`, `?type=constructor` fall back to defaults; `__proto__` keys in localStorage create no pollution (spread/`fromEntries`); future `datePosted` is clamped; errors in `fetch_runs` are redacted (only "Adzuna No API key set"); no secrets in the diff or production bundles; the fetch job has a 20-minute timeout; production CSP/XFO/HSTS present.
+
+**Not tested:** `subscribe_push` with the new field list (missing on staging, production writes off-limits), posting on third-party job boards, DoS (no response size cap in `net.py`, bounded by the timeout).
+
+**Cleanup:** none. Every staging write was refused.
+
 ## 2026-10-29: attack #2, sprint 3 changes
 
 **Scope:** everything since attack #1 (21 commits): share, "new since your last visit", imprint and privacy pages, hours and pay extraction, GlobalFoundries twin merging, page caps, the e2e test server, CI supply chain.
