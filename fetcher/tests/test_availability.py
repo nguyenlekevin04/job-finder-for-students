@@ -133,12 +133,10 @@ def test_source_emptied_in_one_run_is_removed_but_raises_the_alarm():
     prev = [job("h1", "HZDR"), job("h2", "HZDR"), job("a1", "Amazon"), job("b1", "Bosch"), job("b2", "Bosch")]
     r = run(prev, [now("b1", "Bosch")], ok={"HZDR": True, "Amazon": True, "Bosch": True})
     assert r.removed == {"h1", "h2", "a1", "b2"}
-    assert r.problems == [
-        "Amazon: all 1 of its jobs closed in one run; check the source if that's unexpected.",
-        "HZDR: all 2 of its jobs closed in one run; check the source if that's unexpected.",
-    ]
+    # Amazon's single job closing is ordinary; HZDR losing both is worth a look.
+    assert r.problems == ["HZDR: all 2 of its jobs closed in one run; check the source if that's unexpected."]
     r = run(prev, [now("b1", "Bosch")], ok={"HZDR": True, "Amazon": True, "Bosch": True}, accept={"HZDR"})
-    assert r.problems == ["Amazon: all 1 of its jobs closed in one run; check the source if that's unexpected."]
+    assert r.problems == []
 
 
 def test_emptied_alarm_skips_guarded_and_expired_sources():
