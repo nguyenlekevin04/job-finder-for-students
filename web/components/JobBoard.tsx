@@ -20,6 +20,7 @@ import { isNew, localDay, relativeTime, visitDayLabel } from "@/lib/format";
 import { useApplications } from "@/lib/useApplications";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useHidden } from "@/lib/useHidden";
+import { FEW_RESULTS } from "@/lib/suggest";
 import { isSearch, searchKey, useSavedSearches } from "@/lib/useSavedSearches";
 import { useJobsFile } from "@/lib/useJobs";
 import { useLastVisit } from "@/lib/useLastVisit";
@@ -28,6 +29,7 @@ import { SearchIcon, XIcon } from "./Icons";
 import { AlertButton } from "./AlertButton";
 import { DigestButton } from "./DigestButton";
 import { JobRow } from "./JobRow";
+import { MoreJobs } from "./MoreJobs";
 import { NewTicket } from "./NewTicket";
 import { EmptyState, ErrorState, LoadingList } from "./States";
 
@@ -435,6 +437,9 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
                   />
                 ))}
               </ol>
+            )}
+            {results.length <= FEW_RESULTS && (
+              <MoreJobs allJobs={allJobs} boardJobs={jobs} index={index} filters={filters} shown={results.length} onChange={update} />
             )}
             {(hiddenCount > 0 || showHidden) && (
               <p className="mt-4 text-[13px] text-muted">

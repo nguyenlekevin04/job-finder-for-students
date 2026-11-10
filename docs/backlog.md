@@ -35,19 +35,18 @@ Goal: a board a busy international student trusts and comes back to, as fast as 
 - ✅ **Ready to share** (S): short city links (`/berlin/` etc.), link preview cards, and a launch kit with posts and A4 QR posters (`docs/launch/`).
 - Later: thesis contact person (only HZDR lists names, no emails; needs a new column).
 
-### Sprint picks (Otto, 2026-11-06, in this order)
+### Sprint picks (Otto, 2026-11-10, in this order)
 
-Goal: first real users. With ~143 jobs from Big 4, SAP and Berlin employers, students need to find every job meant for them and narrow the list fast.
+Goal: first real users. Most boards are small (Chemnitz ~5, Leipzig ~14, Remote a few), so a student who opens a shared link must never hit a dead end, and must know what to prepare before applying.
 
-1. **Multi-city jobs on every board they name** (S, build first): As a Leipzig student, I want a "Leipzig, Berlin" posting on my board too, so that I don't miss jobs that are open in my city.
-   - Acceptance: a job whose posting lists several board cities appears on each of those boards and counts in each board's number. It is still one job (one id, one bookmark, one "New" badge). The row shows the city of the board you are on (e.g. "Leipzig +1"). Push alerts for a city include it (`fetcher/push.py` follows the same rule as `inCity()`). Test: a PwC/Deloitte fixture with "Leipzig, Berlin" shows on `/leipzig/` and `/berlin/`.
-   - Notes: whether this needs a `cities` column is the tech lead's call.
-2. **All jobs at this company** (S): As a student who likes an employer (Deloitte, SAP, Fraunhofer), I want to tap the company name and see all its jobs, so that I can compare roles and share one link.
-   - Acceptance: the company name in the open job (and row, if Iris agrees) links to the board filtered to that company (`?company=…`, shareable, survives reload, counts as an active filter and clears with "Clear filters"). Shows "N jobs at Deloitte" on the current board, plus "+M in other cities" linking there when there are any. Matches the company name exactly as shown (no fuzzy match). Analytics: count of uses only, never the company name; privacy page updated.
-3. **"Not for me": hide a job** (S): As a student who checks the board every few days, I want to hide jobs I've ruled out, so that I only scan jobs I haven't judged yet.
-   - Acceptance: "Not for me" on the open job hides it from the board; a short "Hidden. Undo" notice appears. A "N hidden, show" link at the end of the list brings them back. Stored in localStorage only (like bookmarks), survives a reload, works with storage blocked (no crash, just no hiding). Saving a job un-hides it. Count of uses only in analytics; privacy page lists the new localStorage key.
+1. **Never a dead end** (S, build first): As a Chemnitz or Leipzig student (or one with tight filters), I want the board to point me to jobs I can still take when my list is short or empty, so that I don't leave thinking the board is useless.
+   - Acceptance: when the current board + filters show 0–3 jobs, a block under the list names the nearest alternatives with live counts, e.g. "12 remote jobs" and "14 in Leipzig" (same filters, other boards; Chemnitz → Leipzig, Dresden; Leipzig → Berlin, Dresden; all → Remote), each a link that keeps the filters. With 0 results and active filters, it also names the single filter whose removal gives the most jobs ("Remove 'Up to 20 h/week' → 6 jobs"), one tap. Boards with 0 alternatives show "Get an alert" (existing push button) instead of nothing. Count of uses only in analytics (privacy page updated). Unit test for the suggestion logic.
+2. **What to send** (M, about half a day if the coverage check passes): As an international student, I want to see which documents a posting asks for (CV, cover letter, transcript of records, enrolment certificate, references, portfolio/GitHub), in English, so that I can prepare my application before I tap "Apply".
+   - Acceptance: the fetcher extracts the documents a posting names (German and English terms, e.g. Lebenslauf, Anschreiben, Notenspiegel, Immatrikulationsbescheinigung, Zeugnisse) from the full description; shown in the open job as a short "Send:" list with English names, only when stated, never guessed. Hand check of 30 postings: 0 wrong documents. Tested with fixtures like `extract_german`.
+   - Gate: tech lead first counts how many current postings name any document. Under 25% → drop this story and tell me; don't build it for a handful of jobs.
+   - Notes: a new column → schema, `COLUMNS`, types and `JOB_SELECT` in sync.
 
-Not now (2026-11-06): employer logos (third-party images or a logo store, CSP and privacy cost, little help to decide); "similar jobs" (company link + filters cover it at 143 jobs); company pages for Google (wait for the CDN switch, see Later).
+Not now (2026-11-10): pay/hours at a glance (data isn't there: hours stated on ~15% of jobs, pay on ~0; a better layout doesn't fix missing facts); compare saved jobs (students save a few jobs and compare on a phone, the Saved page already lists the facts); weekly digest page (`?since=`, "Copy for WhatsApp" and push cover it); keyboard shortcuts and print/PDF (our users are on phones; nobody asked). Still not now: employer logos, "similar jobs", company pages for Google (CDN switch first).
 
 ### Next features (Otto, 2026-11-03, in this order; 2, 3, 5 ✅ shipped, 1 and 4 ⏸ parked)
 
@@ -126,6 +125,12 @@ Nothing here gets built until step 0 shows demand. Guiding rule: students never 
 4. **Free support and grants** (S, no revenue risk): ask dresden|exists (TU Dresden founder support) and the student councils (Fachschaftsräte) to share the board, and check whether a public-interest open-source grant would cover hosting. This adds students, which is what makes items 1 to 3 sellable.
 
 **Not doing:** display ads (AdSense etc.: they need a cookie banner under §25 TDDDG and break "no tracking", and earn a few euros a month at our size); a paid tier or paid alerts for students; selling or sharing usage data; employer branding pages (they need far more traffic first; TU Dresden sells profiles for €975+ with the university's name behind it). **Later, only on request:** affiliate links for international students (blocked account, health insurance), each labelled.
+
+## Done (2026-11-06, PR #61)
+
+- **Multi-city jobs on every board they name:** one job, shown and counted on each board city it names, included in each city's push alerts.
+- **All jobs at a company** (`?company=`): "N jobs at X" plus links to the other boards that have its jobs.
+- **"Not for me"** hides a job with Undo; "N hidden jobs · Show" brings them back; saving un-hides.
 
 ## Done (2026-11-06)
 

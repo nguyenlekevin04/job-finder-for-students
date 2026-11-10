@@ -547,3 +547,23 @@ test("Not for me hides a job, Undo and Show bring it back, and it survives a rel
   await page.getByRole("button", { name: "Hide them again" }).click();
   await expect(page.locator(`#row-${data.id}`)).toBeVisible();
 });
+
+test("a short board points to other boards with the same filters", async ({ page }) => {
+  await openBoard(page, "/leipzig/");
+  const more = page.getByTestId("more-jobs");
+  await expect(more).toContainText("More with the same filters:");
+  await more.getByRole("button", { name: new RegExp(`^Dresden \\(${TOTAL}\\)$`) }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(count(page)).toHaveText(new RegExp(`^${TOTAL} jobs`));
+});
+
+test("an empty result names the filter to drop", async ({ page }) => {
+  await openBoard(page);
+  await typeOption(page, "Thesis").click();
+  await page.getByRole("searchbox", { name: "Search jobs" }).fill("Frontend");
+  await expect(count(page)).toHaveText(new RegExp(`^0 of ${TOTAL} jobs`));
+  const drop = page.getByTestId("more-jobs").getByRole("button", { name: /^Remove / });
+  await expect(drop).toBeVisible();
+  await drop.click();
+  await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
+});
