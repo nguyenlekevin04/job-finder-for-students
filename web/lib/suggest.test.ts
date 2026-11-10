@@ -31,6 +31,16 @@ describe("otherBoards", () => {
     ]);
   });
 
+  it("leaves out hidden jobs, and offers nothing when a company filter is on", () => {
+    expect(otherBoards(all, f({ city: "chemnitz" }), (j) => j.id !== "dd1").map((s) => s.board)).toEqual(["leipzig", "remote"]);
+    expect(otherBoards(all, f({ city: "chemnitz", company: "ACME" }))).toEqual([]);
+  });
+
+  it("searches each board with the same text", () => {
+    const list = [job("py", { city: "leipzig", title: "Werkstudent Python" }), job("go", { city: "leipzig", title: "Werkstudent Go" })];
+    expect(otherBoards(list, f({ city: "chemnitz", q: "python" }))).toEqual([{ board: "leipzig", label: "Leipzig", count: 1 }]);
+  });
+
   it("never suggests the current board and leaves out empty ones", () => {
     expect(otherBoards(all, f({ city: "leipzig" })).map((s) => s.board)).toEqual(["dresden", "berlin", "remote"]);
     expect(otherBoards([job("x", { city: "leipzig" })], f({ city: "chemnitz" })).map((s) => s.board)).toEqual(["leipzig"]);

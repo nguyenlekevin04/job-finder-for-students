@@ -18,7 +18,11 @@ function read(): Store {
   try {
     const raw = window.localStorage.getItem(KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : null;
-    snapshot = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Store) : EMPTY;
+    // Only id -> "YYYY-MM-DD" entries: a tampered value must not break hiding later.
+    snapshot =
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? Object.fromEntries(Object.entries(parsed).filter(([, v]) => typeof v === "string"))
+        : EMPTY;
   } catch {
     snapshot = EMPTY; // private mode, blocked storage, bad JSON
   }
@@ -71,5 +75,6 @@ export function useHidden() {
     write(next);
   }, []);
 
-  return { isHidden: (id: string) => id in store, hide, unhide };
+  const isHidden = useCallback((id: string) => id in store, [store]); // stable until the list changes
+  return { isHidden, hide, unhide };
 }

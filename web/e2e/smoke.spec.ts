@@ -566,4 +566,5 @@ test("an empty result names the filter to drop", async ({ page }) => {
   await expect(drop).toBeVisible();
   await drop.click();
   await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
+  await expect(count(page)).toBeFocused(); // the clicked suggestion is gone
 });

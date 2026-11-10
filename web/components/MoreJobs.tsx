@@ -6,11 +6,11 @@ import type { Filters } from "@/lib/filters";
 import type { SearchIndex } from "@/lib/search";
 import { bestRemoval, otherBoards } from "@/lib/suggest";
 import type { Job } from "@/lib/types";
-import { AlertButton } from "./AlertButton";
 
 interface Props {
   allJobs: Job[]; // every board
-  boardJobs: Job[]; // this board
+  boardJobs: Job[]; // this board, without jobs the student hid
+  visible: (j: Job) => boolean; // false for hidden jobs
   index: SearchIndex | null;
   filters: Filters;
   shown: number; // jobs in the list now
@@ -18,8 +18,8 @@ interface Props {
 }
 
 /** Under a short or empty list: other boards with jobs for the same filters, or the filter to drop. */
-export function MoreJobs({ allJobs, boardJobs, index, filters, shown, onChange }: Props) {
-  const boards = useMemo(() => otherBoards(allJobs, filters), [allJobs, filters]);
+export function MoreJobs({ allJobs, boardJobs, visible, index, filters, shown, onChange }: Props) {
+  const boards = useMemo(() => otherBoards(allJobs, filters, visible), [allJobs, filters, visible]);
   const removal = useMemo(
     () => (shown === 0 ? bestRemoval(boardJobs, filters, index) : null),
     [shown, boardJobs, filters, index],
@@ -31,12 +31,9 @@ export function MoreJobs({ allJobs, boardJobs, index, filters, shown, onChange }
 
   if (!boards.length && !removal) {
     return shown === 0 ? (
-      <div className="mt-5 text-[15px]" data-testid="more-jobs">
-        <p className="text-muted">Nothing on the other boards either. Get a notification when one appears:</p>
-        <div className="mt-1">
-          <AlertButton filters={filters} />
-        </div>
-      </div>
+      <p className="mt-5 text-[15px] text-muted" data-testid="more-jobs">
+        Nothing on the other boards either. New jobs arrive every morning.
+      </p>
     ) : null;
   }
 

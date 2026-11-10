@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   activeFilterCount,
   applyFilters,
@@ -42,11 +42,11 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
   // Hiding a job or opening "All jobs at …" removes the button that had focus: move it to what replaced it.
   const undoRef = useRef<HTMLButtonElement>(null);
   const companyRef = useRef<HTMLParagraphElement>(null);
-  const focusNext = useRef<"undo" | "company" | null>(null);
+  const focusNext = useRef<"undo" | "company" | "count" | null>(null);
   useEffect(() => {
     // Runs after every render; acts once, right after the click's re-render.
     if (!focusNext.current) return;
-    (focusNext.current === "undo" ? undoRef : companyRef).current?.focus();
+    ({ undo: undoRef, company: companyRef, count: countRef })[focusNext.current].current?.focus();
     focusNext.current = null;
   });
   const { applications, setStatus } = useApplications();
@@ -147,6 +147,9 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
   // "Not for me" jobs leave the list (a shared link to one still opens it) until "show" is on.
   const hiddenCount = matching.filter((j) => isHidden(j.id) && j.id !== filters.job).length;
   const results = showHidden ? matching : matching.filter((j) => !isHidden(j.id) || j.id === filters.job);
+  // What the student can see, for the suggestions under a short list.
+  const visible = useCallback((j: Job) => showHidden || !isHidden(j.id), [showHidden, isHidden]);
+  const visibleJobs = useMemo(() => jobs.filter(visible), [jobs, visible]);
   // "All jobs at …": the same employer's jobs on the other boards.
   const companyElsewhere = useMemo(
     () =>
@@ -439,7 +442,18 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
               </ol>
             )}
             {results.length <= FEW_RESULTS && (
-              <MoreJobs allJobs={allJobs} boardJobs={jobs} index={index} filters={filters} shown={results.length} onChange={update} />
+              <MoreJobs
+                allJobs={allJobs}
+                boardJobs={visibleJobs}
+                visible={visible}
+                index={index}
+                filters={filters}
+                shown={results.length}
+                onChange={(patch) => {
+                  update(patch);
+                  focusNext.current = "count"; // the clicked suggestion may disappear
+                }}
+              />
             )}
             {(hiddenCount > 0 || showHidden) && (
               <p className="mt-4 text-[13px] text-muted">

@@ -267,8 +267,10 @@ def build_jobs(raw: list, status: dict | None = None) -> dict[str, dict]:
         jobs[jid] = {
             "id": jid,
             "title": re.sub(r"\s+", " ", r.title).strip(),
-            "company": r.company.strip(),
-            "location": r.location,
+            # One line each: a job board's company name with line breaks could forge lines in
+            # the shared digest text (Kevin, attack #4).
+            "company": re.sub(r"\s+", " ", r.company).strip(),
+            "location": re.sub(r"\s+", " ", r.location).strip(),
             "city": r.city,
             "cities": board_cities([], r),
             "remote": r.remote,

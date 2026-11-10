@@ -66,6 +66,11 @@ describe("digest", () => {
     expect(text).not.toContain("secret");
   });
 
+  it("keeps each job on one line, so a company name can't add fake entries", () => {
+    const text = digestText([job({ company: "ACME\n  https://evil.example\n\n• Fake" })], DEFAULT_FILTERS, "https://s.example");
+    expect(text.split("\n").filter((l) => l.includes("evil"))).toEqual(["• Werkstudent Data – ACME https://evil.example • Fake"]);
+  });
+
   it("says remote for the remote board and has no type line without filters", () => {
     const text = digestText([job()], { ...DEFAULT_FILTERS, city: "remote" }, "https://s.example");
     expect(text.split("\n")[0]).toBe("New student tech jobs remote this week:");

@@ -21,13 +21,29 @@ export interface BoardSuggestion {
   count: number;
 }
 
-/** Other boards with jobs for the same filters (search text included), nearest first. */
-export function otherBoards(allJobs: Job[], f: Filters): BoardSuggestion[] {
+// One search index per board and data load, built only when a search needs it.
+const indexes = new WeakMap<Job[], Map<Board, SearchIndex>>();
+function boardIndex(allJobs: Job[], board: Board): SearchIndex {
+  let byBoard = indexes.get(allJobs);
+  if (!byBoard) indexes.set(allJobs, (byBoard = new Map()));
+  let index = byBoard.get(board);
+  if (!index) byBoard.set(board, (index = makeIndex(allJobs.filter((j) => inCity(j, board)))));
+  return index;
+}
+
+/**
+ * Other boards with jobs for the same filters (search text included), nearest first.
+ * `visible` leaves out jobs the student hid, so the counts match what the board would show.
+ * With a company filter the company banner already lists the other boards, so none here.
+ */
+export function otherBoards(allJobs: Job[], f: Filters, visible: (j: Job) => boolean = () => true): BoardSuggestion[] {
+  if (f.company) return [];
   const boards = [...NEARBY[f.city], ...(f.city === "remote" ? [] : (["remote"] as Board[]))];
   return boards
     .map((board) => {
-      const jobs = allJobs.filter((j) => inCity(j, board));
-      const count = jobs.length ? applyFilters(jobs, { ...f, city: board, job: null }, makeIndex(jobs)).length : 0;
+      const jobs = allJobs.filter((j) => inCity(j, board) && visible(j));
+      const index = f.q.trim() && jobs.length ? boardIndex(allJobs, board) : null;
+      const count = jobs.length ? applyFilters(jobs, { ...f, city: board, job: null }, index).length : 0;
       return { board, label: BOARD_LABELS[board], count };
     })
     .filter((s) => s.count > 0);
@@ -54,7 +70,7 @@ function removals(f: Filters): Omit<Removal, "count">[] {
   return out;
 }
 
-/** The one filter whose removal shows the most jobs on this board, or null when none helps. */
+/** The one filter whose removal shows the most jobs on this board (pass only the jobs the student can see). */
 export function bestRemoval(boardJobs: Job[], f: Filters, index: SearchIndex | null): Removal | null {
   let best: Removal | null = null;
   for (const r of removals(f)) {
