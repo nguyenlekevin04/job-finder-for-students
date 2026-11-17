@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { track } from "@/lib/analytics";
 import { jobDate } from "@/lib/filters";
 import { feedbackHref } from "@/lib/legal";
@@ -129,7 +130,14 @@ export function JobRow({
           )}
           <dl className="grid grid-cols-2 gap-x-7 gap-y-3 text-sm sm:flex sm:flex-wrap">
             {terms.hours && <Fact label="Hours">{terms.hours}</Fact>}
-            {terms.pay && <Fact label="Pay">{terms.pay}</Fact>}
+            {terms.pay && (
+              <Fact label="Pay">
+                {terms.pay}{" "}
+                <Link href="/guide/#pay" className="focus-ring link-u rounded whitespace-nowrap text-muted hover:text-ink">
+                  Is this fair?
+                </Link>
+              </Fact>
+            )}
             <Fact label="Field">{job.fields.map((f) => FIELD_LABELS[f]).join(", ")}</Fact>
             <Fact label="Language">
               {job.germanLevel ? GERMAN_LABELS[job.germanLevel] : job.englishFriendly ? "English OK" : "Posting in German"}

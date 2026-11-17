@@ -35,17 +35,26 @@ Goal: a board a busy international student trusts and comes back to, as fast as 
 - ✅ **Ready to share** (S): short city links (`/berlin/` etc.), link preview cards, and a launch kit with posts and A4 QR posters (`docs/launch/`).
 - Later: thesis contact person (only HZDR lists names, no emails; needs a new column).
 
-### Sprint picks (Otto, 2026-11-10, in this order)
+### Sprint picks (Otto, 2026-11-17, in this order; each about half a day, straight to production)
 
-Goal: first real users. Most boards are small (Chemnitz ~5, Leipzig ~14, Remote a few), so a student who opens a shared link must never hit a dead end, and must know what to prepare before applying.
+Goal: a student who lands from a shared link sets up the board for herself in seconds, gets an alert, and has it on her home screen, so she comes back next week without remembering us. Students find us through friends and course groups, not Google (Jonas, 2026-11-01).
 
-1. **Never a dead end** (S, build first): As a Chemnitz or Leipzig student (or one with tight filters), I want the board to point me to jobs I can still take when my list is short or empty, so that I don't leave thinking the board is useless.
-   - Acceptance: when the current board + filters show 0–3 jobs, a block under the list names the nearest alternatives with live counts, e.g. "12 remote jobs" and "14 in Leipzig" (same filters, other boards; Chemnitz → Leipzig, Dresden; Leipzig → Berlin, Dresden; all → Remote), each a link that keeps the filters. With 0 results and active filters, it also names the single filter whose removal gives the most jobs ("Remove 'Up to 20 h/week' → 6 jobs"), one tap. Boards with 0 alternatives show "Get an alert" (existing push button) instead of nothing. Count of uses only in analytics (privacy page updated). Unit test for the suggestion logic.
-2. **What to send** (M, about half a day if the coverage check passes): As an international student, I want to see which documents a posting asks for (CV, cover letter, transcript of records, enrolment certificate, references, portfolio/GitHub), in English, so that I can prepare my application before I tap "Apply".
+1. **Set up my board in 3 taps** (S–M, build first): As a first-time visitor from a shared link, I want three quick questions (what I'm looking for, my field, my city) that set the filters and offer an alert, so that I see my jobs at once and hear about new ones without coming back to check.
+   - Acceptance: shown once, on the first visit only, as a small card above the list (not a blocking modal); never on a `?job=` link or when the URL already has filters. Every step has "Skip"; answers become normal filters in the URL. The last step offers the existing alert button for the chosen board + types + fields (iPhone outside home screen: the existing "Add to Home Screen" hint). "Done" or "Skip" is remembered in localStorage; with storage blocked the card shows at most once per session, no crash. 390×844: the first job row is still visible below the card's collapsed state (Playwright). Counts only: shown / finished / skipped / alert turned on (privacy page updated).
+2. **Add to home screen, at the right moment** (S): As a student who just saved a job or came back a second time, I want a one-tap offer to install the board, so that it sits next to my other apps and (on iPhone) can send me alerts.
+   - Acceptance: appears only after the first save or on the second visit, never on first load, and never when already running standalone. Android/Chrome: the browser's install prompt via "Install app". iPhone Safari: a short two-step instruction (Share → Add to Home Screen) with the reason "needed for job alerts on iPhone". Dismiss hides it for 30 days. Counts only: shown / installed / dismissed (privacy page updated).
+3. **Is this pay fair? (in the guide)** (S): As a student offered a Werkstudent job or internship, I want the official pay rules in one short section, so that I know when I'm entitled to minimum wage and what a Minijob vs Werkstudent job means for my net pay.
+   - Acceptance: a "Pay" section in `/guide/` (anchor `#pay`): current statutory minimum wage and its next change, who it covers (Werkstudent and voluntary internship over 3 months yes; mandatory internship no), Minijob earnings limit, Werkstudent social insurance in one line. Every number linked to an official source (Bundesregierung/BMAS, Minijob-Zentrale, Deutsche Rentenversicherung) with the date checked. Linked from jobs that state pay ("Is this fair?") and from the footer. No "typical pay per city": no trustworthy free source exists, so we don't invent one.
+
+### Earlier pick, dropped (2026-11-10)
+
+- **What to send** (M, about half a day if the coverage check passes): As an international student, I want to see which documents a posting asks for (CV, cover letter, transcript of records, enrolment certificate, references, portfolio/GitHub), in English, so that I can prepare my application before I tap "Apply".
    - Acceptance: the fetcher extracts the documents a posting names (German and English terms, e.g. Lebenslauf, Anschreiben, Notenspiegel, Immatrikulationsbescheinigung, Zeugnisse) from the full description; shown in the open job as a short "Send:" list with English names, only when stated, never guessed. Hand check of 30 postings: 0 wrong documents. Tested with fixtures like `extract_german`.
    - Gate: tech lead first counts how many current postings name any document. Under 25% → drop this story and tell me; don't build it for a handful of jobs.
    - Notes: a new column → schema, `COLUMNS`, types and `JOB_SELECT` in sync.
    - **Gate result (tech lead, 2026-11-10): dropped.** A live run found 22 of 112 jobs (20%) naming any document, below the 25% bar. Arbeitsagentur jobs (56, half the board) carry no description at all; employer feeds do better (Infineon 5/5, GlobalFoundries 4/5, Deloitte 5/9, Fraunhofer 5/15). Revisit if the Arbeitsagentur detail text becomes available.
+
+Not now (2026-11-17): German UI toggle (the audience reads English, German students too; a full second language is days of copy upkeep, and "Read in English" covers postings); typical pay per city (no trustworthy free source, pay stated on ~0 jobs); employer mini-profiles (the company filter covers it; a few jobs per employer don't make a profile); "Recently closed" and smarter "New" on Saved (Saved already shows "Closed" and "N new"; revisit when usage shows people use Saved); SEO pages per board/field (students come via friends, not Google; also waits for the CDN switch).
 
 Not now (2026-11-10): pay/hours at a glance (data isn't there: hours stated on ~15% of jobs, pay on ~0; a better layout doesn't fix missing facts); compare saved jobs (students save a few jobs and compare on a phone, the Saved page already lists the facts); weekly digest page (`?since=`, "Copy for WhatsApp" and push cover it); keyboard shortcuts and print/PDF (our users are on phones; nobody asked). Still not now: employer logos, "similar jobs", company pages for Google (CDN switch first).
 
@@ -126,6 +135,10 @@ Nothing here gets built until step 0 shows demand. Guiding rule: students never 
 4. **Free support and grants** (S, no revenue risk): ask dresden|exists (TU Dresden founder support) and the student councils (Fachschaftsräte) to share the board, and check whether a public-interest open-source grant would cover hosting. This adds students, which is what makes items 1 to 3 sellable.
 
 **Not doing:** display ads (AdSense etc.: they need a cookie banner under §25 TDDDG and break "no tracking", and earn a few euros a month at our size); a paid tier or paid alerts for students; selling or sharing usage data; employer branding pages (they need far more traffic first; TU Dresden sells profiles for €975+ with the university's name behind it). **Later, only on request:** affiliate links for international students (blocked account, health insurance), each labelled.
+
+## Done (2026-11-10, PR #62)
+
+- **Never a dead end:** short or empty lists (0–3 jobs) suggest other boards with live counts and the one filter to drop; boards with no alternatives offer an alert.
 
 ## Done (2026-11-06, PR #61)
 

@@ -13,6 +13,13 @@ const typeOption = (page: Page, name: string) =>
   page.getByRole("group", { name: "Type" }).getByRole("button", { name: new RegExp(`^${name}`) });
 const row = (page: Page, title: string) => page.getByRole("button", { name: new RegExp(title) });
 
+// Every test is a first visit; the 3-step setup card is tested on its own below.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem("e2e:welcome")) localStorage.setItem("dsj:welcome:v1", "skip");
+  });
+});
+
 async function openBoard(page: Page, path = "/") {
   await page.goto(path);
   await expect(count(page)).toBeVisible();
@@ -61,7 +68,7 @@ test("hours and pay show in the row and as facts when the posting states them", 
   await row(page, ml.title).click();
   const facts = rowItem(ml.title).locator("dl");
   await expect(facts.locator("div").first()).toHaveText("Hours15–20 h/week");
-  await expect(facts.locator("div").nth(1)).toHaveText("Pay€15/h");
+  await expect(facts.locator("div").nth(1)).toHaveText("Pay€15/h Is this fair?");
 
   await row(page, thesis.title).click();
   await expect(rowItem(thesis.title).locator("dt", { hasText: /^(Hours|Pay)$/ })).toHaveCount(0);
@@ -468,7 +475,7 @@ test("the work-rules guide opens from the footer and links back to jobs up to 20
   await page.getByRole("navigation", { name: "More" }).getByRole("link", { name: "Work rules" }).click();
   await expect(page).toHaveURL(/\/guide\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Can I take this job?");
-  await expect(page.locator('a[href^="https://www.gesetze-im-internet.de/"]')).toHaveCount(2);
+  await expect(page.locator('a[href^="https://www.gesetze-im-internet.de/"]')).toHaveCount(3);
   await page.getByRole("link", { name: "Show jobs up to 20 h/week" }).click();
   await expect(page).toHaveURL(/[?&]hours=20/);
 });
@@ -567,4 +574,70 @@ test("an empty result names the filter to drop", async ({ page }) => {
   await drop.click();
   await expect(count(page)).toHaveText(new RegExp(`^1 of ${TOTAL} jobs`));
   await expect(count(page)).toBeFocused(); // the clicked suggestion is gone
+});
+
+test("a first visit offers a 3-step setup that sets the filters and never comes back", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("e2e:welcome", "1");
+    if (!sessionStorage.getItem("e2e:cleared")) {
+      localStorage.removeItem("dsj:welcome:v1");
+      sessionStorage.setItem("e2e:cleared", "1");
+    }
+  });
+  await openBoard(page);
+  const card = page.getByTestId("welcome");
+  await expect(card).toContainText("What are you looking for?");
+  await card.getByRole("button", { name: "Werkstudent" }).click();
+  await expect(card).toContainText("Your field?");
+  await expect(card.getByRole("heading", { level: 2 })).toBeFocused();
+  await card.getByRole("button", { name: "Any field" }).click();
+  await card.getByRole("button", { name: /^Dresden/ }).click();
+  await expect(card).toContainText("Hear about new jobs like these?");
+  await expect(page).toHaveURL(/[?&]type=werkstudent/);
+  await card.getByRole("button", { name: "Done, show my jobs" }).click();
+  await expect(card).toHaveCount(0);
+  await page.reload();
+  await expect(count(page)).toBeVisible();
+  await expect(page.getByTestId("welcome")).toHaveCount(0);
+});
+
+test("the setup card stays away on shared links with filters or a job", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("e2e:welcome", "1");
+    localStorage.removeItem("dsj:welcome:v1");
+  });
+  await openBoard(page, "/?type=thesis");
+  await expect(page.getByTestId("welcome")).toHaveCount(0);
+  await openBoard(page, `/?job=${fixture.jobs[0].id}`);
+  await expect(page.getByTestId("welcome")).toHaveCount(0);
+});
+
+test.describe("on iPhone", () => {
+  test.use({ userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1" });
+
+  test("a student who saved a job gets the home-screen offer; Not now hides it", async ({ page }) => {
+    await openBoard(page);
+    await expect(page.getByTestId("install-offer")).toHaveCount(0); // never on a first load
+    await row(page, fixture.jobs[0].title).click();
+    await page.getByRole("button", { name: "Save for later" }).click();
+    const offer = page.getByTestId("install-offer");
+    await expect(offer).toContainText("Add to Home Screen");
+    await offer.getByRole("button", { name: "Not now" }).click();
+    await expect(offer).toHaveCount(0);
+    await page.reload();
+    await expect(count(page)).toBeVisible();
+    await expect(page.getByTestId("install-offer")).toHaveCount(0);
+  });
+});
+
+test("the guide explains pay, and stated pay links to it", async ({ page }) => {
+  const [ml] = fixture.jobs;
+  await openBoard(page);
+  await row(page, ml.title).click();
+  await page.getByRole("link", { name: "Is this fair?" }).click();
+  await expect(page).toHaveURL(/\/guide\/#pay$/);
+  const pay = page.locator("#pay");
+  await expect(pay).toContainText("€13.90");
+  await expect(pay).toContainText("€14.60");
+  await expect(pay.locator('a[href^="https://www.gesetze-im-internet.de/"]')).toHaveCount(2);
 });
