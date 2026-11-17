@@ -162,6 +162,7 @@ test("save a job, find it on /saved/, remove it and undo", async ({ page }) => {
   await row(page, job.title).click();
   await page.getByRole("button", { name: "Save for later" }).click();
   await expect(savedLink(page)).toContainText("1");
+  await expect(page).toHaveURL(/job=/); // the URL settled, so it can't override the navigation
 
   await savedLink(page).click();
   await expect(page).toHaveURL(/\/saved\/$/);
@@ -544,6 +545,7 @@ test("Not for me hides a job, Undo and Show bring it back, and it survives a rel
 
   await row(page, data.title).click();
   await page.getByRole("button", { name: "Not for me" }).click();
+  await expect(page).not.toHaveURL(/job=/); // the URL settled before reloading
   await page.reload();
   await expect(page.locator(`#row-${data.id}`)).toHaveCount(0);
   await expect(page.getByText("1 hidden job.")).toBeVisible();
@@ -598,6 +600,25 @@ test("a first visit offers a 3-step setup that sets the filters and never comes 
   await expect(card).toHaveCount(0);
   await page.reload();
   await expect(count(page)).toBeVisible();
+  await expect(page.getByTestId("welcome")).toHaveCount(0);
+});
+
+test("picking another city in the setup continues on that board's page", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("e2e:welcome", "1");
+    if (!sessionStorage.getItem("e2e:cleared")) {
+      localStorage.removeItem("dsj:welcome:v1");
+      sessionStorage.setItem("e2e:cleared", "1");
+    }
+  });
+  await openBoard(page);
+  const card = page.getByTestId("welcome");
+  await card.getByRole("button", { name: "Thesis" }).click();
+  await card.getByRole("button", { name: "Any field" }).click();
+  await card.getByRole("button", { name: /^Leipzig/ }).click();
+  await expect(page).toHaveURL(/\/leipzig\/\?type=thesis$/);
+  await expect(page.getByTestId("welcome")).toContainText("Hear about new jobs like these?");
+  await page.getByTestId("welcome").getByRole("button", { name: "Done, show my jobs" }).click();
   await expect(page.getByTestId("welcome")).toHaveCount(0);
 });
 

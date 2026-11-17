@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import html
 import re
+import math
 import time
 from datetime import datetime, timezone
 
@@ -24,10 +25,11 @@ def _request(url: str, *, headers: dict | None = None, params: dict | None = Non
     for attempt in range(retries + 1):
         try:
             if json_body is not None:
-                res = _session.post(url, headers=headers, params=params, json=json_body, timeout=timeout)
+                res = _session.post(url, headers=headers, params=params, json=json_body, timeout=timeout, stream=True)
             else:
-                res = _session.get(url, headers=headers, params=params, timeout=timeout)
+                res = _session.get(url, headers=headers, params=params, timeout=timeout, stream=True)
             res.raise_for_status()
+            _read_capped(res, deadline=time.monotonic() + READ_SECONDS)
             return res
         except requests.RequestException as err:
             last_err = err
@@ -36,18 +38,55 @@ def _request(url: str, *, headers: dict | None = None, params: dict | None = Non
     raise last_err  # type: ignore[misc]
 
 
+MAX_BYTES = 15_000_000  # the largest real reply is ~2 MB; a giant one must not exhaust the runner's memory
+READ_SECONDS = 60  # a reply that drips in slower than this is cut off (the timeout only bounds gaps)
+
+
+class TooLarge(requests.RequestException):
+    """A reply over MAX_BYTES or slower than READ_SECONDS (Kevin, attacks #4–#5)."""
+
+
+def _read_capped(res: requests.Response, deadline: float) -> None:
+    """Reads the streamed body into res, so .text/.json() work as usual, within size and time."""
+    declared = res.headers.get("Content-Length")
+    if declared and declared.isdigit() and int(declared) > MAX_BYTES:
+        res.close()
+        raise TooLarge(f"reply of {declared} bytes is over the {MAX_BYTES} limit")
+    body = bytearray()
+    for chunk in res.iter_content(64 * 1024):
+        body += chunk
+        if len(body) > MAX_BYTES:
+            res.close()
+            raise TooLarge(f"reply over the {MAX_BYTES} byte limit")
+        if time.monotonic() > deadline:
+            res.close()
+            raise TooLarge(f"reply took longer than {READ_SECONDS}s")
+    res._content = bytes(body)  # what requests itself fills in when it reads the body
+
+
 BUSY = {429, 502, 503, 504}  # "too many requests" or a gateway hiccup: worth a longer pause
+BUSY_WAIT_MAX = 15.0  # one pause at most
+BUSY_BUDGET = 180.0  # all long pauses of one run together: a throttling site can't stall the 20-min Action
+_busy_waited = 0.0
 
 
 def _backoff(err: Exception, attempt: int) -> float:
-    """Seconds to wait before the next try: the server's Retry-After (capped) when it is busy."""
+    """Seconds to wait before the next try: the server's Retry-After (capped) when it is busy,
+    while this run's budget for long pauses lasts; otherwise the short default."""
+    global _busy_waited
+    short = 1.0 + attempt
     res = getattr(err, "response", None)
-    if res is not None and res.status_code in BUSY:
-        try:
-            return min(float(res.headers.get("Retry-After", "")), 30.0)
-        except ValueError:
-            return 5.0 * (attempt + 1)
-    return 1.0 + attempt
+    if res is None or res.status_code not in BUSY or _busy_waited >= BUSY_BUDGET:
+        return short
+    try:
+        wait = float(res.headers.get("Retry-After", ""))
+        if not math.isfinite(wait):
+            raise ValueError
+    except ValueError:  # missing, an HTTP date or junk: our own pause
+        wait = 5.0 * (attempt + 1)
+    wait = min(max(wait, short), BUSY_WAIT_MAX, BUSY_BUDGET - _busy_waited)
+    _busy_waited += wait
+    return wait
 
 
 def status_code(url: str, *, headers: dict | None = None, timeout: int = 15) -> int | None:

@@ -2,6 +2,29 @@
 
 Results of `/hackerattack` runs (Kevin, `.claude/agents/kevin.md`). Newest first. Each entry: scope, findings with severity and status, and what held.
 
+## 2026-11-17: attack #5, production-only sprint
+
+**Scope:** `git log origin/main..HEAD` (2 commits): first-visit setup (`Welcome.tsx`), install offer (`install.ts`, `InstallOffer.tsx`), `prefs.ts` localStorage flags, the fair-pay guide (`/guide/#pay`), `net.py` backoff + JSON retry, `store.last_status()` and the one-off-failure alarm change (`health_problems`). Plus the open items from attack #4 (anon writes, `net.py` size cap). Production attacked read-only; anon writes attempted and expected to be refused.
+
+**Verdict:** nothing new is exploitable. The database held completely; `net.py` still has no body-size or total-time bound (attack #4 item, still open) and the new backoff adds a negative-`Retry-After` crash path.
+
+| # | Severity | Finding | Status |
+|---|---|---|---|
+| 1 | Low | `net._backoff` passes the server's `Retry-After` through `min(float(...), 30.0)` with no lower bound, so a hostile upstream answering a BUSY status (429/502/503/504) with `Retry-After: -1` (or `nan`) makes `time.sleep()` raise `ValueError`, which `_request` does not catch (only `requests.RequestException`): that one source's fetch dies. Other sources and the run continue | Open: clamp to `max(0.0, min(..., 30.0))` and ignore non-finite values |
+| 2 | Low | `net.py` reads every response body fully into memory (`res.text`, `res.json()`) with no `Content-Length`/stream cap, and `requests`' `timeout` bounds only inter-byte gaps, not total time. A compromised or MITM'd feed (Arbeitnow/Arbeitsagentur/an ATS) can exhaust the runner's memory with a giant body or slow-drip the daily Action toward its 20-minute cap | Open (restated from attack #4 #0): stream with a size cap and a wall-clock deadline per source. Not anon-reachable |
+
+**Tried and held:**
+- **Database (production, publishable key `sb_publishable_oCzSo…`):** anon INSERT/UPDATE/DELETE on `jobs`, INSERT on `fetch_runs`, INSERT on `closed_jobs`, INSERT on `push_subscriptions` all refused (401 / `42501 permission denied`). `closed_jobs` and `push_subscriptions` are unreadable (401). `jobs`/`fetch_runs` read-only as intended; `select=*` exposes no hidden column.
+- **Alarm influence:** `store.last_status()` reads the newest public `fetch_runs` row, but anon cannot write `fetch_runs`, so no one can forge a prior-run status to suppress or trigger the source-failure alarm. The row is service-role only.
+- **`subscribe_push` validation:** an off-list endpoint (`https://evil.example.com/…`), short keys, a quoted/`drop` board, and an off-list field were each rejected (`P0001`) before any insert; `unsubscribe_push` with a bogus endpoint is a no-op (204). `save_closed` is not exposed to anon (PGRST202).
+- **Web:** `Welcome`/`InstallOffer` send only the event names `welcome_done`/`welcome_skip`/`install_offer` to Umami — the student's type/field/city answers go to filters, never to analytics. localStorage flags (`dsj:welcome:v1`, `dsj:install:v1`) are self-only and `within()` validates the date format; tampering only re-shows or hides the student's own card. `/guide/#pay` is a static anchor; the "Is this fair?" link and the new guide copy are plain React text (no sink).
+- **Headers (production):** CSP with `frame-ancestors 'none'`, `script-src` hash-only (no `unsafe-inline`, includes the new inline-script hashes), `connect-src` limited to self + Supabase + Umami; `X-Frame-Options: DENY`, HSTS preload, `nosniff`. No CSP regression after the new components.
+- **Leaks:** no service-role/VAPID key in the production bundles; the publishable key is public by design. `fetch_runs.sources` errors are query-stripped (only a bare `429 … for url: https://globalf…` path).
+
+**Not tested:** `subscribe_push`/`unsubscribe_push` with fully valid input (would write real rows to production), posting on third-party job boards, DoS/load, the `net.py` memory/slowloris findings against a live hostile server (static analysis only).
+
+**Cleanup:** none. Every production write attempt was refused by RLS; no row was created, updated or deleted.
+
 ## 2026-11-10: attack #4, sprint changes since push alerts
 
 **Scope:** `git log 262a9a4..HEAD` (18 commits): Deloitte, PwC and SAP sources, `jobs.cities`, `subscribe_push` with `business`, `?company=`, hidden jobs (`dsj:hidden:v1`), "Never a dead end" suggestions, "Read in English", the share digest.

@@ -34,8 +34,8 @@ from fetcher.terms import extract_terms  # noqa: E402
 OUTPUT = ROOT / "web" / "public" / "jobs.json"  # local fallback when Supabase isn't configured
 
 # The live site's Supabase project (public: it's also in the site's code). Only the
-# scheduled GitHub Action may write to it; it sets ALLOW_PRODUCTION_WRITE=1. Local
-# runs and staging use the staging project, so a buggy test run can't reach students.
+# GitHub Action may write to it; it sets ALLOW_PRODUCTION_WRITE=1. Local runs write
+# web/public/jobs.json, so a buggy test run can't reach students.
 PRODUCTION_PROJECT_REF = "ywurtulsjybbdfzqfowq"
 
 # Direct employer sources come first: the first link of a merged job is its "Apply now"
@@ -333,7 +333,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if PRODUCTION_PROJECT_REF in os.environ.get("SUPABASE_URL", "").lower() and os.environ.get("ALLOW_PRODUCTION_WRITE") != "1":
         print("Refusing to write to the production database: only the scheduled GitHub Action does that.\n"
-              "Point SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY in .env at the staging project.")
+              "Leave SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY unset locally to write web/public/jobs.json.")
         return 4
 
     today = date.today().isoformat()

@@ -17,7 +17,7 @@ Measured on 2026-10-29 with 40 jobs. Free-tier limits come from the official pri
 | Vercel bandwidth | 100 GB / month | ~1.8 GB | ~2% |
 | Vercel CDN requests | 1M / month | ~350k | ~35% |
 | Supabase egress | 5 GB / month | ~0.9 GB at 40 jobs | ~18% |
-| Supabase projects | 2 active | production + staging | full |
+| Supabase projects | 2 active | production (the staging project is no longer used) | 50% |
 
 Concurrency is not a concern. Peaks of a few dozen users at once are trivial for a CDN and for a 40-row read on Supabase. Supabase's free plan allows unlimited API requests.
 

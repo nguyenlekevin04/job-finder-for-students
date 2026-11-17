@@ -32,7 +32,7 @@ import { DigestButton } from "./DigestButton";
 import { JobRow } from "./JobRow";
 import { MoreJobs } from "./MoreJobs";
 import { InstallOffer } from "./InstallOffer";
-import { Welcome, WELCOME_KEY } from "./Welcome";
+import { Welcome, WELCOME_KEY, WELCOME_RESUME } from "./Welcome";
 import { NewTicket } from "./NewTicket";
 import { EmptyState, ErrorState, LoadingList } from "./States";
 
@@ -177,14 +177,16 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
   const markDay = lastVisit?.seen ?? null;
   // First visit on a plain board link: offer the 3-tap setup once (decided when the data is in).
   const [welcome, setWelcome] = useState<boolean | null>(null);
+  const [welcomeResume] = useState(() => typeof window !== "undefined" && getPref(WELCOME_KEY) === WELCOME_RESUME);
   if (welcome === null && data && lastVisit !== undefined) {
     setWelcome(
-      lastVisit === null &&
+      welcomeResume ||
+        (lastVisit === null &&
         !getPref(WELCOME_KEY) &&
         !filters.job &&
         !filters.q.trim() &&
         activeFilterCount(filters) === 0 &&
-        !new URLSearchParams(paramStr).has("city"),
+        !new URLSearchParams(paramStr).has("city")),
     );
   }
   const sinceDay = filters.since ?? markDay;
@@ -325,7 +327,20 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
         {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
         {data && (
           <>
-            {welcome && <Welcome filters={filters} counts={cityCounts} onChange={update} onClose={() => setWelcome(false)} />}
+            {welcome && (
+              <Welcome
+                filters={filters}
+                home={home}
+                startAtAlert={welcomeResume}
+                counts={cityCounts}
+                onChange={(patch) => {
+                  // Setup answers aren't counted as filter use (privacy page: "not your answers").
+                  counted.current = { ...counted.current, ...patch };
+                  update(patch);
+                }}
+                onClose={() => setWelcome(false)}
+              />
+            )}
             {/* Never on a first load: only for students who came back or saved a job. */}
             <InstallOffer eligible={!welcome && (lastVisit != null || savedCount > 0)} />
             {/* Highlighting "new" only means something when some jobs aren't. */}

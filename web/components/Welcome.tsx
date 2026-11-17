@@ -9,9 +9,13 @@ import { AlertButton } from "./AlertButton";
 
 /** Set once the setup was finished or skipped; it never comes back. */
 export const WELCOME_KEY = "dsj:welcome:v1";
+/** Value of WELCOME_KEY while the city answer moves to another board's page: resume at the alert step there. */
+export const WELCOME_RESUME = "alert-step";
 
 interface Props {
   filters: Filters;
+  home: Board; // the board this page shows; picking another one loads its page
+  startAtAlert?: boolean; // resumed after the city answer changed page
   counts: Record<string, number>; // jobs per board
   onChange: (patch: Partial<Filters>) => void;
   onClose: () => void;
@@ -21,8 +25,8 @@ const chip =
   "focus-ring hit rounded-full border-[1.5px] border-rule px-3.5 py-1.5 text-[14px] font-semibold hover:border-ink";
 
 /** "Set up your board in 3 taps": looking for, field, city, then the alert offer. Not a modal: skip any time. */
-export function Welcome({ filters, counts, onChange, onClose }: Props) {
-  const [step, setStep] = useState(0);
+export function Welcome({ filters, home, startAtAlert, counts, onChange, onClose }: Props) {
+  const [step, setStep] = useState(startAtAlert ? 3 : 0);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const moved = useRef(false);
   useEffect(() => {
@@ -81,7 +85,10 @@ export function Welcome({ filters, counts, onChange, onClose }: Props) {
               type="button"
               aria-pressed={filters.city === b}
               className={`${chip} ${filters.city === b ? "border-ink" : ""}`}
-              onClick={() => answer({ city: b })}
+              onClick={() => {
+                if (b !== home) setPref(WELCOME_KEY, WELCOME_RESUME); // the other board's page picks up from here
+                answer({ city: b });
+              }}
             >
               {BOARD_LABELS[b]} <span className="font-normal text-muted tabular-nums">{counts[b] ?? 0}</span>
             </button>

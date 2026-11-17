@@ -107,8 +107,8 @@ const SECTIONS: [heading: string, body: React.ReactNode, id?: string][] = [
       </p>
       <Source href="https://www.gesetze-im-internet.de/milog/__22.html">§ 22 Minimum Wage Act (MiLoG)</Source>
       <p>
-        <b>What you keep:</b> as a Werkstudent you pay only pension insurance (section 03), in a minijob usually nothing
-        (section 04). Income tax depends on your yearly total.
+        <b>What you keep:</b> as a Werkstudent you pay only pension insurance (section 03); in a minijob you pay
+        3.6% pension insurance unless you opt out. Income tax depends on your yearly total.
       </p>
     </>,
     "pay",
