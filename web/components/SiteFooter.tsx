@@ -82,6 +82,9 @@ export function SiteFooter() {
           <Link href="/guide/" className="focus-ring hit rounded hover:text-ink hover:underline">
             Work rules
           </Link>
+          <Link href="/guide/#pay" className="focus-ring hit rounded hover:text-ink hover:underline">
+            Fair pay
+          </Link>
           <Link href="/imprint/" className="focus-ring hit rounded hover:text-ink hover:underline">
             Imprint
           </Link>

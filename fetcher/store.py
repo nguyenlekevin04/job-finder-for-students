@@ -127,6 +127,16 @@ class SupabaseStore:
                 return jobs
             offset += page
 
+    def last_status(self) -> dict:
+        """Per-source status of the previous run (fetch_runs.sources), or {} when unknown."""
+        try:
+            res = self.session.get(f"{self.base}/fetch_runs", timeout=30, params={
+                "select": "sources", "order": "generated_at.desc", "limit": "1"})
+            rows = res.json() if res.ok else []
+            return (rows[0].get("sources") or {}) if rows else {}
+        except (requests.RequestException, ValueError):
+            return {}
+
     def closed(self) -> dict[str, str] | None:
         """Tombstones of employer-closed jobs (id -> closed on), or None while the table is missing."""
         closed: dict[str, str] = {}
@@ -218,6 +228,9 @@ class JsonFileStore:
             return json.loads(self.path.read_text()) if self.path.exists() else {}
         except json.JSONDecodeError:
             return {}
+
+    def last_status(self) -> dict:
+        return dict(self._read().get("sources") or {})
 
     def closed(self) -> dict[str, str] | None:
         return dict(self._read().get("closedJobs", {}))

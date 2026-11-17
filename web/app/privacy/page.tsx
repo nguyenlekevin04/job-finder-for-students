@@ -4,7 +4,7 @@ import { LEGAL_PLACEHOLDERS, OPERATOR } from "@/lib/legal";
 
 // TODO before launch: check this text with a privacy policy generator (e.g. eRecht24)
 // and fill in the real data in web/lib/legal.ts. Keep the list of browser storage keys
-// in sync with the code (useBookmarks, useApplications, useSavedSearches, useHidden, ThemeToggle, useLastVisit). Also confirm the
+// in sync with the code (useBookmarks, useApplications, useSavedSearches, useHidden, Welcome, InstallOffer, ThemeToggle, useLastVisit). Also confirm the
 // provider details: Vercel's, Supabase's and Umami's addresses, the Supabase project's region,
 // and the legal basis for transfers outside the EU (Data Privacy Framework / SCCs).
 
@@ -82,6 +82,14 @@ const SECTIONS: [string, React.ReactNode][] = [
           out of your list.
         </li>
         <li>
+          <code className={code}>dsj:welcome:v1</code>: that you finished or skipped the 3-step setup, so it isn’t
+          offered again.
+        </li>
+        <li>
+          <code className={code}>dsj:install:v1</code>: the day you tapped “Not now” on the home-screen offer, so it
+          stays away for 30 days.
+        </li>
+        <li>
           <code className={code}>dsj:theme</code>: light or dark mode, if you picked one.
         </li>
         <li>
@@ -104,7 +112,7 @@ const SECTIONS: [string, React.ReactNode][] = [
               To learn which parts of the board help students, we count visits with Umami (Umami Software, Inc., USA), a
               cookieless analytics service. It counts which pages are opened, the referring site, the browser and operating
               system, device type, screen size, language and approximate location (country, region, city), which filters are turned on (for example “Werkstudent” or “Up to 20 h/week”, never what you
-              type into search) and clicks on the Apply button with the job board the link goes to, that a search was saved (not which one) that a deadline was added to a calendar, clicks on the feedback and report links, that alerts were turned on, clicks on “Read in English”, that this week’s jobs were copied or shared (not which ones), that a job was hidden (not which one), that the “All jobs at …” filter was used (not for which company) and that a suggestion under a short list was used (not which one).
+              type into search) and clicks on the Apply button with the job board the link goes to, that a search was saved (not which one) that a deadline was added to a calendar, clicks on the feedback and report links, that alerts were turned on, clicks on “Read in English”, that this week’s jobs were copied or shared (not which ones), that a job was hidden (not which one), that the “All jobs at …” filter was used (not for which company) that a suggestion under a short list was used (not which one), whether the 3-step setup was finished or skipped (not your answers) and that the home-screen offer was used.
             </p>
             <p>
               Umami sets no cookies and stores nothing in your browser. It doesn’t store your IP address; it only uses it,
@@ -211,7 +219,7 @@ export default function PrivacyPage() {
             <div className="mt-2 space-y-3 text-[16px] leading-relaxed text-ink">{body}</div>
           </section>
         ))}
-        <p className="mt-8 text-xs text-muted">Last updated 10 Nov 2026</p>
+        <p className="mt-8 text-xs text-muted">Last updated 17 Nov 2026</p>
       </div>
     </div>
   );

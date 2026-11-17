@@ -3,12 +3,12 @@ import Link from "next/link";
 
 // Every rule links an official source. Re-check the numbers each January (minimum wage and the
 // minijob limit change then) and update CHECKED.
-const CHECKED = "3 Nov 2026";
+const CHECKED = "17 Nov 2026";
 
 const OG_IMAGE = { url: "/og.png", width: 1200, height: 630, alt: "dresden/jobs: student tech jobs, updated daily" };
 const title = "Can I take this job? Work rules for students in Germany";
 const description =
-  "Werkstudent, internship, minijob and the 140-day rule for international students, in two minutes, with official sources.";
+  "Werkstudent, internship, minijob, minimum wage and the 140-day rule for international students, in two minutes, with official sources.";
 
 export const metadata: Metadata = {
   title: "Work rules for students", // layout template adds " · dresden/jobs"
@@ -31,7 +31,7 @@ function Source({ href, children }: { href: string; children: React.ReactNode })
   );
 }
 
-const SECTIONS: [string, React.ReactNode][] = [
+const SECTIONS: [heading: string, body: React.ReactNode, id?: string][] = [
   [
     "EU, EEA or Swiss citizen",
     <>
@@ -92,15 +92,26 @@ const SECTIONS: [string, React.ReactNode][] = [
     </>,
   ],
   [
-    "Internships: when the minimum wage applies",
+    "Is this pay fair?",
     <>
       <p>
-        <b>Mandatory internships</b> (required by your study regulations) don’t have to pay the minimum wage. Neither do
-        voluntary internships of up to three months alongside your studies, once per employer. A <b>longer voluntary
-        internship</b> must pay at least €13.90/h (2026).
+        The legal <b>minimum wage is €13.90 an hour in 2026</b> and rises to <b>€14.60 on 1 January 2027</b>. It covers
+        Werkstudent jobs, minijobs and voluntary internships longer than three months. At 20 hours a week, €13.90/h is
+        about €1,200 a month.
+      </p>
+      <Source href="https://www.gesetze-im-internet.de/milov5/BJNR10C0A0025.html">Fifth Minimum Wage Adjustment Ordinance (MiLoV 5)</Source>
+      <p>
+        <b>Internships without it:</b> mandatory internships (required by your study regulations) and voluntary
+        internships of up to three months alongside your studies, once per employer, don’t have to pay the minimum
+        wage. Many still do, so ask.
       </p>
       <Source href="https://www.gesetze-im-internet.de/milog/__22.html">§ 22 Minimum Wage Act (MiLoG)</Source>
+      <p>
+        <b>What you keep:</b> as a Werkstudent you pay only pension insurance (section 03); in a minijob you pay
+        3.6% pension insurance unless you opt out. Income tax depends on your yearly total.
+      </p>
     </>,
+    "pay",
   ],
 ];
 
@@ -120,8 +131,8 @@ export default function GuidePage() {
       </p>
 
       <div className="mt-10 max-w-[65ch]">
-        {SECTIONS.map(([heading, body], i) => (
-          <section key={heading} className="border-t-[1.5px] border-rule py-6">
+        {SECTIONS.map(([heading, body, id], i) => (
+          <section key={heading} id={id} className="scroll-mt-6 border-t-[1.5px] border-rule py-6">
             <span className="text-[13px] text-muted tabular-nums">{String(i + 1).padStart(2, "0")}</span>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em]">{heading}</h2>
             <div className="mt-2 space-y-3 text-[16px] leading-relaxed text-ink">{body}</div>

@@ -232,6 +232,37 @@ def test_health_problems_flags_failed_and_empty_sources():
     assert problems == ["Broken failed: HTTP 500", "Empty returned no postings (did the site change?)"]
 
 
+def test_a_source_failing_once_is_a_warning_twice_an_alarm():
+    status = {"Flaky": {"ok": False, "count": 0, "error": "429"}, "Down": {"ok": False, "count": 0, "error": "500"}}
+    previous = {"Flaky": {"ok": True, "count": 20}, "Down": {"ok": False, "count": 0}}
+    assert main.health_problems(status, [_Src("Flaky"), _Src("Down")], previous) == ["Down failed: 500"]
+    # No record of the previous run (or a new source): alarm at once.
+    assert main.health_problems(status, [_Src("Flaky"), _Src("Down")], {}) == ["Flaky failed: 429", "Down failed: 500"]
+
+
+def test_busy_servers_get_a_longer_pause_within_a_budget(monkeypatch):
+    from fetcher import net
+
+    class Res:
+        def __init__(self, code, headers=None):
+            self.status_code, self.headers = code, headers or {}
+
+    def err(res):
+        e = net.requests.HTTPError("x")
+        e.response = res
+        return e
+    monkeypatch.setattr(net, "_busy_waited", 0.0)
+    assert net._backoff(err(Res(429, {"Retry-After": "12"})), 0) == 12
+    assert net._backoff(err(Res(429, {"Retry-After": "600"})), 0) == net.BUSY_WAIT_MAX
+    assert net._backoff(err(Res(503)), 1) == 10
+    assert net._backoff(err(Res(429, {"Retry-After": "-5"})), 0) == 1  # never negative
+    assert net._backoff(err(Res(429, {"Retry-After": "nan"})), 0) == 5
+    assert net._backoff(err(Res(404)), 0) == 1
+    assert net._backoff(net.requests.ConnectionError("x"), 1) == 2
+    monkeypatch.setattr(net, "_busy_waited", net.BUSY_BUDGET)  # budget used up: short pauses only
+    assert net._backoff(err(Res(429, {"Retry-After": "12"})), 1) == 2
+
+
 def test_main_saves_then_fails_when_a_source_is_broken(monkeypatch, tmp_path):
     monkeypatch.delenv("SUPABASE_URL", raising=False)
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
@@ -433,3 +464,29 @@ def test_company_and_location_are_one_line():
     j = next(iter(main.build_jobs([r]).values()))
     assert j["company"] == "ACME GmbH https://evil.example/?job=abc • Fake"
     assert j["location"] == "Berlin Mitte"
+
+
+def test_replies_are_capped_in_size_and_time(monkeypatch):
+    import pytest
+    from fetcher import net
+
+    class Res:
+        def __init__(self, chunks, headers=None):
+            self.headers, self.chunks, self.closed, self._content = headers or {}, chunks, False, None
+
+        def iter_content(self, size):
+            yield from self.chunks
+
+        def close(self):
+            self.closed = True
+
+    ok = Res([b'{"a":', b" 1}"])
+    net._read_capped(ok, deadline=float("inf"))
+    assert ok._content == b'{"a": 1}'
+    monkeypatch.setattr(net, "MAX_BYTES", 10)
+    with pytest.raises(net.TooLarge):
+        net._read_capped(Res([b"x" * 6, b"x" * 6]), deadline=float("inf"))
+    with pytest.raises(net.TooLarge):
+        net._read_capped(Res([], {"Content-Length": "999"}), deadline=float("inf"))
+    with pytest.raises(net.TooLarge):
+        net._read_capped(Res([b"x"]), deadline=0)  # past the deadline

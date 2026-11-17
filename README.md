@@ -45,9 +45,9 @@ Without Supabase keys this writes `web/public/jobs.json`. With `SUPABASE_URL` an
 cd web && npm install && npm run dev
 ```
 
-Then open http://localhost:3000. To read from Supabase instead of `jobs.json`, copy `web/.env.example` to `web/.env.local` and fill in the **staging** project's URL and anon key. `npm run build` creates the static site in `web/out/`.
+Then open http://localhost:3000. To read from Supabase instead of `jobs.json`, copy `web/.env.example` to `web/.env.local` and fill in a Supabase project's URL and anon (publishable) key. `npm run build` creates the static site in `web/out/`.
 
-Local fetches must use the staging project too: the fetcher refuses to write to the production database unless it runs as the scheduled GitHub Action.
+Local fetches can't write to production: the fetcher refuses to write to the production database unless it runs as the GitHub Action (`ALLOW_PRODUCTION_WRITE=1`). Without `SUPABASE_*` they write `web/public/jobs.json`.
 
 Run the tests:
 
@@ -63,24 +63,25 @@ cd web && npm test
 
 | | Website | Database | Deploys from |
 |---|---|---|---|
-| **dev** | `npm run dev` on your machine | staging Supabase project | – |
-| **staging** | Vercel preview at the `staging` branch URL (orange STAGING banner, hidden from search engines) | staging Supabase project | `staging` branch, and every pull request gets its own preview |
+| **dev** | `npm run dev` on your machine | `web/public/jobs.json`, or the project in `web/.env.local` | – |
 | **production** | Vercel production deployment | production Supabase project | `main` |
 
-1. Create a branch from `staging`, then open a pull request into `staging`.
-2. CI runs the fetcher tests, plus the website's lint, type check, unit tests and build. Vercel posts a preview link.
-3. After merging, check the staging URL.
-4. Open a pull request from `staging` into `main`. Merging it puts the change live.
+There is no staging environment (production only since 2026-11-17).
 
-`main` and `staging` are protected: changes only land through pull requests with passing checks.
+1. Create a feature branch from `main`, then open a pull request into `main`.
+2. CI runs the fetcher tests, plus the website's lint, type check, unit tests and build. The review team reviews the change (the author never approves their own change).
+3. Merge with a merge commit (never squash) once CI is green. Production schema changes go in via the Supabase MCP before the merge.
+4. After merging, check the production site and the next fetch.
+
+`main` is protected: changes only land through pull requests with passing checks. Vercel still builds a preview per pull request (STAGING banner via `NEXT_PUBLIC_DEPLOY_ENV`, reading whatever Supabase project the Preview environment points at), but previews aren't part of the flow.
 
 See `docs/capacity.md` for what 5,000 users cost on the free tiers, and when the setup has to change.
 
 ## Deploy
 
-### 1. Supabase (two projects: production and staging)
+### 1. Supabase (production project)
 
-1. Create each project at https://supabase.com (region: Central EU / Frankfurt).
+1. Create the project at https://supabase.com (region: Central EU / Frankfurt).
 2. **SQL Editor** → paste `supabase/schema.sql` → **Run**.
 3. **Project Settings → API Keys**: note the Project URL, the anon/publishable key (public, read-only) and the service_role/secret key (private, can write).
 
@@ -89,18 +90,17 @@ See `docs/capacity.md` for what 5,000 users cost on the free tiers, and when the
 **Settings → Secrets and variables → Actions → New repository secret**:
 
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`: production
-- `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_SERVICE_ROLE_KEY`: staging
 
-The schedule fills both databases every morning. **Actions → Update jobs → Run workflow** fills the one you pick. If the staging secrets are missing, the staging run fails instead of falling back to production.
+The schedule fills the production database every morning; **Actions → Update jobs → Run workflow** runs it by hand. The `STAGING_*` secrets and the staging Supabase project are no longer used by the daily job.
 
 ### 3. Vercel (website)
 
 **Add New → Project** → import this repo. Set **Root Directory** to `web`. Vercel detects Next.js; `web/vercel.json` adds headers and skips builds when `web/` didn't change. Environment variables:
 
-| Variable | Production | Preview (staging + pull requests) |
+| Variable | Production | Preview (pull requests, not part of the flow) |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | production project URL | staging project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | production anon key | staging anon key |
+| `NEXT_PUBLIC_SUPABASE_URL` | production project URL | any project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | production anon key | that project's anon key |
 | `NEXT_PUBLIC_DEPLOY_ENV` | (leave unset) | `staging` |
 
 These values are baked in at build time, so redeploy after changing them. The old Render site (`render.yaml`) stays only to forward its address to Vercel.

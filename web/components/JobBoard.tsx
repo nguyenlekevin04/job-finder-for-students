@@ -21,6 +21,7 @@ import { useApplications } from "@/lib/useApplications";
 import { useBookmarks } from "@/lib/useBookmarks";
 import { useHidden } from "@/lib/useHidden";
 import { FEW_RESULTS } from "@/lib/suggest";
+import { getPref } from "@/lib/prefs";
 import { isSearch, searchKey, useSavedSearches } from "@/lib/useSavedSearches";
 import { useJobsFile } from "@/lib/useJobs";
 import { useLastVisit } from "@/lib/useLastVisit";
@@ -30,12 +31,14 @@ import { AlertButton } from "./AlertButton";
 import { DigestButton } from "./DigestButton";
 import { JobRow } from "./JobRow";
 import { MoreJobs } from "./MoreJobs";
+import { InstallOffer } from "./InstallOffer";
+import { Welcome, WELCOME_KEY, WELCOME_RESUME } from "./Welcome";
 import { NewTicket } from "./NewTicket";
 import { EmptyState, ErrorState, LoadingList } from "./States";
 
 export function JobBoard({ home = "dresden" }: { home?: Board }) {
   const { state, retry } = useJobsFile();
-  const { isSaved, toggle } = useBookmarks();
+  const { isSaved, toggle, count: savedCount } = useBookmarks();
   const { isHidden, hide, unhide } = useHidden();
   const [showHidden, setShowHidden] = useState(false);
   const [justHidden, setJustHidden] = useState<string | null>(null); // for "Undo"
@@ -172,6 +175,20 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
   // A ?since= link wins over the stored mark, so a shared link shows the same set.
   const lastVisit = useLastVisit(data ? allJobs : null); // undefined until the data is in, null on a first visit
   const markDay = lastVisit?.seen ?? null;
+  // First visit on a plain board link: offer the 3-tap setup once (decided when the data is in).
+  const [welcome, setWelcome] = useState<boolean | null>(null);
+  const [welcomeResume] = useState(() => typeof window !== "undefined" && getPref(WELCOME_KEY) === WELCOME_RESUME);
+  if (welcome === null && data && lastVisit !== undefined) {
+    setWelcome(
+      welcomeResume ||
+        (lastVisit === null &&
+        !getPref(WELCOME_KEY) &&
+        !filters.job &&
+        !filters.q.trim() &&
+        activeFilterCount(filters) === 0 &&
+        !new URLSearchParams(paramStr).has("city")),
+    );
+  }
   const sinceDay = filters.since ?? markDay;
   // "Since Tuesday" names the day of that visit, not the newest job it had.
   const visitDay = lastVisit ? localDay(lastVisit.seenAt) : null;
@@ -310,6 +327,22 @@ export function JobBoard({ home = "dresden" }: { home?: Board }) {
         {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
         {data && (
           <>
+            {welcome && (
+              <Welcome
+                filters={filters}
+                home={home}
+                startAtAlert={welcomeResume}
+                counts={cityCounts}
+                onChange={(patch) => {
+                  // Setup answers aren't counted as filter use (privacy page: "not your answers").
+                  counted.current = { ...counted.current, ...patch };
+                  update(patch);
+                }}
+                onClose={() => setWelcome(false)}
+              />
+            )}
+            {/* Never on a first load: only for students who came back or saved a job. */}
+            <InstallOffer eligible={!welcome && (lastVisit != null || savedCount > 0)} />
             {/* Highlighting "new" only means something when some jobs aren't. */}
             {/* A shared ?since= link keeps its ticket even when everything is new, so the filter stays visible and clearable. */}
             {newMode === "since" && sinceDay && (sinceCount < jobs.length || !!filters.since) && (

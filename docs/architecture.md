@@ -20,28 +20,25 @@ flowchart LR
   end
   subgraph SB["Supabase (Postgres + PostgREST)"]
     P[("production<br/>jobs, fetch_runs")]
-    S[("staging<br/>jobs, fetch_runs")]
   end
   subgraph V["Vercel (static CDN)"]
     PROD["dresden-jobs.vercel.app<br/>(main)"]
-    PREV["previews: staging + every PR<br/>(login, noindex)"]
+    PREV["PR previews, not part of the flow<br/>(login, noindex)"]
   end
   R["Render (legacy)<br/>forwards to Vercel"]
   U(("Student's browser"))
 
   E & A --> F
   F -- "service-role key, writes" --> P
-  F -- "service-role key, writes" --> S
   U -- "HTML/JS" --> PROD
   U -- "read-only REST, publishable key" --> P
-  PREV -. reads .-> S
   R -. redirect .-> PROD
 ```
 
 Three properties define the design:
 - **Static site, no server.** Next.js is exported to static files and served from Vercel's CDN. All job rendering happens in the browser, which reads the data directly from Supabase with a public, read-only key.
 - **One writer.** Only the fetcher writes to the database, once a day, from a GitHub Action holding the service-role key. Nothing a visitor does can change shared data.
-- **Free tiers only.** Vercel Hobby, Supabase Free (two projects), GitHub Actions. `docs/capacity.md` shows this holds for 5,000 users at today's size.
+- **Free tiers only.** Vercel Hobby, Supabase Free (one project in use), GitHub Actions. `docs/capacity.md` shows this holds for 5,000 users at today's size.
 
 ## 2. Components
 
@@ -94,7 +91,7 @@ flowchart LR
 - **State lives in the URL** (`lib/filters.ts`): the board in the path (`/berlin/`, `/remote/`; old `city` links redirect), `q` (search), `type`, `field`, `en` (English-friendly), `de` (German B2 is enough), `new` (fresh this week), `hours`, `since`, `sort`, `company` (one employer) and the open job (`job`). Component state is the source of truth and is mirrored to the URL after 250 ms.
 - **State in the browser only** (no accounts, no cookies): bookmarks (`dsj:bookmarks:v1`, whole job objects so closed jobs still show), application status (`dsj:applications:v1`), saved searches (`dsj:searches:v1`), hidden jobs (`dsj:hidden:v1`), theme (`dsj:theme`), last visit (`dsj:lastVisit`: newest job seen and visit times; a new visit starts after 30 minutes without a page load).
 - **Design system:** CSS variables in `app/globals.css` exposed as Tailwind tokens; dark mode via a `.dark` class set before paint.
-- **Usage counts** (`lib/analytics.ts`): Umami Cloud, cookieless, tracker served from our own pinned copy, loaded only when `NEXT_PUBLIC_UMAMI_WEBSITE_ID` is set at build time (Vercel Production only, so staging, PRs and local builds send nothing). Page views without query strings or hashes, Do Not Track respected. Events: `filter` (which filter was turned on, via `filterEvents()`; a search counts as `search`, never its text) and `apply` (the link's source). No job ids or free text are ever sent.
+- **Usage counts** (`lib/analytics.ts`): Umami Cloud, cookieless, tracker served from our own pinned copy, loaded only when `NEXT_PUBLIC_UMAMI_WEBSITE_ID` is set at build time (Vercel Production only, so PR previews and local builds send nothing). Page views without query strings or hashes, Do Not Track respected. Events: `filter` (which filter was turned on, via `filterEvents()`; a search counts as `search`, never its text) and `apply` (the link's source). No job ids or free text are ever sent.
 - **Legal pages:** operator name, address and email come from Vercel environment variables (`NEXT_PUBLIC_OPERATOR_*`), never from the repo. The pages are noindex.
 
 ## 3. Data model (`supabase/schema.sql`)
@@ -142,23 +139,24 @@ Every link of every job gets a state, then every job a verdict.
 
 ## 5. Environments and delivery
 
-| | Development | Staging | Production |
-|---|---|---|---|
-| Code | feature branch | `staging` branch | `main` branch |
-| Site | `npm run dev` / local build | Vercel preview (login, noindex, STAGING banner) | dresden-jobs.vercel.app |
-| Database | staging Supabase | staging Supabase | production Supabase |
-| Who writes data | developer's local fetch (staging only) | daily Action + manual runs | **only** the scheduled/dispatched Action with `ALLOW_PRODUCTION_WRITE=1` |
+| | Development | Production |
+|---|---|---|
+| Code | feature branch | `main` branch |
+| Site | `npm run dev` / local build | dresden-jobs.vercel.app |
+| Database | `web/public/jobs.json` (or the project in `web/.env.local`) | production Supabase |
+| Who writes data | developer's local fetch (never production) | **only** the scheduled/dispatched Action with `ALLOW_PRODUCTION_WRITE=1` |
 
-**Flow:** feature branch → PR into `staging` → release PR `staging` → `main` (merge commit). Both branches are protected: a PR with "Fetcher tests" and "Website checks" green, admins included, no force-push.
+There is no staging environment (production only since 2026-11-17). Vercel still builds a preview per PR (login, noindex, STAGING banner via `NEXT_PUBLIC_DEPLOY_ENV`, reading whatever Supabase project the Preview environment points at), but previews aren't part of the flow.
+
+**Flow:** feature branch → review team (the author never approves their own change) → PR into `main` with CI green → merge commit (never squash) → production fetch and check. `main` is protected: a PR with "Fetcher tests" and "Website checks" green, admins included, no force-push.
 
 **Guards that don't rely on discipline:**
 - `main.py` refuses to write to the production project without `ALLOW_PRODUCTION_WRITE`, so local runs can't touch production.
-- Separate secrets per database, no fallback between them.
-- Schema changes are applied to staging first and to production right before the release merge (`/release` step 7).
+- Schema changes go into production via the Supabase MCP before the merge.
 
 **CI** (`ci.yml`): pytest; web lint, type-check, vitest, and Playwright smoke tests against a static build with fixture data. Actions are pinned to commit SHAs; Python dependencies install from a hashed lock (`fetcher/requirements.lock`).
 
-**Daily fetch** (`update-jobs.yml`): runs the tests, then fetches into both databases (matrix). Manual dispatch defaults to staging.
+**Daily fetch** (`update-jobs.yml`): runs the tests, then fetches into the production database. The staging Supabase project and `STAGING_*` secrets are no longer used.
 
 **Rollback:** the site rolls back instantly in Vercel by promoting the previous deployment; the fetcher by reverting the merge. Schema changes are additive and nullable, so old code keeps working.
 
@@ -170,7 +168,7 @@ Every link of every job gets a state, then every job a verdict.
 - **Strict script policy per page** (`web/scripts/csp.mjs`, runs after `next build`): every exported page gets a `<meta http-equiv="Content-Security-Policy">` with `script-src 'self'` plus a sha256 hash of each inline script on that page (Next.js inlines different ones per page), and `connect-src` limited to us, the build's Supabase origin and, with analytics on, `gateway.umami.is`. An injected script can't run and can't send data elsewhere. The e2e tests build the same way, so a blocked script fails CI.
 - **Supply chain:** SHA-pinned actions, hashed Python lock checked by `pip-audit` in CI, `npm audit` clean, PRs from forks get no secrets.
 - **Privacy:** no accounts, no cookies, no cross-site tracking. Browser storage stays on the device; the privacy page lists every key. No third-party code runs on the site: the Umami tracker is a pinned copy served from our own origin (`web/public/vendor/umami.js`), on in production only, and only sends anonymous totals to Umami; the privacy page shows its section only when it's on.
-- **Red team:** Kevin attacks once per sprint before the release; results in `docs/security.md`.
+- **Red team:** Kevin attacks once per sprint, read-only against production (anonymous write attempts must be refused; he never writes real data); results in `docs/security.md`.
 
 ## 7. Key decisions
 
@@ -184,7 +182,7 @@ Every link of every job gets a state, then every job a verdict.
 | No accounts | Browser bookmarks cover the need; accounts add GDPR, security and support cost | Students ask for cross-device sync (preconditions in `docs/backlog.md`) |
 | Vercel over Render | Free previews per branch/PR and 100 GB bandwidth vs 5 GB | Commercial use (Hobby is non-commercial) |
 | Umami Cloud for usage counts | Cookieless and free (Hobby, ~100k events/month), counts custom events; Vercel Analytics counts events only on Pro, GoatCounter is free only for non-commercial use | Above the free limit, or once the site is commercial (Umami's paid plan or self-hosting) |
-| Two Supabase projects | Staging data can never touch production | — |
+| Production only, no staging | Solo devs; CI, review and the `ALLOW_PRODUCTION_WRITE` guard protect production | The team grows |
 
 ## 8. Known limits
 
