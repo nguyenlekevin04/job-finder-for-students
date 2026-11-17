@@ -179,11 +179,13 @@ def safe_link(source: str, url: str) -> bool:
     return any(host == h or host.endswith("." + h) for h in allowed)
 
 
-def health_problems(status: dict, sources: list = SOURCES) -> list[str]:
+def health_problems(status: dict, sources: list = SOURCES, previous: dict | None = None) -> list[str]:
     """Sources that look broken: they failed, or found nothing although they normally do.
 
     A scraper whose site changed usually returns 0 postings instead of failing, so an
-    empty result counts too, unless the source sets MAY_BE_EMPTY.
+    empty result counts too, unless the source sets MAY_BE_EMPTY. A failure counts only when
+    the source also failed in the previous run (`previous` = its fetch_runs status): a one-off
+    timeout or rate limit leaves its jobs unconfirmed and costs nothing (2026-11-17).
     """
     may_be_empty = {s.NAME for s in sources if getattr(s, "MAY_BE_EMPTY", False)}
     problems = []
@@ -191,7 +193,10 @@ def health_problems(status: dict, sources: list = SOURCES) -> list[str]:
         if s.get("skipped"):
             continue
         if not s["ok"]:
-            problems.append(f"{name} failed: {s.get('error', '')}")
+            if previous is not None and (previous.get(name) or {}).get("ok"):
+                print(f"::warning title=Job source hiccup::{name} failed once: {s.get('error', '')}")
+            else:
+                problems.append(f"{name} failed: {s.get('error', '')}")
         elif s["count"] == 0 and name not in may_be_empty:
             problems.append(f"{name} returned no postings (did the site change?)")
         if s.get("rejected"):
@@ -339,6 +344,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"All sources failed – leaving {store.name} untouched.")
         return 1
 
+    last_status = store.last_status()  # before save() adds today's run
     closed = store.closed()  # None while the closed_jobs table is missing
     result = decide(
         previous=drop_unsafe_links(store.previous()),
@@ -379,7 +385,7 @@ def main(argv: list[str] | None = None) -> int:
             # Only the error type: the text can hold a subscriber's push URL, and the logs are public.
             print(f"::warning title=Alerts not sent::{type(err).__name__}")
 
-    problems = health_problems(status) + result.problems
+    problems = health_problems(status, previous=last_status) + result.problems
     if problems:
         for p in problems:
             print(f"::error title=Job source problem::{p}")  # shows up as an annotation in GitHub Actions

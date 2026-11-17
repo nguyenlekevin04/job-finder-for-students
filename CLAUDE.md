@@ -14,10 +14,10 @@ GitHub Action (daily) ─▶ fetcher/ (Python) ─writes─▶ Supabase Postgres
                               Vercel (static): web/ (Next.js export) ─fetch() in browser
 ```
 
-- **Environments:** dev (local) and staging both use the **staging** Supabase project. Production (`main`) uses the production project. Branch flow: feature → PR into `staging` → PR `staging` → `main`; both are protected and need CI.
-- `.github/workflows/ci.yml`: fetcher tests, plus website lint / tsc / vitest / build, on every PR and on pushes to `main` / `staging`.
-- `.github/workflows/update-jobs.yml`: the daily schedule fetches into both databases (matrix); manual dispatch picks one. Production uses `SUPABASE_*` secrets plus `ALLOW_PRODUCTION_WRITE=1`; staging uses `STAGING_SUPABASE_*`, with no fallback. `main.py` refuses to write to `PRODUCTION_PROJECT_REF` without that flag, so local runs can never touch production.
-- Hosting is **Vercel** (project root `web/`, config `web/vercel.json`). Production deploys from `main`; previews (the `staging` branch and every PR) use the staging project plus `NEXT_PUBLIC_DEPLOY_ENV=staging`, which adds a STAGING banner and noindex. `NEXT_PUBLIC_*` values are inlined at **build time**, so redeploy after changing them. `render.yaml` is the legacy Render site, kept only to forward its old address.
+- **Production only** (user, 2026-11-17: "we don't need staging as solo devs"): feature branch → PR into `main` → CI → merge → production. No staging step. Production schema changes go in via the Supabase MCP before merge. Local runs without `SUPABASE_*` write `web/public/jobs.json`; `main.py` still refuses to write to `PRODUCTION_PROJECT_REF` without `ALLOW_PRODUCTION_WRITE`.
+- `.github/workflows/ci.yml`: fetcher tests, plus website lint / tsc / vitest / build, on every PR and on pushes to `main`.
+- `.github/workflows/update-jobs.yml`: daily fetch into production (`SUPABASE_*` secrets plus `ALLOW_PRODUCTION_WRITE=1`, `VAPID_PRIVATE_KEY` for alerts); the button runs it on demand. HTTP retries pause longer on 429/5xx (`net._backoff`, Retry-After), a broken JSON reply gets one more try, and a source that fails only once (it was fine in the previous `fetch_runs` row) is a warning, not an alarm.
+- Hosting is **Vercel** (project root `web/`, config `web/vercel.json`). Production deploys from `main`; PR previews exist but aren't part of the flow. `NEXT_PUBLIC_*` values are inlined at **build time**, so redeploy after changing them. `render.yaml` is the legacy Render site, kept only to forward its old address.
 - `docs/capacity.md` covers free-tier limits for 5,000 users and the switch point: at 100 jobs, or above 2.5 GB/month of Supabase egress, serve the job list from the CDN.
 - `supabase/schema.sql` is the source of truth for tables and RLS (anon = select only; the fetcher uses the service_role / secret key, which bypasses RLS). Re-runnable.
 - **Local fallback:** with no Supabase env vars, the fetcher writes `web/public/jobs.json` (git-ignored) and the site reads it. Both paths must keep working.
@@ -109,7 +109,7 @@ The user calls these by name; start them only when asked or when `/feature` or `
   - Analyses the real page when asked and discusses proposals with the tech lead, who decides what gets implemented.
   - Doesn't edit code.
 - **Kevin (`kevin`): ethical hacker (red team).**
-  - Attacks our own system (staging for anything that writes, production read-only) and reports findings with proof.
+  - Attacks our own system (production read-only; write attempts only as anon, which must be refused) and reports findings with proof.
   - Run with `/hackerattack [focus]` once per sprint before the release, and before logins or new secrets: Kevin attacks → the tech lead triages → the review team fixes and verifies against his proof. Kevin isn't part of code or release review. Results go to `docs/security.md`.
 - **Review team: staff engineers.**
   - `code-reviewer` is read-only and covers bugs, security and code quality in existing code, never missing features.
@@ -117,6 +117,6 @@ The user calls these by name; start them only when asked or when `/feature` or `
 
 **End of every sprint:** the review team removes dead code before the release (`docs/workflow.md`).
 
-**Flow:** `docs/workflow.md` is the source of truth (run it with `/feature <idea>` and `/release`). In short: Otto states the want → the tech lead designs → Iris and the tech lead agree on UX → the tech lead builds → the review team reviews (the author never approves their own change) → PR into `staging` → Iris, the review team and Otto test staging → the shareholder (the user) gives the OK → release PR `staging` → `main` with a merge commit, never squash.
+**Flow** (production only since 2026-11-17): Otto states the want → the tech lead designs and builds → the review team reviews (the author never approves their own change), Kevin attacks once per sprint, dead-code sweep at sprint end → PR into `main` with CI green → merge (merge commit, never squash) → production fetch and check. `docs/workflow.md` describes the older staging flow.
 
 New agent files only load as agent types after a session restart. Until then, run them as general-purpose agents told to follow their file.

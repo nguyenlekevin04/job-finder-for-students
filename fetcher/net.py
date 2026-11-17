@@ -32,8 +32,22 @@ def _request(url: str, *, headers: dict | None = None, params: dict | None = Non
         except requests.RequestException as err:
             last_err = err
             if attempt < retries:
-                time.sleep(1 + attempt)
+                time.sleep(_backoff(err, attempt))
     raise last_err  # type: ignore[misc]
+
+
+BUSY = {429, 502, 503, 504}  # "too many requests" or a gateway hiccup: worth a longer pause
+
+
+def _backoff(err: Exception, attempt: int) -> float:
+    """Seconds to wait before the next try: the server's Retry-After (capped) when it is busy."""
+    res = getattr(err, "response", None)
+    if res is not None and res.status_code in BUSY:
+        try:
+            return min(float(res.headers.get("Retry-After", "")), 30.0)
+        except ValueError:
+            return 5.0 * (attempt + 1)
+    return 1.0 + attempt
 
 
 def status_code(url: str, *, headers: dict | None = None, timeout: int = 15) -> int | None:
@@ -47,13 +61,22 @@ def status_code(url: str, *, headers: dict | None = None, timeout: int = 15) -> 
         return None
 
 
+def _json(url: str, **kw):
+    """The JSON reply; an empty or broken body (seen from Workday, 2026-11-14) gets one more try."""
+    try:
+        return _request(url, **kw).json()
+    except ValueError:
+        time.sleep(3)
+        return _request(url, **kw).json()
+
+
 def get_json(url: str, **kw):
-    return _request(url, **kw).json()
+    return _json(url, **kw)
 
 
 def post_json(url: str, body: dict, **kw):
     """POST a JSON body and return the JSON reply (search APIs like Workday need this)."""
-    return _request(url, json_body=body, **kw).json()
+    return _json(url, json_body=body, **kw)
 
 
 def get_text(url: str, **kw) -> str:

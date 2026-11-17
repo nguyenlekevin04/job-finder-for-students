@@ -5,11 +5,6 @@ on:
     - cron: "0 5 * * *" # daily, 06:00 Berlin in winter / 07:00 in summer
   workflow_dispatch: # "Run workflow" button in the Actions tab
     inputs:
-      target:
-        description: Which database to update
-        type: choice
-        options: [staging, production]
-        default: staging
       accept_removals:
         description: "Source names whose large removal you approve for this run, comma-separated (e.g. HZDR)"
         type: string
@@ -19,18 +14,13 @@ permissions:
   contents: read
 
 jobs:
+  # Production only (2026-11-17): the team ships straight to production, so no staging copy.
   fetch:
-    # The schedule updates both databases (it also keeps the free staging project
-    # from pausing); the button updates the one you pick.
-    strategy:
-      fail-fast: false
-      matrix:
-        target: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.target)) || fromJSON('["production","staging"]') }}
-    name: Fetch (${{ matrix.target }})
+    name: Fetch (production)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:
-      group: update-jobs-${{ matrix.target }}
+      group: update-jobs-production
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -48,10 +38,7 @@ jobs:
       - name: Test fetcher
         run: python -m pytest fetcher/tests -q
 
-      # Separate secret names per database, and no fallback between them: a missing
-      # staging secret must fail the run, never write staging data to production.
       - name: Fetch jobs into the production database
-        if: matrix.target == 'production'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -59,12 +46,4 @@ jobs:
           ACCEPT_REMOVALS: ${{ inputs.accept_removals }}
           # Signs the job alerts (web push); production only, so staging never notifies anyone.
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-        run: python fetcher/main.py --require-db
-
-      - name: Fetch jobs into the staging database
-        if: matrix.target == 'staging'
-        env:
-          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-          ACCEPT_REMOVALS: ${{ inputs.accept_removals }}
         run: python fetcher/main.py --require-db
